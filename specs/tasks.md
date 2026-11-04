@@ -6,12 +6,13 @@
 
 ## Fase 0 · Setup
 
-- [ ] **T-01 · Dependencias y build** — (base)
+- [x] **T-01 · Dependencias y build** — (base)
   - `git init` + `.gitignore` revisado; primer commit con el proyecto tal cual.
   - Añadir a `libs.versions.toml`: KSP, Hilt, hilt-navigation-compose, Room, kotlinx-serialization, navigation-compose, lifecycle-runtime/viewmodel-compose, Truth, Turbine, coroutines-test, Robolectric, room-testing. Actualizar Compose BOM y Kotlin (D-18).
   - JVM target 17. Plugins `kotlin.serialization`, `ksp`, `hilt`, `room`. Verificar compatibilidad con AGP 9 (riesgo K-1) y anotar versiones en `design.md` §2.
   - Test `TestStackSmokeTest` (Truth + Turbine + coroutines-test + serialization).
   - ✅ `assembleDebug`, `testDebugUnitTest` y `lintDebug` pasan.
+  - _Hecho:_ stack verificado con AGP 9.1.1 + Kotlin 2.3.21 + KSP 2.3.13 + Hilt 2.60.1. Las últimas AndroidX exigían `compileSdk 37`; se bajaron a las más nuevas compatibles con 36 (D-20). Smoke test en verde, lint sin errores.
 - [ ] **T-02 · Esqueleto de Hilt y paquetes** — (base)
   - `RutinifyApp` `@HiltAndroidApp`, `MainActivity` `@AndroidEntryPoint`, módulos `TimeModule` (`Clock`, `ZoneProvider`), `DispatchersModule` (`@IoDispatcher`, `@DefaultDispatcher`), `CoroutineScopeModule` (`@ApplicationScope`).
   - Crear la estructura de paquetes de `CLAUDE.md` §3. Borrar `Greeting` de la plantilla.

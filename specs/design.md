@@ -45,7 +45,7 @@ se puede reconstruir en cualquier momento (`RescheduleAllUseCase`) de forma idem
 | Persistencia | Room (runtime, ktx, compiler vía KSP), esquema exportado en `app/schemas/` |
 | JSON | kotlinx.serialization-json (se usa `JsonElement`, ver §4.3) |
 | Navegación | Navigation Compose con rutas type-safe (`@Serializable`) |
-| Compose | BOM actualizado a la última estable (el proyecto trae `2024.09.00`) |
+| Compose | BOM: la última estable compatible con `compileSdk 36` (ver D-20) |
 | Tests | JUnit4, Truth, Turbine, kotlinx-coroutines-test, Robolectric, Room testing, Kover |
 
 Versiones fijadas en T-01 (`gradle/libs.versions.toml`):
@@ -54,11 +54,12 @@ Versiones fijadas en T-01 (`gradle/libs.versions.toml`):
 |---|---|---|
 | KSP | 2.3.13 | desde 2.3.0 se versiona aparte de Kotlin; ≥ 2.3.1 soporta el Kotlin integrado de AGP 9 |
 | Hilt (Dagger) | 2.60.1 | ≥ 2.59 exige AGP 9; 2.60 sube el minSdk de Hilt a 23 |
-| androidx.hilt (navigation-compose) | 1.4.0 | |
+| androidx.hilt (navigation-compose) | 1.3.0 | 1.4.0 exige `compileSdk 37` (D-20) |
 | Room (+ plugin `androidx.room`) | 2.8.5 | esquemas en `app/schemas` |
-| Navigation | 2.10.2 | |
-| Lifecycle | 2.11.0 | |
-| Compose BOM | 2026.09.00 | |
+| Navigation | 2.9.8 | 2.10.x exige `compileSdk 37` (D-20) |
+| Lifecycle | 2.10.0 | 2.11.0 exige `compileSdk 37` (D-20) |
+| Compose BOM | 2026.06.01 | Compose 1.11.4 / Material3 1.4.0; Compose 1.12 (BOM ≥ 2026.08) exige `compileSdk 37` (D-20) |
+| core-ktx | 1.18.0 | 1.19.x exige `compileSdk 37` (D-20) |
 | kotlinx.serialization | 1.11.0 | |
 | Coroutines | 1.10.2 | |
 | Truth / Turbine / Robolectric | 1.4.4 / 1.2.1 / 4.16 | |
@@ -447,6 +448,7 @@ Cobertura: Kover con regla `minBound(80)` sobre `com.mirkwood.rutinify.domain.*`
 | D-17 | Sin `LOCKED_BOOT_COMPLETED` | La BD no está disponible antes del primer desbloqueo. | No |
 | D-18 | Kotlin 2.2.10 → 2.3.21 | Hilt 2.60.1 y kotlinx.serialization 1.11 se compilan con Kotlin 2.3; KSP 2.3.x está pensado para él. | No |
 | D-19 | Kover se añade en T-32, no en T-01 | Reduce el riesgo del setup inicial con AGP 9. | No |
+| D-20 | Se fijan las versiones AndroidX más nuevas compatibles con `compileSdk 36` (Compose BOM 2026.06.01, core 1.18.0, lifecycle 2.10.0, navigation 2.9.8, androidx.hilt 1.3.0) | Las últimas (Compose 1.12, core 1.19, lifecycle 2.11, navigation 2.10, hilt 1.4) declaran `minCompileSdk=37` y `checkDebugAarMetadata` falla; `compileSdk 36` está fijado en CLAUDE.md. Subir a 37 es un cambio aislado cuando se quiera. | No |
 | D-01..D-04 | Aprobadas por Johan el 2026-11-04 | | ✅ |
 
 ## 15. Preparación para v2
