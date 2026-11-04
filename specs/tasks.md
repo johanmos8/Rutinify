@@ -30,9 +30,10 @@
   - `RoutineOrder`, `AlarmItem`, enums de estado, `OrderSummary.displayStatus`, `RoutineDraft`, `DraftItem`.
   - Tests: `displayStatus` (ACTIVE sin pendientes → FINISHED, etc.).
   - _Hecho:_ modelos de design §3 en `domain/model` (Kotlin puro, sin `android.*`), más `OrderWithAlarms` y `DraftOrigin`. 6 tests de `displayStatus`: activa sin pendientes (también con 0 alarmas) → FINISHED; pausada y cancelada no cambian.
-- [ ] **T-05 · Room: entidades, converters y DB** — (R-5.1, design §5)
+- [x] **T-05 · Room: entidades, converters y DB** — (R-5.1, design §5)
   - `RoutineOrderEntity`, `AlarmItemEntity` (FK cascade, índices), `Converters` (`LocalDate`, `LocalTime`, `Instant`, enums), `RutinifyDatabase` v1 con `exportSchema`.
   - Tests (Robolectric, in-memory): insertar/leer, cascade al borrar orden, **AUTOINCREMENT no reutiliza ids** tras borrar.
+  - _Hecho:_ entidades con FK cascade e índices (`date`, `order_id`, `(status, order_id)`), `Converters`, `RutinifyDatabase` v1 con esquema en `app/schemas/`, DAOs mínimos y `DatabaseModule` (D-25, D-26). 12 tests: conversores, lectura completa, cascade, AUTOINCREMENT en ambas tablas y FK que rechaza orden inexistente.
 - [ ] **T-06 · DAOs** — (R-8.1, R-8.2, R-8.6, R-9.1, R-6.1, R-12.1)
   - `OrderDao` (`observeSummaries`, `observeWithAlarms`, `findOpenByDate`, `updateStatus`, `delete`), `AlarmItemDao` (ver design §5).
   - Tests con Turbine: el resumen cuenta pendientes/total y se re-emite al cambiar un estado; orden por fecha desc + creación desc; `getPendingForActiveOrders` excluye pausadas/canceladas.

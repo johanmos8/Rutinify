@@ -455,6 +455,8 @@ Cobertura: Kover con regla `minBound(80)` sobre `com.mirkwood.rutinify.domain.*`
 | D-22 | Paquetes aún vacíos de §3 de CLAUDE.md se versionan con `.gitkeep`, que se borra al añadir el primer fichero | Git no guarda directorios vacíos. | No |
 | D-23 | Las claves de navegación se llaman `XxxDestination` (no `XxxRoute` como decía §10) | CLAUDE.md §4 reserva `XxxRoute` para el composable con estado; con el mismo nombre chocarían en `RutinifyNavHost`. | No |
 | D-24 | Iconos como vector drawables propios (`res/drawable/ic_*.xml`) en vez de `material-icons` | Material3 1.4 ya no trae los iconos; evita añadir una dependencia por 2–3 iconos. | No |
+| D-25 | En T-05 los DAOs solo tienen `insert`/`insertAll`, `getById` y `delete` (los necesarios para probar la BD); T-06 añade el resto de design §5. `DatabaseModule` (Hilt) se añade ya en T-05 | Probar cascade y AUTOINCREMENT sin SQL crudo; el grafo Hilt queda validado en compilación. | No |
+| D-26 | Conversores explícitos para `OrderStatus`/`AlarmStatus` (por `name`) en vez del conversor de enums implícito de Room | El formato en disco queda fijado en código y testeado; renombrar un valor exige migración consciente. | No |
 | D-01..D-04 | Aprobadas por Johan el 2026-11-04 | | ✅ |
 
 ## 15. Preparación para v2
