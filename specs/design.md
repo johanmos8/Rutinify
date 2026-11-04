@@ -173,6 +173,7 @@ data class ValidationIssue(
     val field: String?,             // "time", "routine.name"…
     val kind: IssueKind,
     val received: String? = null,   // valor recibido (recortado a 30 chars)
+    val expected: ValueType? = null, // tipo esperado en WRONG_TYPE: TEXT, WHOLE_NUMBER, OBJECT, LIST (R-3.13, D-31)
     val severity: Severity = Severity.ERROR,
 )
 enum class IssueKind {
@@ -187,10 +188,10 @@ Reglas (→ requisito):
 | Campo | Regla | Resultado |
 |---|---|---|
 | `schemaVersion` | entero == 1 | si no → `UNSUPPORTED_SCHEMA_VERSION`, se aborta el resto (R-3.4) |
-| `routine` | objeto | si falta → `MISSING_FIELD routine` |
+| `routine` | objeto | si falta → `MISSING_FIELD routine`; si no es objeto → `WRONG_TYPE` |
 | `routine.name` | string no vacío (trim) | R-3.5 |
 | `routine.date` | `null`/ausente o `LocalDate.parse` ISO estricto | R-3.6 |
-| `routine.notes` | string opcional | — |
+| `routine.notes` | string opcional; vacío → null | otro tipo → `WRONG_TYPE` |
 | `items` | array no vacío, ≤ 200 | R-3.7, R-3.18 |
 | `time` | regex `^([01]?\d|2[0-3]):[0-5]\d$`, se normaliza a `HH:mm` | R-3.8 |
 | `dayOffset` | ausente/null → 0; entero 0..1 | R-3.11, R-3.15 |
@@ -464,6 +465,7 @@ Cobertura: Kover con regla `minBound(80)` sobre `com.mirkwood.rutinify.domain.*`
 | D-28 | `AlarmItem` de dominio gana `firedAt`/`doneAt` (opcionales), que ya existían en Room | "Deshacer" (R-9.4) reinserta la fila idéntica sin perder esas marcas. No cambia el esquema. | No |
 | D-29 | Los repositorios ponen las marcas de tiempo con el `Clock` inyectado; solo `createOrder` devuelve `Result` (R-5.7), el resto deja pasar excepciones inesperadas al borde (receiver / VM) | Una única fuente de "ahora" testeable; el único fallo de escritura con requisito propio es crear la orden. | No |
 | D-30 | `JsonExtractor`: si los bloques ``` no contienen un objeto válido se busca en todo el texto; un candidato cerrado pero inválido se salta entero y uno sin cerrar avanza un carácter. Devuelve también el texto exacto extraído | Más tolerante sin devolver por error un item suelto de un JSON roto (que daría un error confuso de versión en vez de R-3.3); `raw_json` necesita el texto. | No |
+| D-31 | `ValidationIssue` gana `expected: ValueType?` y `parse(json, draftId)` recibe el id del borrador. `schemaVersion` solo vale como número `1` (no `"1"` ni `1.0`); una fecha no textual es `INVALID_DATE` | R-3.13 pide el tipo esperado; el importer (T-11) genera el UUID, así el parser es determinista en tests; "entero == 1" de §4.3. | No |
 | D-01..D-04 | Aprobadas por Johan el 2026-11-04 | | ✅ |
 
 ## 15. Preparación para v2

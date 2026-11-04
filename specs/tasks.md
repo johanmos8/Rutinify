@@ -48,8 +48,9 @@
 - [x] **T-08 · `JsonExtractor`** — (R-3.1, R-3.3)
   - Tests primero: JSON limpio, ```` ```json ```` fence, fence sin lenguaje, texto antes/después, llaves dentro de strings, strings con `\"`, dos objetos (gana el primero válido), primer candidato roto y segundo válido, sin JSON, BOM.
   - _Hecho:_ `JsonExtractor` en `data/importer` devuelve `ExtractedJson(json, text)` (D-30). 18 tests: todos los casos listados más prioridad del bloque, bloque sin JSON, candidato sin cerrar, no devolver objetos interiores de un candidato inválido, array suelto y comillas tipográficas.
-- [ ] **T-09 · `RoutineJsonParser` — nivel rutina** — (R-3.2, R-3.4, R-3.5, R-3.6, R-3.7, R-3.18)
+- [x] **T-09 · `RoutineJsonParser` — nivel rutina** — (R-3.2, R-3.4, R-3.5, R-3.6, R-3.7, R-3.18)
   - Tests primero con fixtures en `src/test/resources/fixtures/`. `ImportResult`, `ValidationIssue`, `IssueKind`.
+  - _Hecho:_ tipos en `domain/importer` (D-31) y `RoutineJsonParser` con las reglas de rutina; 18 fixtures (incluido `valid_v1.json`, el ejemplo canónico) y 25 tests: versión (ausente, 2, texto, decimal), `routine`, nombre, fecha, notas, `items` (ausente, vacío, no lista, 200/201), acumulación y campos desconocidos. El lector de items ya aplica la tabla §4.3; sus tests van en T-10.
 - [ ] **T-10 · `RoutineJsonParser` — nivel item** — (R-3.8–R-3.15, R-3.16, R-3.17, D-13)
   - Tests primero: cada fila de la tabla design §4.3; tipos erróneos; acumulación de varios errores; warning de título recortado; normalización de categoría; `6:45` → `06:45`; orden por `(dayOffset, time, position)`.
 - [ ] **T-11 · `RoutineImporter` + plantilla** — (R-1.3, R-3.19)

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "routine": {
+    "name": "Rutina del cachorro",
+    "date": null,
+    "notes": "Primer día en casa"
+  },
+  "items": [
+    {
+      "time": "06:45",
+      "dayOffset": 0,
+      "title": "Sacar a hacer pis",
+      "description": "Paseo corto en el jardín",
+      "durationMin": 10,
+      "category": "paseo",
+      "assignee": "Johan"
+    }
+  ]
+}

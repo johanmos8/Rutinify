@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "routine": {
+    "name": "Rutina del cachorro",
+    "date": "2026-11-05",
+    "notes": "Primer día en casa",
+    "timezone": "America/Bogota"
+  },
+  "items": [
+    {
+      "time": "06:45",
+      "dayOffset": 0,
+      "title": "Sacar a hacer pis",
+      "description": "Paseo corto en el jardín",
+      "durationMin": 10,
+      "category": "paseo",
+      "assignee": "Johan",
+      "emoji": "🐶"
+    }
+  ],
+  "generatedBy": "IA"
+}
