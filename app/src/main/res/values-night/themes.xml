@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Ventana oscura en modo noche para evitar el destello blanco al arrancar (R-13.4) -->
+    <style name="Theme.Rutinify" parent="android:Theme.Material.NoActionBar" />
+</resources>

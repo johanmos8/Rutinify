@@ -19,9 +19,10 @@
   - `MainDispatcherRule` y `ui/preview/PreviewData.kt` vacíos listos para tests/previews.
   - ✅ La app arranca con una pantalla vacía.
   - _Hecho:_ `RutinifyApp`/`MainActivity` con Hilt, módulos de tiempo, dispatchers y `@ApplicationScope`; paquetes creados (D-21, D-22). Tests de `SystemZoneProvider` (zona leída en cada llamada) y `MainDispatcherRule`. Verificado en emulador API 36: arranca sin crash con pantalla vacía.
-- [ ] **T-03 · Navegación base** — (R-8.4)
+- [x] **T-03 · Navegación base** — (R-8.4)
   - Rutas `@Serializable` (§10 de design), `RutinifyNavHost` con pantallas placeholder, tema M3 claro/oscuro.
   - ✅ Se puede navegar Home → NewRoutine → atrás.
+  - _Hecho:_ `Destinations.kt` (D-23), `RutinifyNavHost` con Inicio (FAB "Nueva rutina"), Nueva rutina y placeholders para Revisión/Detalle/Permisos; previews claro/oscuro con `@ThemePreviews`; ventana oscura en `values-night`. Tests Robolectric de navegación (FAB, flecha y back del sistema) y de serialización de rutas; verificado en emulador API 36.
 
 ## Fase 1 · Modelo y persistencia
 

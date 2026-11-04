@@ -359,13 +359,14 @@ Denegación permanente de notificaciones → `Settings.ACTION_APP_NOTIFICATION_S
 
 Rutas type-safe:
 ```kotlin
-@Serializable object HomeRoute
-@Serializable object NewRoutineRoute
-@Serializable data class ReviewRoute(val draftId: String)
-@Serializable data class OrderDetailRoute(val orderId: Long, val highlightAlarmId: Long? = null)
-@Serializable object PermissionsRoute
+// ui/navigation/Destinations.kt — sufijo Destination para no chocar con los composables XxxRoute (D-23)
+@Serializable data object HomeDestination
+@Serializable data object NewRoutineDestination
+@Serializable data class ReviewDestination(val draftId: String)
+@Serializable data class OrderDetailDestination(val orderId: Long, val highlightAlarmId: Long? = null)
+@Serializable data object PermissionsDestination
 ```
-Deep link `rutinify://order/{orderId}?alarm={highlightAlarmId}` → `OrderDetailRoute` (R-7.6).
+Deep link `rutinify://order/{orderId}?alarm={highlightAlarmId}` → `OrderDetailDestination` (R-7.6).
 
 ```
 Home ──FAB──► NewRoutine ──Validar ok──► Review ──Programar──► OrderDetail (popUpTo Home)
@@ -423,6 +424,7 @@ Cobertura: Kover con regla `minBound(80)` sobre `com.mirkwood.rutinify.domain.*`
 | lifecycle-runtime-compose, lifecycle-viewmodel-compose | `collectAsStateWithLifecycle`, `LifecycleEventEffect`. |
 | Truth, Turbine, kotlinx-coroutines-test | Exigidos por la spec de tests. |
 | Robolectric | Ejecutar tests de Room in-memory, `AlarmManager` y receivers en JVM con `./gradlew test`, sin emulador, para que la DoD sea verificable en cada tarea. |
+| Compose ui-test-junit4 (también en `testImplementation`) | Tests de navegación/Compose en JVM con Robolectric, sin emulador. Ya estaba en el catálogo para `androidTest`. |
 | Kover | Medir y forzar la cobertura ≥ 80 % (más simple de configurar que JaCoCo con AGP 9). |
 
 ## 14. Registro de decisiones
@@ -451,6 +453,8 @@ Cobertura: Kover con regla `minBound(80)` sobre `com.mirkwood.rutinify.domain.*`
 | D-20 | Se fijan las versiones AndroidX más nuevas compatibles con `compileSdk 36` (Compose BOM 2026.06.01, core 1.18.0, lifecycle 2.10.0, navigation 2.9.8, androidx.hilt 1.3.0) | Las últimas (Compose 1.12, core 1.19, lifecycle 2.11, navigation 2.10, hilt 1.4) declaran `minCompileSdk=37` y `checkDebugAarMetadata` falla; `compileSdk 36` está fijado en CLAUDE.md. Subir a 37 es un cambio aislado cuando se quiera. | No |
 | D-21 | `ZoneProvider` es una `fun interface` en `domain/time`; su implementación `SystemZoneProvider` vive en `data/system`. Los qualifiers (`@IoDispatcher`, `@DefaultDispatcher`, `@ApplicationScope`) están en `di/Qualifiers.kt`; `MainDispatcherRule` en `src/test/.../testutil` | Dominio sin dependencias de implementación; un único sitio para qualifiers y utilidades de test. | No |
 | D-22 | Paquetes aún vacíos de §3 de CLAUDE.md se versionan con `.gitkeep`, que se borra al añadir el primer fichero | Git no guarda directorios vacíos. | No |
+| D-23 | Las claves de navegación se llaman `XxxDestination` (no `XxxRoute` como decía §10) | CLAUDE.md §4 reserva `XxxRoute` para el composable con estado; con el mismo nombre chocarían en `RutinifyNavHost`. | No |
+| D-24 | Iconos como vector drawables propios (`res/drawable/ic_*.xml`) en vez de `material-icons` | Material3 1.4 ya no trae los iconos; evita añadir una dependencia por 2–3 iconos. | No |
 | D-01..D-04 | Aprobadas por Johan el 2026-11-04 | | ✅ |
 
 ## 15. Preparación para v2

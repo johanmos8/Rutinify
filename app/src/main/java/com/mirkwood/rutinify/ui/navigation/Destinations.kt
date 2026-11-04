@@ -1,0 +1,20 @@
+package com.mirkwood.rutinify.ui.navigation
+
+import kotlinx.serialization.Serializable
+
+// Claves de navegación type-safe (design §10, D-23)
+
+@Serializable
+data object HomeDestination
+
+@Serializable
+data object NewRoutineDestination
+
+@Serializable
+data class ReviewDestination(val draftId: String)
+
+@Serializable
+data class OrderDetailDestination(val orderId: Long, val highlightAlarmId: Long? = null)
+
+@Serializable
+data object PermissionsDestination
