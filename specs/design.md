@@ -98,6 +98,8 @@ data class AlarmItem(
     val status: AlarmStatus,
     val snoozedUntil: Instant?,       // si no es null, manda sobre la hora calculada
     val statusChangedAt: Instant,
+    val firedAt: Instant? = null,     // reflejo de las columnas fired_at / done_at (D-28)
+    val doneAt: Instant? = null,
 )
 enum class AlarmStatus { PENDING, FIRED, DONE, SKIPPED, CANCELLED }
 
@@ -243,7 +245,7 @@ Se acumulan errores hasta el final; la UI muestra 20 como máximo (R-3.16).
 
 - `OrderDao`: `observeSummaries(): Flow<List<OrderSummaryRow>>` (LEFT JOIN + `SUM(CASE WHEN status='PENDING')`, órdenes sin alarmas incluidas), `observeWithAlarms(id): Flow<OrderWithAlarmsRow?>` (`@Relation`), `findOpenByDate(date)` (ACTIVE o PAUSED), `insert`, `getById`, `updateStatus(id, status, at)`, `delete`.
 - `AlarmItemDao`: `insertAll`, `getById`, `getPendingForActiveOrders(): List<PendingAlarmRow>` (alarma + `order_date`, para calcular el disparo), `getPendingByOrder(id)`, `updateStatus(ids, status, at)` (rellena `fired_at`/`done_at` al pasar a FIRED/DONE), `snooze(id, until, at)` (vuelve a PENDING), `delete(id)`, `insert(entity)` (deshacer).
-- Operaciones compuestas (crear orden + alarmas, reemplazar) en `@Transaction` dentro del repositorio.
+- Operaciones compuestas (crear orden + alarmas, reemplazar) en una transacción (`withTransaction`) dentro del repositorio: `OrderRepository.createOrder(order, alarms, replaceOrderIds)` → `Result<CreatedOrder>` (orden, alarmas con ids y ids de alarmas canceladas por el reemplazo). Si falla, se deshace todo y devuelve `Result.failure` (R-5.7).
 
 ## 6. Scheduler
 
@@ -458,6 +460,8 @@ Cobertura: Kover con regla `minBound(80)` sobre `com.mirkwood.rutinify.domain.*`
 | D-25 | En T-05 los DAOs solo tienen `insert`/`insertAll`, `getById` y `delete` (los necesarios para probar la BD); T-06 añade el resto de design §5. `DatabaseModule` (Hilt) se añade ya en T-05 | Probar cascade y AUTOINCREMENT sin SQL crudo; el grafo Hilt queda validado en compilación. | No |
 | D-26 | Conversores explícitos para `OrderStatus`/`AlarmStatus` (por `name`) en vez del conversor de enums implícito de Room | El formato en disco queda fijado en código y testeado; renombrar un valor exige migración consciente. | No |
 | D-27 | `observeWithAlarms` no ordena las alarmas (`@Relation` no lo permite); el repositorio las ordena por `(dayOffset, time, position)` al mapear a dominio (T-07). `getPendingForActiveOrders` devuelve también la fecha de la orden | Mantener el `@Relation` de §5; `RescheduleAll` necesita la fecha para calcular el disparo sin otra consulta. | No |
+| D-28 | `AlarmItem` de dominio gana `firedAt`/`doneAt` (opcionales), que ya existían en Room | "Deshacer" (R-9.4) reinserta la fila idéntica sin perder esas marcas. No cambia el esquema. | No |
+| D-29 | Los repositorios ponen las marcas de tiempo con el `Clock` inyectado; solo `createOrder` devuelve `Result` (R-5.7), el resto deja pasar excepciones inesperadas al borde (receiver / VM) | Una única fuente de "ahora" testeable; el único fallo de escritura con requisito propio es crear la orden. | No |
 | D-01..D-04 | Aprobadas por Johan el 2026-11-04 | | ✅ |
 
 ## 15. Preparación para v2

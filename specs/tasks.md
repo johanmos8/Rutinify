@@ -38,9 +38,10 @@
   - `OrderDao` (`observeSummaries`, `observeWithAlarms`, `findOpenByDate`, `updateStatus`, `delete`), `AlarmItemDao` (ver design §5).
   - Tests con Turbine: el resumen cuenta pendientes/total y se re-emite al cambiar un estado; orden por fecha desc + creación desc; `getPendingForActiveOrders` excluye pausadas/canceladas.
   - _Hecho:_ consultas de design §5 en `OrderDao` y `AlarmItemDao` con filas `OrderSummaryRow`, `OrderWithAlarmsRow` y `PendingAlarmRow` (D-27). 15 tests nuevos: recuentos, re-emisión al cambiar alarma u orden, orden R-8.1, conflicto por fecha, pendientes de activas, `updateStatus` con `fired_at`/`done_at`, snooze y reinserción con el mismo id.
-- [ ] **T-07 · Repositorios** — (R-5.1, R-5.7)
+- [x] **T-07 · Repositorios** — (R-5.1, R-5.7)
   - Interfaces en `domain/repository`, implementaciones en `data/repository` con mapeo entity↔dominio y operaciones `@Transaction` (crear orden con alarmas, reemplazar).
   - Tests: creación atómica (si falla un insert, no queda nada), mapeos.
+  - _Hecho:_ `OrderRepository`/`AlarmRepository` en dominio; implementaciones con mapeos y `createOrder` transaccional que también resuelve el reemplazo (R-6.2), binding Hilt. 15 tests: fallo de alarmas o de reemplazo no deja nada escrito, reemplazo cancela solo pendientes, orden de la línea de tiempo, restauración idéntica (D-28, D-29).
 
 ## Fase 2 · Importación (TDD)
 

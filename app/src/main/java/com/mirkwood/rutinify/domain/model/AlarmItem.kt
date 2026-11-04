@@ -26,6 +26,8 @@ data class AlarmItem(
     /** Si no es null, manda sobre la hora calculada (D-12). */
     val snoozedUntil: Instant?,
     val statusChangedAt: Instant,
+    val firedAt: Instant? = null,
+    val doneAt: Instant? = null,
 )
 
 /** Transiciones en design §3. Eliminar una alarma la borra; no es un estado. */
