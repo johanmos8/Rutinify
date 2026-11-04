@@ -15,7 +15,7 @@ import com.mirkwood.rutinify.ui.common.BackTopAppBar
 import com.mirkwood.rutinify.ui.preview.ThemePreviews
 import com.mirkwood.rutinify.ui.theme.RutinifyTheme
 
-/** Nueva rutina provisional. El campo de texto y la validación llegan en T-21. */
+/** Temporary New routine screen. The text field and validation arrive in T-21. */
 @Composable
 fun NewRoutineScreen(
     onBack: () -> Unit,

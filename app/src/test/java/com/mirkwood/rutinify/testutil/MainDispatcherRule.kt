@@ -9,7 +9,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.rules.TestWatcher
 import org.junit.runner.Description
 
-/** Sustituye `Dispatchers.Main` por un [TestDispatcher] durante cada test (tests de ViewModel). */
+/** Replaces `Dispatchers.Main` with a [TestDispatcher] during each test (ViewModel tests). */
 @OptIn(ExperimentalCoroutinesApi::class)
 class MainDispatcherRule(
     val testDispatcher: TestDispatcher = StandardTestDispatcher(),

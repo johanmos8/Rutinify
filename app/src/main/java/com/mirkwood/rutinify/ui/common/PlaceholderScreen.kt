@@ -15,7 +15,7 @@ import com.mirkwood.rutinify.R
 import com.mirkwood.rutinify.ui.preview.ThemePreviews
 import com.mirkwood.rutinify.ui.theme.RutinifyTheme
 
-/** Pantalla provisional para destinos aún no implementados. */
+/** Temporary screen for destinations not implemented yet. */
 @Composable
 fun PlaceholderScreen(
     @StringRes titleRes: Int,

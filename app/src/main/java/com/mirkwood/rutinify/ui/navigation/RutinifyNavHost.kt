@@ -29,7 +29,7 @@ fun RutinifyNavHost(
         composable<NewRoutineDestination> {
             NewRoutineScreen(onBack = navigateUp)
         }
-        // Placeholders: se sustituyen en T-22, T-24 y T-29
+        // Placeholders: replaced in T-22, T-24 and T-29
         composable<ReviewDestination> {
             PlaceholderScreen(titleRes = R.string.review_title, onBack = navigateUp)
         }

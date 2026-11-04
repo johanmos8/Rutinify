@@ -90,6 +90,9 @@ Reglas de dependencia:
 | Tests | `<Clase>Test`, método en backticks | `` `rechaza time con formato 25:00`() `` |
 
 - Código, identificadores y commits en **inglés**. Textos de UI, mensajes de error y specs en **español**.
+- **KDoc y comentarios en inglés** (también en tests, `build.gradle.kts` y XML de recursos). Los textos de UI que se citen
+  van entre comillas tal cual (`"Deshacer"`), y las referencias a requisitos/decisiones (`R-5.7`, `D-28`) se mantienen.
+  Excepción: los **nombres de los tests** siguen en español (§8).
 - Todos los textos visibles en `res/values/strings.xml` (plurales en `plurals`). Nada de strings literales en composables.
 - La plantilla de prompt vive en `res/raw/prompt_template.txt`.
 

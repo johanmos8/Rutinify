@@ -69,7 +69,7 @@ class OrderRepositoryImpl @Inject constructor(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            // R-5.7: la transacción se deshace; el caso de uso no programará nada
+            // R-5.7: the transaction is rolled back; the use case will not schedule anything
             Log.e(LOG_TAG, "No se pudo guardar la orden", e)
             Result.failure(e)
         }

@@ -13,8 +13,8 @@ import java.time.LocalDate
 interface OrderDao {
 
     /**
-     * Órdenes con pendientes/total, por fecha desc y creación desc (R-8.1, R-8.2).
-     * Observa ambas tablas: se re-emite al cambiar cualquier orden o alarma (R-8.6).
+     * Orders with pending/total counts, by date desc then creation desc (R-8.1, R-8.2).
+     * Observes both tables: re-emits when any order or alarm changes (R-8.6).
      */
     @Query(
         """
@@ -29,12 +29,12 @@ interface OrderDao {
     )
     fun observeSummaries(): Flow<List<OrderSummaryRow>>
 
-    /** Orden con todas sus alarmas; emite null si no existe (R-9.1). */
+    /** Order with all its alarms; emits null if it does not exist (R-9.1). */
     @Transaction
     @Query("SELECT * FROM routine_order WHERE id = :id")
     fun observeWithAlarms(id: Long): Flow<OrderWithAlarmsRow?>
 
-    /** Órdenes Activas o Pausadas de esa fecha: candidatas a conflicto (R-6.1, R-6.5). */
+    /** ACTIVE or PAUSED orders on that date: conflict candidates (R-6.1, R-6.5). */
     @Query("SELECT * FROM routine_order WHERE date = :date AND status IN ('ACTIVE', 'PAUSED') ORDER BY created_at")
     suspend fun findOpenByDate(date: LocalDate): List<RoutineOrderEntity>
 
@@ -47,7 +47,7 @@ interface OrderDao {
     @Query("UPDATE routine_order SET status = :status, updated_at = :at WHERE id = :id")
     suspend fun updateStatus(id: Long, status: OrderStatus, at: Instant)
 
-    /** Borra la orden; sus alarmas caen en cascada. */
+    /** Deletes the order; its alarms are deleted by cascade. */
     @Query("DELETE FROM routine_order WHERE id = :id")
     suspend fun delete(id: Long)
 }

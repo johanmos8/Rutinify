@@ -17,7 +17,7 @@ abstract class TimeModule {
     abstract fun bindZoneProvider(impl: SystemZoneProvider): ZoneProvider
 
     companion object {
-        /** Solo se usa para obtener el instante actual; la zona viene de [ZoneProvider]. */
+        /** Only used to get the current instant; the zone comes from [ZoneProvider]. */
         @Provides
         fun provideClock(): Clock = Clock.systemDefaultZone()
     }

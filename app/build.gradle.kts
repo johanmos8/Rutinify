@@ -1,6 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
-    // AGP 9 trae Kotlin integrado: no se aplica org.jetbrains.kotlin.android
+    // AGP 9 has built-in Kotlin: org.jetbrains.kotlin.android is not applied
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
@@ -44,7 +44,7 @@ android {
     }
     testOptions {
         unitTests {
-            // Robolectric necesita los recursos de Android en los tests JVM
+            // Robolectric needs Android resources in JVM tests
             isIncludeAndroidResources = true
         }
     }
@@ -75,12 +75,12 @@ dependencies {
     ksp(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
 
-    // Persistencia
+    // Persistence
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
 
-    // Serialización y coroutines
+    // Serialization and coroutines
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
 
@@ -96,7 +96,7 @@ dependencies {
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.compose.ui.test.junit4)
 
-    // Tests instrumentados
+    // Instrumented tests
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

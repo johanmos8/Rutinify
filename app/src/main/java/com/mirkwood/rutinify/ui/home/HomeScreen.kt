@@ -19,7 +19,7 @@ import com.mirkwood.rutinify.R
 import com.mirkwood.rutinify.ui.preview.ThemePreviews
 import com.mirkwood.rutinify.ui.theme.RutinifyTheme
 
-/** Inicio provisional: solo el FAB "Nueva rutina" (R-8.4). La lista de órdenes llega en T-23. */
+/** Temporary Home: only the "Nueva rutina" FAB (R-8.4). The order list arrives in T-23. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(

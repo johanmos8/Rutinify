@@ -3,12 +3,12 @@ package com.mirkwood.rutinify.domain.model
 import java.time.LocalDate
 import java.time.LocalTime
 
-/** Rutina validada pero aún no programada. Vive en memoria (`DraftStore`, D-10), no en Room. */
+/** Validated routine not yet scheduled. Lives in memory (`DraftStore`, D-10), not in Room. */
 data class RoutineDraft(
-    /** UUID; clave en `DraftStore`. */
+    /** UUID; key in `DraftStore`. */
     val id: String,
     val name: String,
-    /** null si el JSON no traía fecha (R-4.5). */
+    /** null if the JSON had no date (R-4.5). */
     val date: LocalDate?,
     val notes: String?,
     val items: List<DraftItem>,
@@ -16,7 +16,7 @@ data class RoutineDraft(
 )
 
 data class DraftItem(
-    /** Estable dentro del borrador (= posición original en el JSON). */
+    /** Stable within the draft (= original position in the JSON). */
     val key: Int,
     val time: LocalTime,
     val dayOffset: Int,
@@ -27,5 +27,5 @@ data class DraftItem(
     val assignee: String?,
 )
 
-/** De dónde sale el borrador: importación de JSON o "Duplicar para otra fecha" (R-10.7). */
+/** Where the draft comes from: JSON import or "Duplicar para otra fecha" (R-10.7). */
 enum class DraftOrigin { IMPORT, DUPLICATE }

@@ -10,7 +10,7 @@ annotation class IoDispatcher
 @Retention(AnnotationRetention.BINARY)
 annotation class DefaultDispatcher
 
-/** Scope que vive lo mismo que el proceso; lo usan los receivers con `goAsync()`. */
+/** Process-lifetime scope; used by receivers with `goAsync()`. */
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class ApplicationScope

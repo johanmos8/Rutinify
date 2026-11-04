@@ -14,7 +14,7 @@ import com.mirkwood.rutinify.R
 import com.mirkwood.rutinify.ui.preview.ThemePreviews
 import com.mirkwood.rutinify.ui.theme.RutinifyTheme
 
-/** Barra superior con título y flecha "Volver". */
+/** Top app bar with a title and a back arrow ("Volver"). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BackTopAppBar(

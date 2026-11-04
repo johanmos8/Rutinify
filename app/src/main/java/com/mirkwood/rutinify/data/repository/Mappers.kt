@@ -15,7 +15,7 @@ import com.mirkwood.rutinify.domain.model.PendingAlarm
 import com.mirkwood.rutinify.domain.model.RoutineOrder
 import java.time.Instant
 
-/** Orden de la línea de tiempo de una orden (R-4.1, R-9.1, D-27). */
+/** Timeline order of an order's alarms (R-4.1, R-9.1, D-27). */
 internal val ALARM_TIMELINE_ORDER: Comparator<AlarmItem> =
     compareBy<AlarmItem>({ it.dayOffset }, { it.time }, { it.position })
 

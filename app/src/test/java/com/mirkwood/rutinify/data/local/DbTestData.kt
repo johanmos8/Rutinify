@@ -9,7 +9,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 
-/** Datos y BD en memoria compartidos por los tests de Room. */
+/** Shared data and in-memory DB for Room tests. */
 internal object DbTestData {
 
     val NOW: Instant = Instant.parse("2026-11-04T10:00:00Z")

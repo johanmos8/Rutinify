@@ -10,8 +10,8 @@ import java.time.Instant
 import java.time.LocalTime
 
 /**
- * Tabla `alarm_item` (design §5). El [id] es el `requestCode` del `PendingIntent` (design §6.1),
- * por eso AUTOINCREMENT: un id borrado no se reutiliza.
+ * Table `alarm_item` (design §5). The [id] is the `PendingIntent` `requestCode` (design §6.1),
+ * hence AUTOINCREMENT: a deleted id is never reused.
  */
 @Entity(
     tableName = "alarm_item",
@@ -32,7 +32,7 @@ data class AlarmItemEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     @ColumnInfo(name = "order_id") val orderId: Long,
     val position: Int,
-    /** Hora de pared `HH:mm`. */
+    /** Wall-clock time `HH:mm`. */
     val time: LocalTime,
     @ColumnInfo(name = "day_offset") val dayOffset: Int,
     val title: String,
@@ -41,7 +41,7 @@ data class AlarmItemEntity(
     val category: String,
     val assignee: String?,
     val status: AlarmStatus,
-    /** Instante absoluto del snooze; si no es null manda sobre la hora calculada (D-12). */
+    /** Absolute snooze instant; when not null it overrides the computed time (D-12). */
     @ColumnInfo(name = "snoozed_until") val snoozedUntil: Instant?,
     @ColumnInfo(name = "fired_at") val firedAt: Instant?,
     @ColumnInfo(name = "done_at") val doneAt: Instant?,

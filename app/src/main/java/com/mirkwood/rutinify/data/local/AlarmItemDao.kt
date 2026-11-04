@@ -12,14 +12,14 @@ interface AlarmItemDao {
     @Insert
     suspend fun insertAll(alarms: List<AlarmItemEntity>): List<Long>
 
-    /** Reinserta una alarma con su id original ("Deshacer" tras eliminar, R-9.4). */
+    /** Re-inserts an alarm with its original id (undo after delete, "Deshacer", R-9.4). */
     @Insert
     suspend fun insert(alarm: AlarmItemEntity): Long
 
     @Query("SELECT * FROM alarm_item WHERE id = :id")
     suspend fun getById(id: Long): AlarmItemEntity?
 
-    /** Pendientes de órdenes Activas con la fecha de su orden (R-12.1; pausadas fuera, R-10.5). */
+    /** Pending alarms of ACTIVE orders, with their order date (R-12.1; paused orders excluded, R-10.5). */
     @Query(
         """
         SELECT a.*, o.date AS order_date
@@ -34,7 +34,7 @@ interface AlarmItemDao {
     @Query("SELECT * FROM alarm_item WHERE order_id = :orderId AND status = 'PENDING' ORDER BY id")
     suspend fun getPendingByOrder(orderId: Long): List<AlarmItemEntity>
 
-    /** Cambia el estado de varias alarmas; al pasar a FIRED/DONE guarda también `fired_at`/`done_at`. */
+    /** Changes the status of several alarms; moving to FIRED/DONE also stores `fired_at`/`done_at`. */
     @Query(
         """
         UPDATE alarm_item
@@ -47,7 +47,7 @@ interface AlarmItemDao {
     )
     suspend fun updateStatus(ids: List<Long>, status: AlarmStatus, at: Instant)
 
-    /** "+5 min": vuelve a PENDING con un instante absoluto que manda sobre la hora calculada (R-7.5, D-12). */
+    /** "+5 min": back to PENDING with an absolute instant that overrides the computed time (R-7.5, D-12). */
     @Query(
         """
         UPDATE alarm_item

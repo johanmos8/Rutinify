@@ -1,12 +1,12 @@
 package com.mirkwood.rutinify.domain.model
 
-/** Orden con el recuento de alarmas para la lista de Inicio (R-8.2). */
+/** Order with alarm counts for the Home list (R-8.2). */
 data class OrderSummary(
     val order: RoutineOrder,
     val pending: Int,
     val total: Int,
 ) {
-    /** R-8.3: una orden activa sin alarmas pendientes se muestra como terminada. */
+    /** R-8.3: an active order with no pending alarms is shown as finished ("Terminada"). */
     val displayStatus: OrderDisplayStatus
         get() = when (order.status) {
             OrderStatus.ACTIVE -> if (pending == 0) OrderDisplayStatus.FINISHED else OrderDisplayStatus.ACTIVE
@@ -15,7 +15,7 @@ data class OrderSummary(
         }
 }
 
-/** Orden con todas sus alarmas (pantalla de detalle). */
+/** Order with all its alarms (detail screen). */
 data class OrderWithAlarms(
     val order: RoutineOrder,
     val alarms: List<AlarmItem>,

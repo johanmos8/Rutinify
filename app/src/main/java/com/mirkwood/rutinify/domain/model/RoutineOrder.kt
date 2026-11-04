@@ -3,7 +3,7 @@ package com.mirkwood.rutinify.domain.model
 import java.time.Instant
 import java.time.LocalDate
 
-/** Rutina importada y confirmada; agrupa sus [AlarmItem]. */
+/** Imported and confirmed routine; groups its [AlarmItem]s. */
 data class RoutineOrder(
     val id: Long,
     val name: String,
@@ -13,8 +13,8 @@ data class RoutineOrder(
     val createdAt: Instant,
 )
 
-/** Estado persistido de una orden. */
+/** Persisted status of an order. */
 enum class OrderStatus { ACTIVE, PAUSED, CANCELLED }
 
-/** Estado de presentación (R-8.2, R-8.3). [FINISHED] es derivado y no se guarda (D-14). */
+/** Display status (R-8.2, R-8.3). [FINISHED] is derived and never stored (D-14). */
 enum class OrderDisplayStatus { ACTIVE, PAUSED, CANCELLED, FINISHED }

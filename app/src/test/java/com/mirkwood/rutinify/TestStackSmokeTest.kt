@@ -10,7 +10,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Test
 
-/** T-01: comprueba que Truth, Turbine, coroutines-test y kotlinx.serialization están en el classpath de test. */
+/** T-01: checks that Truth, Turbine, coroutines-test and kotlinx.serialization are on the test classpath. */
 class TestStackSmokeTest {
 
     @Test

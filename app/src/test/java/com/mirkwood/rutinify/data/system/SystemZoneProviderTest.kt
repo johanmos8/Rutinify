@@ -15,7 +15,7 @@ class SystemZoneProviderTest {
         TimeZone.setDefault(original)
     }
 
-    // R-12.2: la zona se lee en cada uso, nunca se cachea
+    // R-12.2: the zone is read on every use, never cached
     @Test
     fun `devuelve la zona del sistema vigente en cada llamada`() {
         val provider = SystemZoneProvider()

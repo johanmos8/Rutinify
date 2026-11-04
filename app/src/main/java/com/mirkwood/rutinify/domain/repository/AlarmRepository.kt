@@ -9,20 +9,20 @@ interface AlarmRepository {
 
     suspend fun getById(alarmId: Long): AlarmItem?
 
-    /** Pendientes de órdenes Activas, con la fecha de su orden (R-12.1). */
+    /** Pending alarms of ACTIVE orders, with their order date (R-12.1). */
     suspend fun getPendingForActiveOrders(): List<PendingAlarm>
 
     suspend fun getPendingByOrder(orderId: Long): List<AlarmItem>
 
-    /** Cambia el estado de varias alarmas a la vez, con la hora actual como momento del cambio. */
+    /** Changes the status of several alarms at once, using the current time as the change time. */
     suspend fun updateStatus(alarmIds: List<Long>, status: AlarmStatus)
 
-    /** Vuelve a PENDING con un instante absoluto de disparo (R-7.5, D-12). */
+    /** Back to PENDING with an absolute trigger instant (R-7.5, D-12). */
     suspend fun snooze(alarmId: Long, until: Instant)
 
-    /** Borra la alarma (R-9.3). */
+    /** Deletes the alarm (R-9.3). */
     suspend fun delete(alarmId: Long)
 
-    /** Reinserta una alarma borrada con su mismo id ("Deshacer", R-9.4). */
+    /** Re-inserts a deleted alarm with the same id (undo, "Deshacer", R-9.4). */
     suspend fun restore(alarm: AlarmItem)
 }

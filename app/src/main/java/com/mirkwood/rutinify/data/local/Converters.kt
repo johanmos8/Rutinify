@@ -8,7 +8,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
-/** Conversores Room (design §5). Las fechas ISO se ordenan bien como texto. */
+/** Room type converters (design §5). ISO dates sort correctly as text. */
 class Converters {
 
     @TypeConverter

@@ -1,17 +1,17 @@
 <resources>
     <string name="app_name">Rutinify</string>
 
-    <!-- Acciones comunes -->
+    <!-- Common actions -->
     <string name="action_back">Volver</string>
     <string name="action_new_routine">Nueva rutina</string>
 
-    <!-- Títulos de pantalla -->
+    <!-- Screen titles -->
     <string name="new_routine_title">Nueva rutina</string>
     <string name="review_title">Revisión</string>
     <string name="order_detail_title">Detalle de la orden</string>
     <string name="permissions_title">Permisos</string>
 
-    <!-- Provisionales (T-03): se sustituyen al implementar cada pantalla -->
+    <!-- Temporary (T-03): replaced when each screen is implemented -->
     <string name="home_placeholder">Aquí aparecerán tus rutinas</string>
     <string name="new_routine_placeholder">Aquí pegarás el JSON de tu rutina</string>
     <string name="placeholder_body">Pantalla en construcción</string>

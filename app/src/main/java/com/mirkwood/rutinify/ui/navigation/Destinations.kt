@@ -2,7 +2,7 @@ package com.mirkwood.rutinify.ui.navigation
 
 import kotlinx.serialization.Serializable
 
-// Claves de navegación type-safe (design §10, D-23)
+// Type-safe navigation keys (design §10, D-23)
 
 @Serializable
 data object HomeDestination

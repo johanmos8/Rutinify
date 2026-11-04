@@ -3,17 +3,17 @@ package com.mirkwood.rutinify.domain.model
 import java.time.LocalDate
 import java.time.LocalTime
 
-/** Datos para crear una orden (sin id ni marcas de tiempo, que pone el repositorio). */
+/** Data to create an order (no id or timestamps; the repository sets them). */
 data class NewOrder(
     val name: String,
     val date: LocalDate,
     val notes: String?,
-    /** JSON original extraído; se guarda para depuración / v2. */
+    /** Original extracted JSON; stored for debugging / v2. */
     val rawJson: String?,
     val schemaVersion: Int = 1,
 )
 
-/** Datos para crear una alarma de una [NewOrder]. Pasadas/excluidas llegan ya como SKIPPED (R-5.5). */
+/** Data to create an alarm of a [NewOrder]. Past/excluded items already arrive as SKIPPED (R-5.5). */
 data class NewAlarm(
     val position: Int,
     val time: LocalTime,
@@ -26,16 +26,16 @@ data class NewAlarm(
     val status: AlarmStatus,
 )
 
-/** Resultado de crear una orden: lo que hay que programar y lo que hay que cancelar en el sistema. */
+/** Result of creating an order: what must be scheduled and what must be cancelled in the system. */
 data class CreatedOrder(
     val order: RoutineOrder,
-    /** Alarmas creadas, con sus ids (= requestCode, design §6.1). */
+    /** Created alarms, with their ids (= requestCode, design §6.1). */
     val alarms: List<AlarmItem>,
-    /** Alarmas antes pendientes de las órdenes reemplazadas, ahora CANCELLED (R-6.2). */
+    /** Previously pending alarms of the replaced orders, now CANCELLED (R-6.2). */
     val cancelledAlarmIds: List<Long>,
 )
 
-/** Alarma pendiente con la fecha de su orden, para calcular la hora de disparo (design §7.2). */
+/** Pending alarm with its order date, to compute the trigger time (design §7.2). */
 data class PendingAlarm(
     val alarm: AlarmItem,
     val orderDate: LocalDate,
