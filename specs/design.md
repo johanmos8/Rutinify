@@ -241,8 +241,8 @@ Se acumulan errores hasta el final; la UI muestra 20 como máximo (R-3.16).
 
 ### DAOs (resumen)
 
-- `OrderDao`: `observeSummaries(): Flow<List<OrderSummaryRow>>` (JOIN + `SUM(CASE WHEN status='PENDING')`), `observeWithAlarms(id)` (`@Relation`), `findOpenByDate(date)`, `insert`, `updateStatus`, `delete`.
-- `AlarmItemDao`: `insertAll`, `getById`, `getPendingForActiveOrders()`, `getPendingByOrder(id)`, `updateStatus(ids, status, at)`, `snooze(id, until)`, `delete(id)`, `insert(entity)` (deshacer).
+- `OrderDao`: `observeSummaries(): Flow<List<OrderSummaryRow>>` (LEFT JOIN + `SUM(CASE WHEN status='PENDING')`, órdenes sin alarmas incluidas), `observeWithAlarms(id): Flow<OrderWithAlarmsRow?>` (`@Relation`), `findOpenByDate(date)` (ACTIVE o PAUSED), `insert`, `getById`, `updateStatus(id, status, at)`, `delete`.
+- `AlarmItemDao`: `insertAll`, `getById`, `getPendingForActiveOrders(): List<PendingAlarmRow>` (alarma + `order_date`, para calcular el disparo), `getPendingByOrder(id)`, `updateStatus(ids, status, at)` (rellena `fired_at`/`done_at` al pasar a FIRED/DONE), `snooze(id, until, at)` (vuelve a PENDING), `delete(id)`, `insert(entity)` (deshacer).
 - Operaciones compuestas (crear orden + alarmas, reemplazar) en `@Transaction` dentro del repositorio.
 
 ## 6. Scheduler
@@ -457,6 +457,7 @@ Cobertura: Kover con regla `minBound(80)` sobre `com.mirkwood.rutinify.domain.*`
 | D-24 | Iconos como vector drawables propios (`res/drawable/ic_*.xml`) en vez de `material-icons` | Material3 1.4 ya no trae los iconos; evita añadir una dependencia por 2–3 iconos. | No |
 | D-25 | En T-05 los DAOs solo tienen `insert`/`insertAll`, `getById` y `delete` (los necesarios para probar la BD); T-06 añade el resto de design §5. `DatabaseModule` (Hilt) se añade ya en T-05 | Probar cascade y AUTOINCREMENT sin SQL crudo; el grafo Hilt queda validado en compilación. | No |
 | D-26 | Conversores explícitos para `OrderStatus`/`AlarmStatus` (por `name`) en vez del conversor de enums implícito de Room | El formato en disco queda fijado en código y testeado; renombrar un valor exige migración consciente. | No |
+| D-27 | `observeWithAlarms` no ordena las alarmas (`@Relation` no lo permite); el repositorio las ordena por `(dayOffset, time, position)` al mapear a dominio (T-07). `getPendingForActiveOrders` devuelve también la fecha de la orden | Mantener el `@Relation` de §5; `RescheduleAll` necesita la fecha para calcular el disparo sin otra consulta. | No |
 | D-01..D-04 | Aprobadas por Johan el 2026-11-04 | | ✅ |
 
 ## 15. Preparación para v2

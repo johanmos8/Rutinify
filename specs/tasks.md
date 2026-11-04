@@ -34,9 +34,10 @@
   - `RoutineOrderEntity`, `AlarmItemEntity` (FK cascade, índices), `Converters` (`LocalDate`, `LocalTime`, `Instant`, enums), `RutinifyDatabase` v1 con `exportSchema`.
   - Tests (Robolectric, in-memory): insertar/leer, cascade al borrar orden, **AUTOINCREMENT no reutiliza ids** tras borrar.
   - _Hecho:_ entidades con FK cascade e índices (`date`, `order_id`, `(status, order_id)`), `Converters`, `RutinifyDatabase` v1 con esquema en `app/schemas/`, DAOs mínimos y `DatabaseModule` (D-25, D-26). 12 tests: conversores, lectura completa, cascade, AUTOINCREMENT en ambas tablas y FK que rechaza orden inexistente.
-- [ ] **T-06 · DAOs** — (R-8.1, R-8.2, R-8.6, R-9.1, R-6.1, R-12.1)
+- [x] **T-06 · DAOs** — (R-8.1, R-8.2, R-8.6, R-9.1, R-6.1, R-12.1)
   - `OrderDao` (`observeSummaries`, `observeWithAlarms`, `findOpenByDate`, `updateStatus`, `delete`), `AlarmItemDao` (ver design §5).
   - Tests con Turbine: el resumen cuenta pendientes/total y se re-emite al cambiar un estado; orden por fecha desc + creación desc; `getPendingForActiveOrders` excluye pausadas/canceladas.
+  - _Hecho:_ consultas de design §5 en `OrderDao` y `AlarmItemDao` con filas `OrderSummaryRow`, `OrderWithAlarmsRow` y `PendingAlarmRow` (D-27). 15 tests nuevos: recuentos, re-emisión al cambiar alarma u orden, orden R-8.1, conflicto por fecha, pendientes de activas, `updateStatus` con `fired_at`/`done_at`, snooze y reinserción con el mismo id.
 - [ ] **T-07 · Repositorios** — (R-5.1, R-5.7)
   - Interfaces en `domain/repository`, implementaciones en `data/repository` con mapeo entity↔dominio y operaciones `@Transaction` (crear orden con alarmas, reemplazar).
   - Tests: creación atómica (si falla un insert, no queda nada), mapeos.
