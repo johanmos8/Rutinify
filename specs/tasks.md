@@ -45,8 +45,9 @@
 
 ## Fase 2 · Importación (TDD)
 
-- [ ] **T-08 · `JsonExtractor`** — (R-3.1, R-3.3)
+- [x] **T-08 · `JsonExtractor`** — (R-3.1, R-3.3)
   - Tests primero: JSON limpio, ```` ```json ```` fence, fence sin lenguaje, texto antes/después, llaves dentro de strings, strings con `\"`, dos objetos (gana el primero válido), primer candidato roto y segundo válido, sin JSON, BOM.
+  - _Hecho:_ `JsonExtractor` en `data/importer` devuelve `ExtractedJson(json, text)` (D-30). 18 tests: todos los casos listados más prioridad del bloque, bloque sin JSON, candidato sin cerrar, no devolver objetos interiores de un candidato inválido, array suelto y comillas tipográficas.
 - [ ] **T-09 · `RoutineJsonParser` — nivel rutina** — (R-3.2, R-3.4, R-3.5, R-3.6, R-3.7, R-3.18)
   - Tests primero con fixtures en `src/test/resources/fixtures/`. `ImportResult`, `ValidationIssue`, `IssueKind`.
 - [ ] **T-10 · `RoutineJsonParser` — nivel item** — (R-3.8–R-3.15, R-3.16, R-3.17, D-13)

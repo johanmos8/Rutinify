@@ -152,7 +152,8 @@ un test verifica que el ejemplo embebido en la plantilla **parsea sin errores** 
 1. Si hay bloques ```` ``` ```` (con o sin `json`), probar primero su contenido, en orden.
 2. Si no, escanear el texto: por cada `{` candidato, avanzar contando llaves **respetando strings y escapes** hasta cerrar el objeto; intentar `Json.parseToJsonElement`. El primero que sea un `JsonObject` gana.
 3. Normalizar antes de parsear: quitar BOM, comillas tipográficas `“ ” ‘ ’` **fuera** de strings no se tocan (si el parse falla, error R-3.3).
-4. Resultado: `JsonObject?`. Complejidad O(n·k) con k candidatos; para 200 items es despreciable (R-13.2).
+4. Si ningún bloque contiene un objeto válido, se escanea el texto completo. Un candidato **cerrado pero inválido** se salta entero (no se devuelven objetos anidados dentro de él); uno **sin cerrar** avanza un carácter, para poder encontrar un objeto válido posterior (D-30).
+5. Resultado: `ExtractedJson(json: JsonObject, text: String)?`: el texto exacto del candidato se guarda como `raw_json`. Complejidad O(n·k) con k candidatos; para 200 items es despreciable (R-13.2).
 
 ### 4.3 Parser + validador — `RoutineJsonParser`
 
@@ -462,6 +463,7 @@ Cobertura: Kover con regla `minBound(80)` sobre `com.mirkwood.rutinify.domain.*`
 | D-27 | `observeWithAlarms` no ordena las alarmas (`@Relation` no lo permite); el repositorio las ordena por `(dayOffset, time, position)` al mapear a dominio (T-07). `getPendingForActiveOrders` devuelve también la fecha de la orden | Mantener el `@Relation` de §5; `RescheduleAll` necesita la fecha para calcular el disparo sin otra consulta. | No |
 | D-28 | `AlarmItem` de dominio gana `firedAt`/`doneAt` (opcionales), que ya existían en Room | "Deshacer" (R-9.4) reinserta la fila idéntica sin perder esas marcas. No cambia el esquema. | No |
 | D-29 | Los repositorios ponen las marcas de tiempo con el `Clock` inyectado; solo `createOrder` devuelve `Result` (R-5.7), el resto deja pasar excepciones inesperadas al borde (receiver / VM) | Una única fuente de "ahora" testeable; el único fallo de escritura con requisito propio es crear la orden. | No |
+| D-30 | `JsonExtractor`: si los bloques ``` no contienen un objeto válido se busca en todo el texto; un candidato cerrado pero inválido se salta entero y uno sin cerrar avanza un carácter. Devuelve también el texto exacto extraído | Más tolerante sin devolver por error un item suelto de un JSON roto (que daría un error confuso de versión en vez de R-3.3); `raw_json` necesita el texto. | No |
 | D-01..D-04 | Aprobadas por Johan el 2026-11-04 | | ✅ |
 
 ## 15. Preparación para v2
