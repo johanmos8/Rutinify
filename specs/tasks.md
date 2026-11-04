@@ -13,11 +13,12 @@
   - Test `TestStackSmokeTest` (Truth + Turbine + coroutines-test + serialization).
   - ✅ `assembleDebug`, `testDebugUnitTest` y `lintDebug` pasan.
   - _Hecho:_ stack verificado con AGP 9.1.1 + Kotlin 2.3.21 + KSP 2.3.13 + Hilt 2.60.1. Las últimas AndroidX exigían `compileSdk 37`; se bajaron a las más nuevas compatibles con 36 (D-20). Smoke test en verde, lint sin errores.
-- [ ] **T-02 · Esqueleto de Hilt y paquetes** — (base)
+- [x] **T-02 · Esqueleto de Hilt y paquetes** — (base)
   - `RutinifyApp` `@HiltAndroidApp`, `MainActivity` `@AndroidEntryPoint`, módulos `TimeModule` (`Clock`, `ZoneProvider`), `DispatchersModule` (`@IoDispatcher`, `@DefaultDispatcher`), `CoroutineScopeModule` (`@ApplicationScope`).
   - Crear la estructura de paquetes de `CLAUDE.md` §3. Borrar `Greeting` de la plantilla.
   - `MainDispatcherRule` y `ui/preview/PreviewData.kt` vacíos listos para tests/previews.
   - ✅ La app arranca con una pantalla vacía.
+  - _Hecho:_ `RutinifyApp`/`MainActivity` con Hilt, módulos de tiempo, dispatchers y `@ApplicationScope`; paquetes creados (D-21, D-22). Tests de `SystemZoneProvider` (zona leída en cada llamada) y `MainDispatcherRule`. Verificado en emulador API 36: arranca sin crash con pantalla vacía.
 - [ ] **T-03 · Navegación base** — (R-8.4)
   - Rutas `@Serializable` (§10 de design), `RutinifyNavHost` con pantallas placeholder, tema M3 claro/oscuro.
   - ✅ Se puede navegar Home → NewRoutine → atrás.

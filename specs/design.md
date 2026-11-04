@@ -449,6 +449,8 @@ Cobertura: Kover con regla `minBound(80)` sobre `com.mirkwood.rutinify.domain.*`
 | D-18 | Kotlin 2.2.10 → 2.3.21 | Hilt 2.60.1 y kotlinx.serialization 1.11 se compilan con Kotlin 2.3; KSP 2.3.x está pensado para él. | No |
 | D-19 | Kover se añade en T-32, no en T-01 | Reduce el riesgo del setup inicial con AGP 9. | No |
 | D-20 | Se fijan las versiones AndroidX más nuevas compatibles con `compileSdk 36` (Compose BOM 2026.06.01, core 1.18.0, lifecycle 2.10.0, navigation 2.9.8, androidx.hilt 1.3.0) | Las últimas (Compose 1.12, core 1.19, lifecycle 2.11, navigation 2.10, hilt 1.4) declaran `minCompileSdk=37` y `checkDebugAarMetadata` falla; `compileSdk 36` está fijado en CLAUDE.md. Subir a 37 es un cambio aislado cuando se quiera. | No |
+| D-21 | `ZoneProvider` es una `fun interface` en `domain/time`; su implementación `SystemZoneProvider` vive en `data/system`. Los qualifiers (`@IoDispatcher`, `@DefaultDispatcher`, `@ApplicationScope`) están en `di/Qualifiers.kt`; `MainDispatcherRule` en `src/test/.../testutil` | Dominio sin dependencias de implementación; un único sitio para qualifiers y utilidades de test. | No |
+| D-22 | Paquetes aún vacíos de §3 de CLAUDE.md se versionan con `.gitkeep`, que se borra al añadir el primer fichero | Git no guarda directorios vacíos. | No |
 | D-01..D-04 | Aprobadas por Johan el 2026-11-04 | | ✅ |
 
 ## 15. Preparación para v2
