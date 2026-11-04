@@ -26,9 +26,10 @@
 
 ## Fase 1 · Modelo y persistencia
 
-- [ ] **T-04 · Modelo de dominio** — (R-8.3, design §3)
+- [x] **T-04 · Modelo de dominio** — (R-8.3, design §3)
   - `RoutineOrder`, `AlarmItem`, enums de estado, `OrderSummary.displayStatus`, `RoutineDraft`, `DraftItem`.
   - Tests: `displayStatus` (ACTIVE sin pendientes → FINISHED, etc.).
+  - _Hecho:_ modelos de design §3 en `domain/model` (Kotlin puro, sin `android.*`), más `OrderWithAlarms` y `DraftOrigin`. 6 tests de `displayStatus`: activa sin pendientes (también con 0 alarmas) → FINISHED; pausada y cancelada no cambian.
 - [ ] **T-05 · Room: entidades, converters y DB** — (R-5.1, design §5)
   - `RoutineOrderEntity`, `AlarmItemEntity` (FK cascade, índices), `Converters` (`LocalDate`, `LocalTime`, `Instant`, enums), `RutinifyDatabase` v1 con `exportSchema`.
   - Tests (Robolectric, in-memory): insertar/leer, cascade al borrar orden, **AUTOINCREMENT no reutiliza ids** tras borrar.
