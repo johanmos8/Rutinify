@@ -142,6 +142,49 @@ class JsonExtractorTest {
         assertThat(extractor.extract("{“name”: “Cachorro”}")).isNull()
     }
 
+    // R-3.23, D-32: limits against pathological input
+    @Test
+    fun `un texto con miles de llaves sin cerrar se resuelve rapido`() {
+        val text = "{".repeat(100_000)
+
+        val start = System.nanoTime()
+        val result = extractor.extract(text)
+        val elapsedMs = (System.nanoTime() - start) / 1_000_000
+
+        assertThat(result).isNull()
+        assertThat(elapsedMs).isLessThan(1_000L)
+    }
+
+    @Test
+    fun `con 19 candidatos invalidos el vigesimo valido se encuentra`() { // R-3.23
+        val text = """{"a": 1,} """.repeat(19) + """{"name": "vigésimo"}"""
+
+        assertThat(extractedName(text)).isEqualTo("vigésimo")
+    }
+
+    @Test
+    fun `tras 20 candidatos invalidos deja de buscar`() { // R-3.23
+        val text = """{"a": 1,} """.repeat(20) + """{"name": "vigésimo primero"}"""
+
+        assertThat(extractor.extract(text)).isNull()
+    }
+
+    @Test
+    fun `un anidamiento muy profundo se descarta sin desbordar la pila`() { // R-3.23
+        val depth = 50_000
+        val text = """{"a":""".repeat(depth) + "1" + "}".repeat(depth)
+
+        assertThat(extractor.extract(text)).isNull()
+    }
+
+    @Test
+    fun `32 niveles de anidamiento se aceptan y 33 se descartan`() { // R-3.23
+        fun nested(levels: Int) = """{"a":""".repeat(levels) + "1" + "}".repeat(levels)
+
+        assertThat(extractor.extract(nested(32))).isNotNull()
+        assertThat(extractor.extract(nested(33))).isNull()
+    }
+
     @Test
     fun `conserva objetos anidados completos`() {
         val text = """```json

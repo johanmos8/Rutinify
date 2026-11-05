@@ -47,17 +47,20 @@
 
 - [x] **T-08 · `JsonExtractor`** — (R-3.1, R-3.3)
   - Tests primero: JSON limpio, ```` ```json ```` fence, fence sin lenguaje, texto antes/después, llaves dentro de strings, strings con `\"`, dos objetos (gana el primero válido), primer candidato roto y segundo válido, sin JSON, BOM.
+  - _Corrección (R-3.23, D-32):_ límite de 20 candidatos y de 32 niveles de anidamiento; tests de texto patológico (miles de `{`) y de anidamiento profundo.
   - _Hecho:_ `JsonExtractor` en `data/importer` devuelve `ExtractedJson(json, text)` (D-30). 18 tests: todos los casos listados más prioridad del bloque, bloque sin JSON, candidato sin cerrar, no devolver objetos interiores de un candidato inválido, array suelto y comillas tipográficas.
 - [x] **T-09 · `RoutineJsonParser` — nivel rutina** — (R-3.2, R-3.4, R-3.5, R-3.6, R-3.7, R-3.18)
   - Tests primero con fixtures en `src/test/resources/fixtures/`. `ImportResult`, `ValidationIssue`, `IssueKind`.
   - _Hecho:_ tipos en `domain/importer` (D-31) y `RoutineJsonParser` con las reglas de rutina; 18 fixtures (incluido `valid_v1.json`, el ejemplo canónico) y 25 tests: versión (ausente, 2, texto, decimal), `routine`, nombre, fecha, notas, `items` (ausente, vacío, no lista, 200/201), acumulación y campos desconocidos. El lector de items ya aplica la tabla §4.3; sus tests van en T-10.
-- [ ] **T-10 · `RoutineJsonParser` — nivel item** — (R-3.8–R-3.15, R-3.16, R-3.17, D-13)
+- [ ] **T-10 · `RoutineJsonParser` — nivel item** — (R-3.8–R-3.15, R-3.16, R-3.17, R-3.21, R-3.22, D-13, D-32)
   - Tests primero: cada fila de la tabla design §4.3; tipos erróneos; acumulación de varios errores; warning de título recortado; normalización de categoría; `6:45` → `06:45`; orden por `(dayOffset, time, position)`.
-- [ ] **T-11 · `RoutineImporter` + plantilla** — (R-1.3, R-3.19)
+  - Límites (R-3.21, R-3.22): notas/descripción 500, responsable 40, categoría 30 tras normalizar (justo en el límite pasa, uno más falla); 10 categorías distintas pasan, 11 fallan.
+- [ ] **T-11 · `RoutineImporter` + plantilla** — (R-1.3, R-3.19, R-3.20, R-3.23)
   - `RoutineJsonImporter` (extractor + parser) detrás de la interfaz de dominio, binding Hilt.
   - `res/raw/prompt_template.txt` con el texto del prompt de producto y el ejemplo v1 completo.
   - Test: el JSON embebido en la plantilla parsea sin errores. Test de rendimiento: 200 items < 300 ms en JVM (R-13.2, orientativo).
-- [ ] **T-12 · Mensajes de error en español** — (R-3.3–R-3.17, R-13.3)
+  - Límite de 100 KB antes de extraer (`INPUT_TOO_LONG`, R-3.20) y análisis en `@DefaultDispatcher` (R-3.23).
+- [ ] **T-12 · Mensajes de error en español** — (R-3.3–R-3.17, R-3.20–R-3.22, R-13.3)
   - `strings.xml` + `ui/common/ErrorMessages.kt` (`ValidationIssue` → texto). Límite de 20 + "y {k} más".
   - Tests: cada `IssueKind` produce un mensaje con actividad, campo y valor cuando aplica.
 
@@ -88,8 +91,9 @@
 
 ## Fase 5 · Nueva rutina y revisión
 
-- [ ] **T-20 · `ScheduleOrderUseCase` + `FindConflictingOrdersUseCase`** — (R-5.1, R-5.5, R-5.7, R-6.1–R-6.5)
+- [ ] **T-20 · `ScheduleOrderUseCase` + `FindConflictingOrdersUseCase`** — (R-5.1, R-5.5, R-5.7, R-5.10, R-6.1–R-6.5)
   - Tests: pasadas/excluidas → SKIPPED; con REPLACE las órdenes previas pasan a CANCELLED y sus alarmas se cancelan; KEEP_BOTH no toca nada; fallo de Room → ninguna llamada al scheduler.
+  - Límite de 500 (R-5.10): 500 exactas se programan; 501 → `TooManyAlarms` sin escribir en Room ni llamar al scheduler; con REPLACE se descuentan las pendientes que se cancelarían.
 - [ ] **T-21 · Pantalla Nueva rutina** — (R-1.1, R-1.2, R-1.4, R-2.1–R-2.5, R-3.19)
   - `ClipboardReader` en `data/system`, `DraftStore`, `NewRoutineViewModel` (texto en `SavedStateHandle`), `NewRoutineScreen` + previews (vacío, con errores, validando).
   - Tests VM: copiar plantilla emite efecto; portapapeles vacío; validar con error → issues; validar OK → efecto de navegación con `draftId`.

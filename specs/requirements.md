@@ -58,6 +58,10 @@
 - **R-3.17** THE SYSTEM SHALL numerar las actividades desde 1 en los mensajes, según su posición en el JSON.
 - **R-3.18** IF el JSON contiene más de 200 actividades, THEN THE SYSTEM SHALL rechazarlo con "Demasiadas actividades ({n}); el máximo es 200".
 - **R-3.19** WHEN la validación termina sin errores, THE SYSTEM SHALL abrir la pantalla de *Revisión* con el borrador y los avisos.
+- **R-3.20** IF el texto pegado supera 100 KB, THEN THE SYSTEM SHALL rechazarlo sin analizarlo y mostrar "El texto es demasiado largo ({n} KB); el máximo es 100 KB".
+- **R-3.21** IF `routine.notes` o `description` superan 500 caracteres, `assignee` supera 40 o `category` supera 30 (tras normalizarla), THEN THE SYSTEM SHALL mostrar un error que indique la actividad (si aplica), el campo y el máximo.
+- **R-3.22** IF la rutina tiene más de 10 categorías distintas (tras normalizarlas), THEN THE SYSTEM SHALL rechazarla con "Demasiadas categorías distintas ({n}); el máximo es 10".
+- **R-3.23** THE SYSTEM SHALL analizar el texto fuera del hilo principal, probar como mucho 20 candidatos a objeto JSON y descartar objetos con más de 32 niveles de anidamiento, de modo que ningún texto pegado pueda congelar ni cerrar la app; si no queda ningún candidato válido se aplica R-3.3.
 
 ## R-4 Revisión del borrador
 
@@ -89,6 +93,7 @@
 - **R-5.7** IF falla la escritura en almacenamiento local, THEN THE SYSTEM SHALL no programar ninguna alarma del sistema y mostrar un error con opción de reintentar.
 - **R-5.8** IF la hora de una actividad no existe en la zona horaria (salto por horario de verano), THEN THE SYSTEM SHALL programarla desplazada la duración del salto (p. ej. 02:30 → 03:30); IF la hora es ambigua (retraso de hora), THEN THE SYSTEM SHALL usar la primera ocurrencia.
 - **R-5.9** THE SYSTEM SHALL crear, antes de programar, el canal de notificación de cada categoría nueva de la orden.
+- **R-5.10** IF programar la orden haría que la app superara 500 alarmas pendientes en total (límite de Android), THEN THE SYSTEM SHALL no guardar ni programar nada y mostrar "No se pueden programar {n} alarmas: se superaría el máximo de 500 alarmas pendientes ({m} ya programadas)".
 
 ## R-6 Importación duplicada / reemplazo
 

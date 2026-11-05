@@ -152,8 +152,9 @@ un test verifica que el ejemplo embebido en la plantilla **parsea sin errores** 
 1. Si hay bloques ```` ``` ```` (con o sin `json`), probar primero su contenido, en orden.
 2. Si no, escanear el texto: por cada `{` candidato, avanzar contando llaves **respetando strings y escapes** hasta cerrar el objeto; intentar `Json.parseToJsonElement`. El primero que sea un `JsonObject` gana.
 3. Normalizar antes de parsear: quitar BOM, comillas tipográficas `“ ” ‘ ’` **fuera** de strings no se tocan (si el parse falla, error R-3.3).
-4. Si ningún bloque contiene un objeto válido, se escanea el texto completo. Un candidato **cerrado pero inválido** se salta entero (no se devuelven objetos anidados dentro de él); uno **sin cerrar** avanza un carácter, para poder encontrar un objeto válido posterior (D-30).
-5. Resultado: `ExtractedJson(json: JsonObject, text: String)?`: el texto exacto del candidato se guarda como `raw_json`. Complejidad O(n·k) con k candidatos; para 200 items es despreciable (R-13.2).
+4. **Límites (R-3.23, D-32):** como mucho 20 candidatos por texto (bloques + escaneo; cada `{` probado cuenta), y un candidato con más de 32 niveles de anidamiento se descarta sin pasarlo a `kotlinx`. El coste queda acotado a O(20·n). El límite de 100 KB (R-3.20) lo aplica el importer antes de llamar al extractor.
+5. Si ningún bloque contiene un objeto válido, se escanea el texto completo. Un candidato **cerrado pero inválido** se salta entero (no se devuelven objetos anidados dentro de él); uno **sin cerrar** avanza un carácter, para poder encontrar un objeto válido posterior (D-30).
+6. Resultado: `ExtractedJson(json: JsonObject, text: String)?`: el texto exacto del candidato se guarda como `raw_json`. Complejidad O(n·k) con k candidatos; para 200 items es despreciable (R-13.2).
 
 ### 4.3 Parser + validador — `RoutineJsonParser`
 
@@ -180,6 +181,7 @@ enum class IssueKind {
     NO_JSON_FOUND, UNSUPPORTED_SCHEMA_VERSION, MISSING_FIELD, BLANK_FIELD, WRONG_TYPE,
     INVALID_DATE, INVALID_TIME, DAY_OFFSET_OUT_OF_RANGE, DURATION_OUT_OF_RANGE,
     NO_ITEMS, TOO_MANY_ITEMS, TITLE_TRUNCATED, /* warnings */
+    INPUT_TOO_LONG, TEXT_TOO_LONG, TOO_MANY_CATEGORIES,   // R-3.20–R-3.22 (D-32)
 }
 ```
 
@@ -191,15 +193,16 @@ Reglas (→ requisito):
 | `routine` | objeto | si falta → `MISSING_FIELD routine`; si no es objeto → `WRONG_TYPE` |
 | `routine.name` | string no vacío (trim) | R-3.5 |
 | `routine.date` | `null`/ausente o `LocalDate.parse` ISO estricto | R-3.6 |
-| `routine.notes` | string opcional; vacío → null | otro tipo → `WRONG_TYPE` |
+| `routine.notes` | string opcional; vacío → null; ≤ 500 | otro tipo → `WRONG_TYPE`; más largo → `TEXT_TOO_LONG` (R-3.21) |
 | `items` | array no vacío, ≤ 200 | R-3.7, R-3.18 |
 | `time` | regex `^([01]?\d|2[0-3]):[0-5]\d$`, se normaliza a `HH:mm` | R-3.8 |
 | `dayOffset` | ausente/null → 0; entero 0..1 | R-3.11, R-3.15 |
 | `title` | string no vacío; > 80 → recorte + warning `TITLE_TRUNCATED` | R-3.9, R-3.10 |
-| `description` | string opcional; vacío → null | — |
+| `description` | string opcional; vacío → null; ≤ 500 | `TEXT_TOO_LONG` (R-3.21) |
 | `durationMin` | null o entero 1..1440 | R-3.12 |
-| `category` | null/vacío → `general`; `trim().lowercase()`, espacios → `-` | R-3.14 |
-| `assignee` | string opcional; vacío → null | — |
+| `category` | null/vacío → `general`; `trim().lowercase()`, espacios → `-`; ≤ 30 tras normalizar | R-3.14; `TEXT_TOO_LONG` (R-3.21) |
+| categorías distintas | ≤ 10 en toda la rutina | `TOO_MANY_CATEGORIES` (R-3.22) |
+| `assignee` | string opcional; vacío → null; ≤ 40 | `TEXT_TOO_LONG` (R-3.21) |
 
 Se acumulan errores hasta el final; la UI muestra 20 como máximo (R-3.16).
 `ErrorMessages.kt` (ui/common) traduce `ValidationIssue` → texto con `stringResource`/`pluralStringResource`.
@@ -300,7 +303,7 @@ fun effectiveTrigger(alarm, orderDate, zone) = alarm.snoozedUntil ?: triggerAt(�
 
 | Use case | Qué hace | Req. |
 |---|---|---|
-| `ScheduleOrderUseCase(draft, date, includedKeys, conflictPolicy)` | transacción: (si REPLACE) cancela órdenes en conflicto → inserta orden + alarmas (pasadas/excluidas como `SKIPPED`) → crea canales → `schedule()` de cada `PENDING`. Si Room falla, no se programa nada. | R-5.*, R-6.* |
+| `ScheduleOrderUseCase(draft, date, includedKeys, conflictPolicy)` | comprueba que pendientes actuales (menos las que cancelaría el reemplazo) + nuevas ≤ 500; si no, devuelve `TooManyAlarms(n, m)` sin escribir nada (R-5.10). Después, transacción: (si REPLACE) cancela órdenes en conflicto → inserta orden + alarmas (pasadas/excluidas como `SKIPPED`) → crea canales → `schedule()` de cada `PENDING`. Si Room falla, no se programa nada. | R-5.*, R-6.* |
 | `HandleAlarmFiredUseCase(id)` | carga alarma+orden; si no está `PENDING` o la orden no está `ACTIVE` → nada; si no → `FIRED` + publicar notificación. | R-7.1, R-7.7, R-7.8 |
 | `MarkAlarmDoneUseCase(id)` | `DONE`, quitar notificación, cancelar si estaba pendiente. | R-7.4, R-9.5 |
 | `SnoozeAlarmUseCase(id)` | `PENDING`, `snoozed_until = now + 5 min`, quitar notificación, `schedule()`. | R-7.5, R-12.7 |
@@ -466,6 +469,7 @@ Cobertura: Kover con regla `minBound(80)` sobre `com.mirkwood.rutinify.domain.*`
 | D-29 | Los repositorios ponen las marcas de tiempo con el `Clock` inyectado; solo `createOrder` devuelve `Result` (R-5.7), el resto deja pasar excepciones inesperadas al borde (receiver / VM) | Una única fuente de "ahora" testeable; el único fallo de escritura con requisito propio es crear la orden. | No |
 | D-30 | `JsonExtractor`: si los bloques ``` no contienen un objeto válido se busca en todo el texto; un candidato cerrado pero inválido se salta entero y uno sin cerrar avanza un carácter. Devuelve también el texto exacto extraído | Más tolerante sin devolver por error un item suelto de un JSON roto (que daría un error confuso de versión en vez de R-3.3); `raw_json` necesita el texto. | No |
 | D-31 | `ValidationIssue` gana `expected: ValueType?` y `parse(json, draftId)` recibe el id del borrador. `schemaVersion` solo vale como número `1` (no `"1"` ni `1.0`); una fecha no textual es `INVALID_DATE` | R-3.13 pide el tipo esperado; el importer (T-11) genera el UUID, así el parser es determinista en tests; "entero == 1" de §4.3. | No |
+| D-32 | Límites anti-abuso: texto ≤ 100 KB, ≤ 20 candidatos JSON, anidamiento ≤ 32, notas/descripción ≤ 500, responsable ≤ 40, categoría ≤ 30, ≤ 10 categorías distintas, ≤ 500 alarmas pendientes en la app | Un texto pegado (posiblemente de terceros) no debe poder congelar la app (escaneo cuadrático), llenar Room/notificaciones con textos enormes, crear canales basura (D-15) ni provocar la excepción de Android por superar 500 alarmas. | ✅ Aprobada por Johan el 2026-11-05 |
 | D-01..D-04 | Aprobadas por Johan el 2026-11-04 | | ✅ |
 
 ## 15. Preparación para v2
@@ -485,3 +489,4 @@ Cobertura: Kover con regla `minBound(80)` sobre `com.mirkwood.rutinify.domain.*`
 | K-2 | Fabricantes con optimización de batería agresiva (Xiaomi, Huawei…) matan alarmas | Fuera de MVP; en *Permisos* se añade un enlace informativo a dontkillmyapp.com (solo texto). |
 | K-3 | ~30 alarmas/día exactas → impacto en batería | Aceptable: `setExactAndAllowWhileIdle` es el mecanismo previsto; cada disparo hace trabajo mínimo. |
 | K-4 | El usuario fuerza la detención → Android borra las alarmas sin aviso | Reconciliación en `RutinifyApp.onCreate` (§7.2). |
+| K-5 | Texto pegado malicioso o accidentalmente enorme (no se puede saber quién generó el JSON) | No se confía en el origen sino en la validación: límites de D-32, Revisión obligatoria antes de programar (R-4), sin permiso `INTERNET` (R-13.6), Room con parámetros enlazados, texto plano en UI y notificaciones. |
