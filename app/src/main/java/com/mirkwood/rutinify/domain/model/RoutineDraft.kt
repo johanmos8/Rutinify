@@ -13,6 +13,8 @@ data class RoutineDraft(
     val notes: String?,
     val items: List<DraftItem>,
     val origin: DraftOrigin,
+    /** Exact JSON text the draft was imported from, saved as the order's `raw_json` (D-34). */
+    val rawJson: String? = null,
 )
 
 data class DraftItem(

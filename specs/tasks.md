@@ -56,11 +56,12 @@
   - Tests primero: cada fila de la tabla design §4.3; tipos erróneos; acumulación de varios errores; warning de título recortado; normalización de categoría; `6:45` → `06:45`; orden por `(dayOffset, time, position)`.
   - Límites (R-3.21, R-3.22): notas/descripción 500, responsable 40, categoría 30 tras normalizar (justo en el límite pasa, uno más falla); 10 categorías distintas pasan, 11 fallan.
   - _Hecho:_ `IssueKind` gana `INPUT_TOO_LONG`, `TEXT_TOO_LONG` y `TOO_MANY_CATEGORIES`, y `ValidationIssue` gana `limit` (D-33). El parser aplica los límites de longitud (tras `trim`; categoría tras normalizar) y de 10 categorías. 39 tests nuevos en `RoutineJsonParserItemTest`: hora, título, dayOffset, duración, textos opcionales, categoría, límites en el borde, item no objeto, acumulación y orden.
-- [ ] **T-11 · `RoutineImporter` + plantilla** — (R-1.3, R-3.19, R-3.20, R-3.23)
+- [x] **T-11 · `RoutineImporter` + plantilla** — (R-1.3, R-3.19, R-3.20, R-3.23)
   - `RoutineJsonImporter` (extractor + parser) detrás de la interfaz de dominio, binding Hilt.
   - `res/raw/prompt_template.txt` con el texto del prompt de producto y el ejemplo v1 completo.
   - Test: el JSON embebido en la plantilla parsea sin errores. Test de rendimiento: 200 items < 300 ms en JVM (R-13.2, orientativo).
   - Límite de 100 KB antes de extraer (`INPUT_TOO_LONG`, R-3.20) y análisis en `@DefaultDispatcher` (R-3.23).
+  - _Hecho:_ `RoutineImporter` (dominio) + `RoutineJsonImporter` + `ImporterModule`; el borrador lleva `rawJson` (D-34). Plantilla en `res/raw` con instrucciones, límites, el ejemplo v1 y el marcador. 14 tests: markdown, `rawJson`, UUID, sin JSON, errores del parser, 100 KB exactos / +1 byte / multibyte / KB redondeados, dispatcher inyectado, 200 items < 300 ms, y la plantilla (marcador, parsea, idéntica al fixture).
 - [ ] **T-12 · Mensajes de error en español** — (R-3.3–R-3.17, R-3.20–R-3.22, R-13.3)
   - `strings.xml` + `ui/common/ErrorMessages.kt` (`ValidationIssue` → texto). Límite de 20 + "y {k} más".
   - Tests: cada `IssueKind` produce un mensaje con actividad, campo y valor cuando aplica.

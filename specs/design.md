@@ -211,7 +211,9 @@ Se acumulan errores hasta el final; la UI muestra 20 como máximo (R-3.16).
 ### 4.4 Mapeo
 
 `JsonObject` → `RoutineDraft` (con `items` ordenados por `(dayOffset, time, position)`) → al confirmar, `RoutineOrderEntity` + `AlarmItemEntity` (vía `ScheduleOrderUseCase`).
-`RoutineImporter` es la interfaz de dominio; `RoutineJsonImporter` (data/importer) la implementa combinando extractor + parser.
+`RoutineImporter` es la interfaz de dominio (`suspend fun import(text): ImportResult`); `RoutineJsonImporter` (data/importer) la implementa:
+comprueba el tamaño (≤ 100 KB en UTF-8, si no `INPUT_TOO_LONG` con los KB redondeados hacia arriba en `received`), extrae (`NO_JSON_FOUND` si no hay objeto),
+parsea con un `draftId` UUID nuevo y guarda el texto extraído en `RoutineDraft.rawJson`. Todo corre en `@DefaultDispatcher` (R-3.23).
 
 ## 5. Persistencia (Room)
 
@@ -472,6 +474,7 @@ Cobertura: Kover con regla `minBound(80)` sobre `com.mirkwood.rutinify.domain.*`
 | D-31 | `ValidationIssue` gana `expected: ValueType?` y `parse(json, draftId)` recibe el id del borrador. `schemaVersion` solo vale como número `1` (no `"1"` ni `1.0`); una fecha no textual es `INVALID_DATE` | R-3.13 pide el tipo esperado; el importer (T-11) genera el UUID, así el parser es determinista en tests; "entero == 1" de §4.3. | No |
 | D-32 | Límites anti-abuso: texto ≤ 100 KB, ≤ 20 candidatos JSON, anidamiento ≤ 32, notas/descripción ≤ 500, responsable ≤ 40, categoría ≤ 30, ≤ 10 categorías distintas, ≤ 500 alarmas pendientes en la app | Un texto pegado (posiblemente de terceros) no debe poder congelar la app (escaneo cuadrático), llenar Room/notificaciones con textos enormes, crear canales basura (D-15) ni provocar la excepción de Android por superar 500 alarmas. | ✅ Aprobada por Johan el 2026-11-05 |
 | D-33 | `ValidationIssue` gana `limit: Int?` (máximo en `TEXT_TOO_LONG` y `TOO_MANY_CATEGORIES`; en este último `received` = nº de categorías). Las longitudes se miden en caracteres tras `trim` (la categoría, tras normalizarla); `general` cuenta como categoría; el recuento de categorías se hace sobre los items válidos, para informarlo junto a los errores de items. `dayOffset`/`durationMin` de tipo no numérico dan su error de rango, no `WRONG_TYPE` | R-3.21 pide mostrar el máximo sin duplicar constantes en la UI; `general` también crea un canal (D-15); R-3.11/R-3.12 ya describen el valor esperado. | No |
+| D-34 | `RoutineDraft` gana `rawJson: String?` (null en borradores duplicados). El límite de 100 KB se mide en bytes UTF-8 (1 KB = 1024 B). El texto de la plantilla (`res/raw/prompt_template.txt`) lo redacta el agente a partir del contrato §4.1 y los límites de D-32, con el ejemplo canónico dentro de un bloque ```json; un test comprueba que ese ejemplo es idéntico a `valid_v1.json` | `raw_json` (§5) necesita llegar desde la importación hasta `ScheduleOrderUseCase`; bytes porque es lo que ocupa en memoria/Room; el prompt original del producto no está en el repo. | No |
 | D-01..D-04 | Aprobadas por Johan el 2026-11-04 | | ✅ |
 
 ## 15. Preparación para v2
