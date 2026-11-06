@@ -52,9 +52,10 @@
 - [x] **T-09 · `RoutineJsonParser` — nivel rutina** — (R-3.2, R-3.4, R-3.5, R-3.6, R-3.7, R-3.18)
   - Tests primero con fixtures en `src/test/resources/fixtures/`. `ImportResult`, `ValidationIssue`, `IssueKind`.
   - _Hecho:_ tipos en `domain/importer` (D-31) y `RoutineJsonParser` con las reglas de rutina; 18 fixtures (incluido `valid_v1.json`, el ejemplo canónico) y 25 tests: versión (ausente, 2, texto, decimal), `routine`, nombre, fecha, notas, `items` (ausente, vacío, no lista, 200/201), acumulación y campos desconocidos. El lector de items ya aplica la tabla §4.3; sus tests van en T-10.
-- [ ] **T-10 · `RoutineJsonParser` — nivel item** — (R-3.8–R-3.15, R-3.16, R-3.17, R-3.21, R-3.22, D-13, D-32)
+- [x] **T-10 · `RoutineJsonParser` — nivel item** — (R-3.8–R-3.15, R-3.16, R-3.17, R-3.21, R-3.22, D-13, D-32)
   - Tests primero: cada fila de la tabla design §4.3; tipos erróneos; acumulación de varios errores; warning de título recortado; normalización de categoría; `6:45` → `06:45`; orden por `(dayOffset, time, position)`.
   - Límites (R-3.21, R-3.22): notas/descripción 500, responsable 40, categoría 30 tras normalizar (justo en el límite pasa, uno más falla); 10 categorías distintas pasan, 11 fallan.
+  - _Hecho:_ `IssueKind` gana `INPUT_TOO_LONG`, `TEXT_TOO_LONG` y `TOO_MANY_CATEGORIES`, y `ValidationIssue` gana `limit` (D-33). El parser aplica los límites de longitud (tras `trim`; categoría tras normalizar) y de 10 categorías. 39 tests nuevos en `RoutineJsonParserItemTest`: hora, título, dayOffset, duración, textos opcionales, categoría, límites en el borde, item no objeto, acumulación y orden.
 - [ ] **T-11 · `RoutineImporter` + plantilla** — (R-1.3, R-3.19, R-3.20, R-3.23)
   - `RoutineJsonImporter` (extractor + parser) detrás de la interfaz de dominio, binding Hilt.
   - `res/raw/prompt_template.txt` con el texto del prompt de producto y el ejemplo v1 completo.

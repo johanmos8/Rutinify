@@ -30,6 +30,8 @@ data class ValidationIssue(
     val received: String? = null,
     /** Expected value type, for [IssueKind.WRONG_TYPE] (R-3.13). */
     val expected: ValueType? = null,
+    /** Maximum allowed, for limit kinds such as [IssueKind.TEXT_TOO_LONG] and [IssueKind.TOO_MANY_CATEGORIES]. */
+    val limit: Int? = null,
     val severity: Severity = Severity.ERROR,
 ) {
     companion object {
@@ -52,6 +54,15 @@ enum class IssueKind {
 
     /** Warning: title longer than 80 characters was cut (R-3.10). */
     TITLE_TRUNCATED,
+
+    /** Pasted text over 100 KB, rejected before extraction (R-3.20). */
+    INPUT_TOO_LONG,
+
+    /** Text field longer than its maximum, given in [ValidationIssue.limit] (R-3.21). */
+    TEXT_TOO_LONG,
+
+    /** More distinct categories than allowed; count in `received`, maximum in `limit` (R-3.22). */
+    TOO_MANY_CATEGORIES,
 }
 
 enum class Severity { ERROR, WARNING }

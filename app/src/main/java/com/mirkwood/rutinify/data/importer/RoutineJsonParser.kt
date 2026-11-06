@@ -80,7 +80,7 @@ class RoutineJsonParser @Inject constructor() {
         val before = issues.size
         val name = readRequiredText(element["name"], "routine.name", issues)
         val date = readDate(element["date"], issues)
-        val notes = readOptionalText(element["notes"], "routine.notes", issues)
+        val notes = readOptionalText(element["notes"], "routine.notes", issues, maxLength = MAX_LONG_TEXT)
         if (name == null || issues.size > before) return null
         return RoutineFields(name, date, notes)
     }
@@ -102,7 +102,7 @@ class RoutineJsonParser @Inject constructor() {
         return parsed
     }
 
-    /** R-3.7, R-3.18. Returns null when the list itself is unusable. */
+    /** R-3.7, R-3.18, R-3.22. Returns null when the list itself is unusable or any item is invalid. */
     private fun readItems(element: JsonElement?, issues: MutableList<ValidationIssue>): List<DraftItem>? {
         if (element !is JsonArray || element.isEmpty()) {
             issues += ValidationIssue(field = "items", kind = IssueKind.NO_ITEMS)
@@ -113,10 +113,21 @@ class RoutineJsonParser @Inject constructor() {
             return null
         }
         val items = element.mapIndexedNotNull { position, item -> readItem(position, item, issues) }
+        // Counted over the items that parsed, so this error is reported together with item errors (R-3.16)
+        val categories = items.mapTo(HashSet()) { it.category }.size
+        if (categories > MAX_CATEGORIES) {
+            issues += ValidationIssue(
+                field = "items",
+                kind = IssueKind.TOO_MANY_CATEGORIES,
+                received = categories.toString(),
+                limit = MAX_CATEGORIES,
+            )
+            return null
+        }
         return if (items.size == element.size) items.sortedWith(DRAFT_ORDER) else null
     }
 
-    // ---- Item level (rules from design §4.3; covered by tests in T-10) ----
+    // ---- Item level (T-10) ----
 
     private fun readItem(position: Int, element: JsonElement, issues: MutableList<ValidationIssue>): DraftItem? {
         val index = position + 1
@@ -138,12 +149,12 @@ class RoutineJsonParser @Inject constructor() {
         val title = readTitle(element["title"], context, issues)
         val dayOffset = readDayOffset(element["dayOffset"], context, issues)
         val durationMin = readDuration(element["durationMin"], context, issues)
-        val description = readOptionalText(element["description"], "description", issues, context)
-        val category = readOptionalText(element["category"], "category", issues, context)
-        val assignee = readOptionalText(element["assignee"], "assignee", issues, context)
+        val description = readOptionalText(element["description"], "description", issues, MAX_LONG_TEXT, context)
+        val category = readCategory(element["category"], context, issues)
+        val assignee = readOptionalText(element["assignee"], "assignee", issues, MAX_ASSIGNEE_LENGTH, context)
 
         val hasErrors = issues.drop(before).any { it.severity == Severity.ERROR }
-        if (hasErrors || time == null || title == null || dayOffset == null) return null
+        if (hasErrors || time == null || title == null || dayOffset == null || category == null) return null
         return DraftItem(
             key = position,
             time = time,
@@ -151,7 +162,7 @@ class RoutineJsonParser @Inject constructor() {
             title = title,
             description = description,
             durationMin = durationMin,
-            category = normalizeCategory(category),
+            category = category,
             assignee = assignee,
         )
     }
@@ -163,6 +174,7 @@ class RoutineJsonParser @Inject constructor() {
         kind: IssueKind,
         received: JsonElement? = null,
         expected: ValueType? = null,
+        limit: Int? = null,
         severity: Severity = Severity.ERROR,
     ) = ValidationIssue(
         itemIndex = index,
@@ -172,6 +184,7 @@ class RoutineJsonParser @Inject constructor() {
         kind = kind,
         received = received.describeOrNull(),
         expected = expected,
+        limit = limit,
         severity = severity,
     )
 
@@ -238,6 +251,22 @@ class RoutineJsonParser @Inject constructor() {
         return value
     }
 
+    /**
+     * R-3.14, R-3.21: absent/null/blank → "general"; otherwise lowercase, trimmed, inner whitespace → "-",
+     * and at most [MAX_CATEGORY_LENGTH] characters once normalized. Null only when invalid.
+     */
+    private fun readCategory(element: JsonElement?, ctx: ItemContext, issues: MutableList<ValidationIssue>): String? {
+        val before = issues.size
+        val raw = readOptionalText(element, "category", issues, ctx = ctx)
+        if (issues.size > before) return null
+        val category = raw?.lowercase()?.replace(WHITESPACE, "-") ?: DEFAULT_CATEGORY
+        if (category.length > MAX_CATEGORY_LENGTH) {
+            issues += ctx.issue("category", IssueKind.TEXT_TOO_LONG, limit = MAX_CATEGORY_LENGTH)
+            return null
+        }
+        return category
+    }
+
     // ---- Shared readers ----
 
     private fun readRequiredText(element: JsonElement?, field: String, issues: MutableList<ValidationIssue>): String? {
@@ -257,11 +286,15 @@ class RoutineJsonParser @Inject constructor() {
         return text
     }
 
-    /** Optional string: absent, null or blank → null; any other type is recorded as an error (R-3.13). */
+    /**
+     * Optional string: absent, null or blank → null; any other type is recorded as an error (R-3.13).
+     * The trimmed text may not exceed [maxLength] characters (R-3.21).
+     */
     private fun readOptionalText(
         element: JsonElement?,
         field: String,
         issues: MutableList<ValidationIssue>,
+        maxLength: Int = Int.MAX_VALUE,
         ctx: ItemContext? = null,
     ): String? {
         if (element == null || element is JsonNull) return null
@@ -270,12 +303,14 @@ class RoutineJsonParser @Inject constructor() {
                 ?: wrongType(field, ValueType.TEXT, element)
             return null
         }
-        return element.content.trim().ifEmpty { null }
+        val text = element.content.trim()
+        if (text.length > maxLength) {
+            issues += ctx?.issue(field, IssueKind.TEXT_TOO_LONG, limit = maxLength)
+                ?: ValidationIssue(field = field, kind = IssueKind.TEXT_TOO_LONG, limit = maxLength)
+            return null
+        }
+        return text.ifEmpty { null }
     }
-
-    /** R-3.14: null/blank → "general"; otherwise lowercase, trimmed, inner whitespace → "-". */
-    private fun normalizeCategory(raw: String?): String =
-        raw?.lowercase()?.trim()?.replace(WHITESPACE, "-")?.ifEmpty { null } ?: DEFAULT_CATEGORY
 
     private fun wrongType(field: String, expected: ValueType, received: JsonElement) =
         ValidationIssue(field = field, kind = IssueKind.WRONG_TYPE, expected = expected, received = received.describe())
@@ -291,6 +326,10 @@ class RoutineJsonParser @Inject constructor() {
     private companion object {
         const val MAX_ITEMS = 200
         const val MAX_TITLE_LENGTH = 80
+        const val MAX_LONG_TEXT = 500
+        const val MAX_ASSIGNEE_LENGTH = 40
+        const val MAX_CATEGORY_LENGTH = 30
+        const val MAX_CATEGORIES = 10
         const val MAX_DAY_OFFSET = 1
         const val DEFAULT_CATEGORY = "general"
         val DURATION_RANGE = 1..1440
