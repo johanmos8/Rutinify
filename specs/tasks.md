@@ -89,9 +89,10 @@
   - `HandleAlarmFiredUseCase`, `MarkAlarmDoneUseCase`, `SnoozeAlarmUseCase`, `AlarmMutationLock`.
   - Tests con fakes: no notifica si la alarma no está pendiente/orden no activa; snooze guarda `snoozedUntil = now+5`.
   - _Hecho:_ `AlarmMutationLock` (Mutex singleton), `HandleAlarmFiredUseCase` → `FireOutcome`, `MarkAlarmDoneUseCase` y `SnoozeAlarmUseCase` (D-39). Fakes a mano en `testutil` (`FakeAlarmRepository`, `FakeOrderRepository`, `FakeAlarmScheduler`, `FakeNotificationPublisher`, builders). 24 tests: disparo ignorado por estado/orden, sin permiso → `FIRED`, snooze = ahora + 5 min, idempotencia de los dos botones.
-- [ ] **T-18 · `AlarmReceiver` + `NotificationActionReceiver`** — (R-7.1, R-7.4, R-7.5)
+- [x] **T-18 · `AlarmReceiver` + `NotificationActionReceiver`** — (R-7.1, R-7.4, R-7.5)
   - `goAsync` + `@ApplicationScope` + timeout; manifiesto (`exported=false`).
   - Tests Robolectric: cada intent invoca el use case correcto con el id del data URI.
+  - _Hecho:_ `AlarmReceiver` y `NotificationActionReceiver` con `@AndroidEntryPoint`, `goAsync()` y el scope de aplicación; `ReceiverCommand` (intent → comando con id), `ReceiverCommandHandler` (comando → use case) y `launchReceiverWork` (timeout 9 s, log y `finish()` siempre) (D-40). 13 tests: parseo de los tres intents y de intents inválidos, receivers no exportados, cada comando llega a su use case, `finish()` tras éxito, fallo, timeout y cancelación.
 - [ ] **T-19 · `RescheduleAllUseCase` + `RescheduleReceiver`** — (R-11.6, R-11.7, R-12.1–R-12.7)
   - Lógica de §7.2 (futuro → programar; ≤15 min → disparar; >15 min → SKIPPED), llamada desde `RutinifyApp.onCreate`.
   - Manifiesto: `RECEIVE_BOOT_COMPLETED`, acciones de boot/hora/zona/package replaced/permiso exacto.
