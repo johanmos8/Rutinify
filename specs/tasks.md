@@ -85,9 +85,10 @@
   - Canal `cat_<categoria>` idempotente, contenido, acciones "Hecho"/"+5 min", content intent con deep link, `cancel(alarmId)` y `cancelForOrder`.
   - Tests Robolectric: canal creado una vez; notificación con 2 acciones y canal correcto; sin permiso no lanza.
   - _Hecho:_ `NotificationPublisher`/`AlarmNotification` en dominio; `AndroidNotificationPublisher` (canales `cat_<categoria>` en el grupo "Rutinas" solo si faltan, notificación con título/texto/subtítulo, hora de disparo, acciones "Hecho" y "+5 min", deep link al detalle, `cancel` y `cancelForOrder`); `PendingIntentFactory` añade los intents de acción y de detalle; permiso `POST_NOTIFICATIONS`, icono propio y `NotificationActionReceiver` vacío hasta T-18 (D-38). 17 tests Robolectric.
-- [ ] **T-17 · Use cases de disparo y acciones** — (R-7.1, R-7.4, R-7.5, R-7.7, R-9.5)
+- [x] **T-17 · Use cases de disparo y acciones** — (R-7.1, R-7.4, R-7.5, R-7.7, R-9.5)
   - `HandleAlarmFiredUseCase`, `MarkAlarmDoneUseCase`, `SnoozeAlarmUseCase`, `AlarmMutationLock`.
   - Tests con fakes: no notifica si la alarma no está pendiente/orden no activa; snooze guarda `snoozedUntil = now+5`.
+  - _Hecho:_ `AlarmMutationLock` (Mutex singleton), `HandleAlarmFiredUseCase` → `FireOutcome`, `MarkAlarmDoneUseCase` y `SnoozeAlarmUseCase` (D-39). Fakes a mano en `testutil` (`FakeAlarmRepository`, `FakeOrderRepository`, `FakeAlarmScheduler`, `FakeNotificationPublisher`, builders). 24 tests: disparo ignorado por estado/orden, sin permiso → `FIRED`, snooze = ahora + 5 min, idempotencia de los dos botones.
 - [ ] **T-18 · `AlarmReceiver` + `NotificationActionReceiver`** — (R-7.1, R-7.4, R-7.5)
   - `goAsync` + `@ApplicationScope` + timeout; manifiesto (`exported=false`).
   - Tests Robolectric: cada intent invoca el use case correcto con el id del data URI.

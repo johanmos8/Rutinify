@@ -1,0 +1,44 @@
+package com.mirkwood.rutinify.domain.usecase
+
+import com.mirkwood.rutinify.domain.model.AlarmStatus
+import com.mirkwood.rutinify.domain.model.OrderStatus
+import com.mirkwood.rutinify.domain.repository.AlarmRepository
+import com.mirkwood.rutinify.domain.repository.OrderRepository
+import com.mirkwood.rutinify.domain.scheduler.AlarmScheduler
+import com.mirkwood.rutinify.domain.scheduler.NotificationPublisher
+import java.time.Clock
+import java.time.Duration
+import javax.inject.Inject
+
+/** "+5 min" from the notification (R-7.5). */
+class SnoozeAlarmUseCase @Inject constructor(
+    private val alarms: AlarmRepository,
+    private val orders: OrderRepository,
+    private val scheduler: AlarmScheduler,
+    private val publisher: NotificationPublisher,
+    private val clock: Clock,
+    private val lock: AlarmMutationLock,
+) {
+
+    /**
+     * Only a FIRED alarm of an ACTIVE order is snoozed (D-39); a repeated tap or a stale notification
+     * just removes the notification. @return true if the alarm was rescheduled.
+     */
+    suspend operator fun invoke(alarmId: Long): Boolean = lock.withLock {
+        publisher.cancel(alarmId)
+        val alarm = alarms.getById(alarmId)
+        val order = alarm?.let { orders.getOrder(it.orderId) }
+        if (alarm == null || order == null || alarm.status != AlarmStatus.FIRED || order.status != OrderStatus.ACTIVE) {
+            return@withLock false
+        }
+        // Absolute instant from the moment of the tap (D-12); Room first, then AlarmManager
+        val until = clock.instant().plus(SNOOZE)
+        alarms.snooze(alarmId, until)
+        scheduler.schedule(alarmId, until)
+        true
+    }
+
+    private companion object {
+        val SNOOZE: Duration = Duration.ofMinutes(5)
+    }
+}
