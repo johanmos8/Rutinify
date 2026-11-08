@@ -2,6 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Exact alarms on API 31+ (R-5.3); USE_EXACT_ALARM is deliberately not declared (D-09) -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+
     <application
         android:name=".RutinifyApp"
         android:allowBackup="true"
@@ -23,6 +26,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Only reached through the app's own explicit PendingIntent (design §7) -->
+        <receiver
+            android:name=".data.receiver.AlarmReceiver"
+            android:exported="false" />
     </application>
 
 </manifest>

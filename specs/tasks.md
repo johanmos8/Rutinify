@@ -78,8 +78,9 @@
 
 ## Fase 4 · Scheduler, receivers y notificaciones
 
-- [ ] **T-15 · `PendingIntentFactory` + `AndroidAlarmScheduler`** — (R-5.3, R-5.4, R-12.6, design §6)
+- [x] **T-15 · `PendingIntentFactory` + `AndroidAlarmScheduler`** — (R-5.3, R-5.4, R-12.6, design §6)
   - Tests Robolectric (`ShadowAlarmManager`): requestCode = id; `schedule` dos veces → una sola alarma; `cancel` encuentra el mismo PI; modo EXACT vs WINDOWED según `canScheduleExactAlarms`.
+  - _Hecho:_ `AlarmScheduler`/`ScheduleMode` en dominio; `PendingIntentFactory` (disparo `rutinify://alarm/{id}`, requestCode = id, inmutable, `FLAG_NO_CREATE` para cancelar) y `AndroidAlarmScheduler` (exacta en reposo o ventana de 10 min; `SecurityException` → ventana), `AlarmModule`, permiso `SCHEDULE_EXACT_ALARM` y `AlarmReceiver` vacío hasta T-18 (D-37). 20 tests Robolectric.
 - [ ] **T-16 · Canales y `AndroidNotificationPublisher`** — (R-5.9, R-7.1–R-7.3, R-7.8, design §8)
   - Canal `cat_<categoria>` idempotente, contenido, acciones "Hecho"/"+5 min", content intent con deep link, `cancel(alarmId)` y `cancelForOrder`.
   - Tests Robolectric: canal creado una vez; notificación con 2 acciones y canal correcto; sin permiso no lanza.
