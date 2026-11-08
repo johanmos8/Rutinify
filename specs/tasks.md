@@ -72,8 +72,9 @@
 - [x] **T-13 · `TriggerTimeCalculator` y `DefaultDatePolicy`** — (R-4.4, R-4.5, R-5.2, R-5.8, R-12.2)
   - Tests primero: dayOffset 1 a las 02:00, hueco DST (`Europe/Madrid`), solape DST, fecha por defecto hoy/mañana con `Clock.fixed`, cambio de zona recalcula.
   - _Hecho:_ `TriggerTimeCalculator` (`triggerAt`, `effectiveTrigger` con snooze) y `DefaultDatePolicy` → `DefaultDate(date, chosenByApp)` en `domain/time`. 16 tests: medianoche, dayOffset, fin de año, hueco y solape DST en Madrid, cambio de zona, snooze, fecha del JSON, hoy/mañana, borde `<= now` y "hoy" según la zona.
-- [ ] **T-14 · `BuildSchedulePreviewUseCase`** — (R-4.1, R-4.6–R-4.11)
+- [x] **T-14 · `BuildSchedulePreviewUseCase`** — (R-4.1, R-4.6–R-4.11)
   - Tests: marca pasadas (`<= now`), exclusiones manuales, resumen "28 alarmas, de 06:45 a 02:00 (+1 día)", sin futuras → `canSchedule = false`, sugerencia de mañana.
+  - _Hecho:_ `BuildSchedulePreviewUseCase` → `SchedulePreview` (items con `triggerAt`/`isPast`/`isIncluded`, `ScheduleSummary`, `canSchedule`, `suggestTomorrow`; D-36). 15 tests: horas por fecha, orden, pasadas y borde `<= now`, exclusión manual, resumen con "+1 día", sin incluidas, cambio de fecha y los casos de R-4.11.
 
 ## Fase 4 · Scheduler, receivers y notificaciones
 
