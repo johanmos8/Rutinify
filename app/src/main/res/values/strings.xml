@@ -62,4 +62,9 @@
         <item quantity="one">y %1$d error más</item>
         <item quantity="other">y %1$d errores más</item>
     </plurals>
+
+    <!-- Notifications (design §8) -->
+    <string name="notification_group_routines">Rutinas</string>
+    <string name="notification_action_done">Hecho</string>
+    <string name="notification_action_snooze">+5 min</string>
 </resources>

@@ -4,6 +4,8 @@
 
     <!-- Exact alarms on API 31+ (R-5.3); USE_EXACT_ALARM is deliberately not declared (D-09) -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- Alarm notifications on API 33+ (R-7.1); without it alarms still move to FIRED (R-7.8) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".RutinifyApp"
@@ -30,6 +32,9 @@
         <!-- Only reached through the app's own explicit PendingIntent (design §7) -->
         <receiver
             android:name=".data.receiver.AlarmReceiver"
+            android:exported="false" />
+        <receiver
+            android:name=".data.receiver.NotificationActionReceiver"
             android:exported="false" />
     </application>
 

@@ -1,0 +1,231 @@
+package com.mirkwood.rutinify.data.notification
+
+import android.Manifest
+import android.app.Application
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.ComponentName
+import android.content.Intent
+import android.net.Uri
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.google.common.truth.Truth.assertThat
+import com.mirkwood.rutinify.MainActivity
+import com.mirkwood.rutinify.data.alarm.PendingIntentFactory
+import com.mirkwood.rutinify.data.receiver.NotificationActionReceiver
+import com.mirkwood.rutinify.domain.scheduler.AlarmNotification
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.Shadows.shadowOf
+import java.time.Instant
+import java.time.LocalTime
+
+/** T-16: channels and alarm notifications (R-5.9, R-7.1–R-7.3, R-7.8, design §8). */
+@RunWith(AndroidJUnit4::class)
+class AndroidNotificationPublisherTest {
+
+    private val app: Application = ApplicationProvider.getApplicationContext()
+    private val manager = app.getSystemService(NotificationManager::class.java)
+    private val shadowManager = shadowOf(manager)
+    private val publisher = AndroidNotificationPublisher(app, manager, PendingIntentFactory(app))
+
+    private val triggerAt = Instant.parse("2026-11-05T11:45:00Z")
+    private val siesta = AlarmNotification(
+        alarmId = 42L,
+        orderId = 3L,
+        orderName = "Cachorro",
+        title = "Siesta",
+        description = "En su cama, luz apagada",
+        time = LocalTime.of(6, 45),
+        category = "siesta",
+        triggerAt = triggerAt,
+    )
+
+    @Before
+    fun grantNotifications() {
+        shadowOf(app).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
+        shadowManager.setNotificationsEnabled(true)
+    }
+
+    private fun shown(alarmId: Long): Notification? = shadowManager.getNotification("alarm", alarmId.toInt())
+
+    // --- Channels -------------------------------------------------------------------------------
+
+    @Test
+    fun `crea el canal de la categoria con nombre capitalizado e importancia alta`() { // R-5.9, design §8
+        publisher.ensureChannels(listOf("siesta"))
+
+        val channel = manager.getNotificationChannel("cat_siesta")
+        assertThat(channel.name.toString()).isEqualTo("Siesta")
+        assertThat(channel.importance).isEqualTo(NotificationManager.IMPORTANCE_HIGH)
+        assertThat(channel.group).isEqualTo("routines")
+        assertThat(manager.getNotificationChannelGroup("routines").name.toString()).isEqualTo("Rutinas")
+    }
+
+    @Test
+    fun `crear los canales dos veces deja uno por categoria`() { // R-5.9 (idempotent)
+        publisher.ensureChannels(listOf("siesta", "paseo"))
+        publisher.ensureChannels(listOf("paseo", "siesta"))
+
+        assertThat(shadowManager.notificationChannels.map { it.id }).containsExactly("cat_siesta", "cat_paseo")
+    }
+
+    @Test
+    fun `no toca un canal que ya existe`() { // D-15: the user's channel settings win
+        manager.createNotificationChannel(NotificationChannel("cat_siesta", "Mi siesta", NotificationManager.IMPORTANCE_LOW))
+
+        publisher.ensureChannels(listOf("siesta"))
+
+        assertThat(manager.getNotificationChannel("cat_siesta").name.toString()).isEqualTo("Mi siesta")
+    }
+
+    @Test
+    fun `las categorias con guiones se nombran con espacios`() { // design §8
+        publisher.ensureChannels(listOf("paseo-largo"))
+
+        assertThat(manager.getNotificationChannel("cat_paseo-largo").name.toString()).isEqualTo("Paseo largo")
+    }
+
+    // --- Content --------------------------------------------------------------------------------
+
+    @Test
+    fun `publica en el canal de su categoria con titulo texto y subtitulo`() { // R-7.1, R-7.2
+        val published = publisher.publish(siesta)
+
+        val notification = shown(42L)!!
+        assertThat(published).isTrue()
+        assertThat(notification.channelId).isEqualTo("cat_siesta")
+        assertThat(notification.extras.getCharSequence(Notification.EXTRA_TITLE).toString()).isEqualTo("Siesta")
+        assertThat(notification.extras.getCharSequence(Notification.EXTRA_TEXT).toString())
+            .isEqualTo("En su cama, luz apagada")
+        assertThat(notification.extras.getCharSequence(Notification.EXTRA_SUB_TEXT).toString()).isEqualTo("Cachorro")
+    }
+
+    @Test
+    fun `sin descripcion el texto es la hora`() { // R-7.1
+        publisher.publish(siesta.copy(description = null))
+
+        assertThat(shown(42L)!!.extras.getCharSequence(Notification.EXTRA_TEXT).toString()).isEqualTo("06:45")
+    }
+
+    @Test
+    fun `es un recordatorio con la hora de disparo y se cierra al tocarla`() { // design §8
+        publisher.publish(siesta)
+
+        val notification = shown(42L)!!
+        assertThat(notification.category).isEqualTo(Notification.CATEGORY_REMINDER)
+        assertThat(notification.`when`).isEqualTo(triggerAt.toEpochMilli())
+        assertThat(notification.flags and Notification.FLAG_AUTO_CANCEL).isNotEqualTo(0)
+    }
+
+    @Test
+    fun `crea el canal si todavia no existe al publicar`() { // R-7.2
+        publisher.publish(siesta.copy(category = "comida"))
+
+        assertThat(manager.getNotificationChannel("cat_comida")).isNotNull()
+        assertThat(shown(42L)!!.channelId).isEqualTo("cat_comida")
+    }
+
+    // --- Actions --------------------------------------------------------------------------------
+
+    @Test
+    fun `incluye las acciones Hecho y mas 5 min`() { // R-7.3
+        publisher.publish(siesta)
+
+        assertThat(shown(42L)!!.actions.map { it.title.toString() }).containsExactly("Hecho", "+5 min").inOrder()
+    }
+
+    @Test
+    fun `las acciones van al NotificationActionReceiver con el id de la alarma`() { // R-7.3, design §6.1
+        publisher.publish(siesta)
+
+        val (done, snooze) = shown(42L)!!.actions.map { shadowOf(it.actionIntent) }
+        val receiver = ComponentName(app, NotificationActionReceiver::class.java)
+        assertThat(done.isBroadcast).isTrue()
+        assertThat(done.requestCode).isEqualTo(42)
+        assertThat(done.savedIntent.component).isEqualTo(receiver)
+        assertThat(done.savedIntent.action).isEqualTo(PendingIntentFactory.ACTION_DONE)
+        assertThat(done.savedIntent.data).isEqualTo(Uri.parse("rutinify://alarm/42/done"))
+        assertThat(snooze.requestCode).isEqualTo(42)
+        assertThat(snooze.savedIntent.component).isEqualTo(receiver)
+        assertThat(snooze.savedIntent.action).isEqualTo(PendingIntentFactory.ACTION_SNOOZE)
+        assertThat(snooze.savedIntent.data).isEqualTo(Uri.parse("rutinify://alarm/42/snooze"))
+    }
+
+    @Test
+    fun `las acciones llevan un id de alarma legible`() { // design §6.1, used by NotificationActionReceiver (T-18)
+        publisher.publish(siesta)
+
+        val ids = shown(42L)!!.actions.map { PendingIntentFactory.alarmIdOf(shadowOf(it.actionIntent).savedIntent) }
+        assertThat(ids).containsExactly(42L, 42L)
+    }
+
+    @Test
+    fun `tocar la notificacion abre el detalle de la orden con la alarma resaltada`() { // R-7.6, design §6.1
+        publisher.publish(siesta)
+
+        val content = shadowOf(shown(42L)!!.contentIntent)
+        assertThat(content.isActivity).isTrue()
+        assertThat(content.requestCode).isEqualTo(42)
+        assertThat(content.savedIntent.component).isEqualTo(ComponentName(app, MainActivity::class.java))
+        assertThat(content.savedIntent.action).isEqualTo(Intent.ACTION_VIEW)
+        assertThat(content.savedIntent.data).isEqualTo(Uri.parse("rutinify://order/3?alarm=42"))
+    }
+
+    // --- Permission -----------------------------------------------------------------------------
+
+    @Test
+    fun `con las notificaciones desactivadas no publica ni lanza`() { // R-7.8
+        shadowManager.setNotificationsEnabled(false)
+
+        val published = publisher.publish(siesta)
+
+        assertThat(published).isFalse()
+        assertThat(shadowManager.size()).isEqualTo(0)
+    }
+
+    @Test
+    fun `sin permiso POST_NOTIFICATIONS no publica ni lanza`() { // R-7.8
+        shadowOf(app).denyPermissions(Manifest.permission.POST_NOTIFICATIONS)
+
+        val published = publisher.publish(siesta)
+
+        assertThat(published).isFalse()
+        assertThat(shadowManager.size()).isEqualTo(0)
+    }
+
+    // --- Cancel ---------------------------------------------------------------------------------
+
+    @Test
+    fun `cancel quita solo la notificacion de esa alarma`() { // R-7.4, R-9.3
+        publisher.publish(siesta)
+        publisher.publish(siesta.copy(alarmId = 43L))
+
+        publisher.cancel(42L)
+
+        assertThat(shown(42L)).isNull()
+        assertThat(shown(43L)).isNotNull()
+    }
+
+    @Test
+    fun `cancel sin notificacion no falla`() {
+        publisher.cancel(99L)
+
+        assertThat(shadowManager.size()).isEqualTo(0)
+    }
+
+    @Test
+    fun `cancelForOrder quita las notificaciones de la orden y deja las demas`() { // R-10.2
+        publisher.publish(siesta)
+        publisher.publish(siesta.copy(alarmId = 43L))
+        publisher.publish(siesta.copy(alarmId = 50L, orderId = 4L))
+
+        publisher.cancelForOrder(3L)
+
+        assertThat(shown(42L)).isNull()
+        assertThat(shown(43L)).isNull()
+        assertThat(shown(50L)).isNotNull()
+    }
+}

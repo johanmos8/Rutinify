@@ -81,9 +81,10 @@
 - [x] **T-15 · `PendingIntentFactory` + `AndroidAlarmScheduler`** — (R-5.3, R-5.4, R-12.6, design §6)
   - Tests Robolectric (`ShadowAlarmManager`): requestCode = id; `schedule` dos veces → una sola alarma; `cancel` encuentra el mismo PI; modo EXACT vs WINDOWED según `canScheduleExactAlarms`.
   - _Hecho:_ `AlarmScheduler`/`ScheduleMode` en dominio; `PendingIntentFactory` (disparo `rutinify://alarm/{id}`, requestCode = id, inmutable, `FLAG_NO_CREATE` para cancelar) y `AndroidAlarmScheduler` (exacta en reposo o ventana de 10 min; `SecurityException` → ventana), `AlarmModule`, permiso `SCHEDULE_EXACT_ALARM` y `AlarmReceiver` vacío hasta T-18 (D-37). 20 tests Robolectric.
-- [ ] **T-16 · Canales y `AndroidNotificationPublisher`** — (R-5.9, R-7.1–R-7.3, R-7.8, design §8)
+- [x] **T-16 · Canales y `AndroidNotificationPublisher`** — (R-5.9, R-7.1–R-7.3, R-7.8, design §8)
   - Canal `cat_<categoria>` idempotente, contenido, acciones "Hecho"/"+5 min", content intent con deep link, `cancel(alarmId)` y `cancelForOrder`.
   - Tests Robolectric: canal creado una vez; notificación con 2 acciones y canal correcto; sin permiso no lanza.
+  - _Hecho:_ `NotificationPublisher`/`AlarmNotification` en dominio; `AndroidNotificationPublisher` (canales `cat_<categoria>` en el grupo "Rutinas" solo si faltan, notificación con título/texto/subtítulo, hora de disparo, acciones "Hecho" y "+5 min", deep link al detalle, `cancel` y `cancelForOrder`); `PendingIntentFactory` añade los intents de acción y de detalle; permiso `POST_NOTIFICATIONS`, icono propio y `NotificationActionReceiver` vacío hasta T-18 (D-38). 17 tests Robolectric.
 - [ ] **T-17 · Use cases de disparo y acciones** — (R-7.1, R-7.4, R-7.5, R-7.7, R-9.5)
   - `HandleAlarmFiredUseCase`, `MarkAlarmDoneUseCase`, `SnoozeAlarmUseCase`, `AlarmMutationLock`.
   - Tests con fakes: no notifica si la alarma no está pendiente/orden no activa; snooze guarda `snoozedUntil = now+5`.
