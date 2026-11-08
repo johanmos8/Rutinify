@@ -62,9 +62,10 @@
   - Test: el JSON embebido en la plantilla parsea sin errores. Test de rendimiento: 200 items < 300 ms en JVM (R-13.2, orientativo).
   - Límite de 100 KB antes de extraer (`INPUT_TOO_LONG`, R-3.20) y análisis en `@DefaultDispatcher` (R-3.23).
   - _Hecho:_ `RoutineImporter` (dominio) + `RoutineJsonImporter` + `ImporterModule`; el borrador lleva `rawJson` (D-34). Plantilla en `res/raw` con instrucciones, límites, el ejemplo v1 y el marcador. 14 tests: markdown, `rawJson`, UUID, sin JSON, errores del parser, 100 KB exactos / +1 byte / multibyte / KB redondeados, dispatcher inyectado, 200 items < 300 ms, y la plantilla (marcador, parsea, idéntica al fixture).
-- [ ] **T-12 · Mensajes de error en español** — (R-3.3–R-3.17, R-3.20–R-3.22, R-13.3)
+- [x] **T-12 · Mensajes de error en español** — (R-3.3–R-3.17, R-3.20–R-3.22, R-13.3)
   - `strings.xml` + `ui/common/ErrorMessages.kt` (`ValidationIssue` → texto). Límite de 20 + "y {k} más".
   - Tests: cada `IssueKind` produce un mensaje con actividad, campo y valor cuando aplica.
+  - _Hecho:_ `UiText` (recurso + argumentos anidados, `asString()` en Compose) y `ErrorMessages.message/list` con los textos de R-3.3–R-3.22 en `strings.xml` (D-35). 25 tests Robolectric con el texto exacto: cada `IssueKind`, contexto título/hora/número, título largo acortado, tipos no técnicos, nivel rutina e item, y 20 / 21 / 25 errores.
 
 ## Fase 3 · Tiempo y planificación
 

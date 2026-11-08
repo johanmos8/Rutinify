@@ -206,7 +206,7 @@ Reglas (→ requisito):
 | `assignee` | string opcional; vacío → null; ≤ 40 | `TEXT_TOO_LONG` (R-3.21) |
 
 Se acumulan errores hasta el final; la UI muestra 20 como máximo (R-3.16).
-`ErrorMessages.kt` (ui/common) traduce `ValidationIssue` → texto con `stringResource`/`pluralStringResource`.
+`ErrorMessages.kt` (ui/common) traduce `ValidationIssue` → `UiText` (id de recurso + argumentos, que pueden ser otros `UiText`), y `UiText.asString()` lo resuelve en Compose; así el VM construye los mensajes y los tests los comprueban con Robolectric sin composables. `ErrorMessages.list` limita a 20 + "y {k} errores más" (D-35).
 
 ### 4.4 Mapeo
 
@@ -475,6 +475,7 @@ Cobertura: Kover con regla `minBound(80)` sobre `com.mirkwood.rutinify.domain.*`
 | D-32 | Límites anti-abuso: texto ≤ 100 KB, ≤ 20 candidatos JSON, anidamiento ≤ 32, notas/descripción ≤ 500, responsable ≤ 40, categoría ≤ 30, ≤ 10 categorías distintas, ≤ 500 alarmas pendientes en la app | Un texto pegado (posiblemente de terceros) no debe poder congelar la app (escaneo cuadrático), llenar Room/notificaciones con textos enormes, crear canales basura (D-15) ni provocar la excepción de Android por superar 500 alarmas. | ✅ Aprobada por Johan el 2026-11-05 |
 | D-33 | `ValidationIssue` gana `limit: Int?` (máximo en `TEXT_TOO_LONG` y `TOO_MANY_CATEGORIES`; en este último `received` = nº de categorías). Las longitudes se miden en caracteres tras `trim` (la categoría, tras normalizarla); `general` cuenta como categoría; el recuento de categorías se hace sobre los items válidos, para informarlo junto a los errores de items. `dayOffset`/`durationMin` de tipo no numérico dan su error de rango, no `WRONG_TYPE` | R-3.21 pide mostrar el máximo sin duplicar constantes en la UI; `general` también crea un canal (D-15); R-3.11/R-3.12 ya describen el valor esperado. | No |
 | D-34 | `RoutineDraft` gana `rawJson: String?` (null en borradores duplicados). El límite de 100 KB se mide en bytes UTF-8 (1 KB = 1024 B). El texto de la plantilla (`res/raw/prompt_template.txt`) lo redacta el agente a partir del contrato §4.1 y los límites de D-32, con el ejemplo canónico dentro de un bloque ```json; un test comprueba que ese ejemplo es idéntico a `valid_v1.json` | `raw_json` (§5) necesita llegar desde la importación hasta `ScheduleOrderUseCase`; bytes porque es lo que ocupa en memoria/Room; el prompt original del producto no está en el repo. | No |
+| D-35 | Mensajes de validación: prefijo "Actividad {n} («título»)", si no hay título "(a las {hora})", si no solo el número; el título del contexto se acorta a 30 caracteres con "…". Los tipos esperados se nombran "un texto entre comillas", "un número entero", "un bloque entre llaves { }" y "una lista entre corchetes [ ]"; el valor recibido se añade como "(se recibió «…»)". Los campos se citan con su nombre JSON (`description`, `routine.notes`), como ya hacen R-3.5 y R-3.7 | R-3.8/R-3.9 piden ese contexto; R-3.13 pide tipos no técnicos; citar el nombre JSON ayuda a corregirlo en la IA. | No |
 | D-01..D-04 | Aprobadas por Johan el 2026-11-04 | | ✅ |
 
 ## 15. Preparación para v2

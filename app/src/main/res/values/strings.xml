@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">Rutinify</string>
 
     <!-- Common actions -->
@@ -15,4 +15,51 @@
     <string name="home_placeholder">Aquí aparecerán tus rutinas</string>
     <string name="new_routine_placeholder">Aquí pegarás el JSON de tu rutina</string>
     <string name="placeholder_body">Pantalla en construcción</string>
+
+    <!-- Import validation messages (T-12, R-3.3–R-3.22). Item prefix: "Actividad 3 («Siesta»)" -->
+    <string name="issue_prefix_title">Actividad %1$d («%2$s»)</string>
+    <string name="issue_prefix_time">Actividad %1$d (a las %2$s)</string>
+    <string name="issue_prefix">Actividad %1$d</string>
+    <string name="issue_prefix_routine">Rutina</string>
+
+    <string name="issue_no_json">No encontré un JSON válido en el texto. Asegúrate de pegar la respuesta completa de la IA.</string>
+    <string name="issue_version_received">Versión de formato no soportada (se esperaba 1); se recibió «%1$s»</string>
+    <string name="issue_version_missing">Versión de formato no soportada (se esperaba 1); falta el campo schemaVersion</string>
+    <string name="issue_no_routine">Falta el campo routine con los datos de la rutina</string>
+    <string name="issue_no_name">La rutina no tiene nombre (campo routine.name)</string>
+    <!-- A date example, not a range -->
+    <string name="issue_invalid_date" tools:ignore="TypographyDashes">La fecha «%1$s» no es válida; usa el formato 2026-11-05</string>
+    <string name="issue_no_items">La rutina no tiene actividades (campo items)</string>
+    <string name="issue_too_many_items">Demasiadas actividades (%1$s); el máximo es 200</string>
+    <string name="issue_input_too_long">El texto es demasiado largo (%1$s KB); el máximo es %2$d KB</string>
+    <string name="issue_too_many_categories">Demasiadas categorías distintas (%1$s); el máximo es %2$d</string>
+    <string name="issue_missing_field">Falta el campo %1$s</string>
+    <string name="issue_wrong_type">El campo %1$s debe ser %2$s</string>
+    <string name="issue_wrong_type_received">El campo %1$s debe ser %2$s (se recibió «%3$s»)</string>
+    <!-- Limits are always 30 or more, never singular -->
+    <string name="issue_text_too_long" tools:ignore="PluralsCandidate">El campo %1$s supera el máximo de %2$d caracteres</string>
+
+    <string name="issue_invalid_time">%1$s: la hora «%2$s» no es válida; usa el formato 24 h, por ejemplo 06:45</string>
+    <string name="issue_item_missing_time">%1$s: falta la hora; usa el formato 24 h, por ejemplo 06:45</string>
+    <string name="issue_item_missing_title">%1$s: falta el título</string>
+    <string name="issue_item_missing_field">%1$s: falta el campo %2$s</string>
+    <string name="issue_title_truncated">%1$s: el título tenía más de 80 caracteres y se ha recortado</string>
+    <string name="issue_day_offset">%1$s: dayOffset debe ser 0 (mismo día) o 1 (día siguiente)</string>
+    <string name="issue_duration">%1$s: durationMin debe ser un número de minutos entre 1 y 1440</string>
+    <string name="issue_item_wrong_type">%1$s: el campo %2$s debe ser %3$s</string>
+    <string name="issue_item_wrong_type_received">%1$s: el campo %2$s debe ser %3$s (se recibió «%4$s»)</string>
+    <string name="issue_item_wrong_shape">%1$s: debe ser %2$s</string>
+    <string name="issue_item_wrong_shape_received">%1$s: debe ser %2$s (se recibió «%3$s»)</string>
+    <string name="issue_item_text_too_long" tools:ignore="PluralsCandidate">%1$s: el campo %2$s supera el máximo de %3$d caracteres</string>
+
+    <!-- Expected value types, in non-technical words (R-3.13) -->
+    <string name="issue_type_text">un texto entre comillas</string>
+    <string name="issue_type_whole_number">un número entero</string>
+    <string name="issue_type_object">un bloque entre llaves { }</string>
+    <string name="issue_type_list">una lista entre corchetes [ ]</string>
+
+    <plurals name="issue_more">
+        <item quantity="one">y %1$d error más</item>
+        <item quantity="other">y %1$d errores más</item>
+    </plurals>
 </resources>
