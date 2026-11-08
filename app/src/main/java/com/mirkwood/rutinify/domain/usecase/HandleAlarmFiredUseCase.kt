@@ -31,11 +31,14 @@ class HandleAlarmFiredUseCase @Inject constructor(
     private val lock: AlarmMutationLock,
 ) {
 
-    suspend operator fun invoke(alarmId: Long): FireOutcome = lock.withLock {
+    suspend operator fun invoke(alarmId: Long): FireOutcome = lock.withLock { fireLocked(alarmId) }
+
+    /** Same as [invoke] for a use case that already holds [AlarmMutationLock], which is not reentrant. */
+    internal suspend fun fireLocked(alarmId: Long): FireOutcome {
         val alarm = alarms.getById(alarmId)
         val order = alarm?.let { orders.getOrder(it.orderId) }
         if (alarm == null || order == null || alarm.status != AlarmStatus.PENDING || order.status != OrderStatus.ACTIVE) {
-            return@withLock FireOutcome.IGNORED
+            return FireOutcome.IGNORED
         }
         // Room first: the alarm is FIRED even if the notification cannot be shown (R-7.8)
         alarms.updateStatus(listOf(alarmId), AlarmStatus.FIRED)
@@ -49,6 +52,6 @@ class HandleAlarmFiredUseCase @Inject constructor(
             category = alarm.category,
             triggerAt = calculator.effectiveTrigger(alarm, order.date, zoneProvider.zone()),
         )
-        if (publisher.publish(notification)) FireOutcome.NOTIFIED else FireOutcome.FIRED_WITHOUT_NOTIFICATION
+        return if (publisher.publish(notification)) FireOutcome.NOTIFIED else FireOutcome.FIRED_WITHOUT_NOTIFICATION
     }
 }

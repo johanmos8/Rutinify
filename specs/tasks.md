@@ -93,10 +93,11 @@
   - `goAsync` + `@ApplicationScope` + timeout; manifiesto (`exported=false`).
   - Tests Robolectric: cada intent invoca el use case correcto con el id del data URI.
   - _Hecho:_ `AlarmReceiver` y `NotificationActionReceiver` con `@AndroidEntryPoint`, `goAsync()` y el scope de aplicación; `ReceiverCommand` (intent → comando con id), `ReceiverCommandHandler` (comando → use case) y `launchReceiverWork` (timeout 9 s, log y `finish()` siempre) (D-40). 13 tests: parseo de los tres intents y de intents inválidos, receivers no exportados, cada comando llega a su use case, `finish()` tras éxito, fallo, timeout y cancelación.
-- [ ] **T-19 · `RescheduleAllUseCase` + `RescheduleReceiver`** — (R-11.6, R-11.7, R-12.1–R-12.7)
+- [x] **T-19 · `RescheduleAllUseCase` + `RescheduleReceiver`** — (R-11.6, R-11.7, R-12.1–R-12.7)
   - Lógica de §7.2 (futuro → programar; ≤15 min → disparar; >15 min → SKIPPED), llamada desde `RutinifyApp.onCreate`.
   - Manifiesto: `RECEIVE_BOOT_COMPLETED`, acciones de boot/hora/zona/package replaced/permiso exacto.
   - Tests: idempotencia (2 ejecuciones → mismas alarmas), snooze respetado, pausadas ignoradas, umbral 15 min en ambos lados.
+  - _Hecho:_ `RescheduleAllUseCase` → `RescheduleResult` (futuras → `schedule`, ≤15 min → disparo inmediato vía `fireLocked`, >15 min → `SKIPPED` y cancelada), `RescheduleReceiver` exportado con las 5 acciones, `RECEIVE_BOOT_COMPLETED` y reconciliación en `RutinifyApp.onCreate`; los tests Robolectric usan un `Application` simple (D-41). 16 tests: idempotencia, snooze, pausadas/canceladas, solo pendientes, 15 min exactos y 15 min + 1 s, cambio de zona, sin exactas, mezcla, filtro de acciones y manifiesto.
 
 ## Fase 5 · Nueva rutina y revisión
 
