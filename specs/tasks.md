@@ -69,8 +69,9 @@
 
 ## Fase 3 · Tiempo y planificación
 
-- [ ] **T-13 · `TriggerTimeCalculator` y `DefaultDatePolicy`** — (R-4.4, R-4.5, R-5.2, R-5.8, R-12.2)
+- [x] **T-13 · `TriggerTimeCalculator` y `DefaultDatePolicy`** — (R-4.4, R-4.5, R-5.2, R-5.8, R-12.2)
   - Tests primero: dayOffset 1 a las 02:00, hueco DST (`Europe/Madrid`), solape DST, fecha por defecto hoy/mañana con `Clock.fixed`, cambio de zona recalcula.
+  - _Hecho:_ `TriggerTimeCalculator` (`triggerAt`, `effectiveTrigger` con snooze) y `DefaultDatePolicy` → `DefaultDate(date, chosenByApp)` en `domain/time`. 16 tests: medianoche, dayOffset, fin de año, hueco y solape DST en Madrid, cambio de zona, snooze, fecha del JSON, hoy/mañana, borde `<= now` y "hoy" según la zona.
 - [ ] **T-14 · `BuildSchedulePreviewUseCase`** — (R-4.1, R-4.6–R-4.11)
   - Tests: marca pasadas (`<= now`), exclusiones manuales, resumen "28 alarmas, de 06:45 a 02:00 (+1 día)", sin futuras → `canSchedule = false`, sugerencia de mañana.
 

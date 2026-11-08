@@ -397,13 +397,14 @@ Home ──FAB──► NewRoutine ──Validar ok──► Review ──Progra
 Si el proceso muere estando en *Review*, el borrador no existe → se muestra "El borrador se perdió, vuelve a validar" y se regresa a *NewRoutine*, que conserva el texto (R-2.5). Ver D-10.
 
 **Cálculos de Review** en dominio, no en composables:
-- `DefaultDatePolicy(draft, now, zone)` → fecha preseleccionada (R-4.4, R-4.5).
+- `DefaultDatePolicy.defaultDate(draft, now, zone)` → `DefaultDate(date, chosenByApp)`: la fecha del JSON si venía; si no, hoy si alguna actividad dispara estrictamente después de `now`, y si no, mañana. `chosenByApp` activa el aviso "No venía fecha; elegí {fecha}" (R-4.4, R-4.5).
 - `BuildSchedulePreviewUseCase(draft, date, excludedKeys, now, zone)` → items con `triggerAt`, `isPast`, `isIncluded` + `ScheduleSummary(count, first, last, crossesMidnight)` (R-4.6–R-4.10).
 
 ## 11. Tiempo
 
 - `Clock` inyectado (`Clock.systemDefaultZone()` en prod); la zona se lee **en cada uso** con `ZoneId.systemDefault()` vía `ZoneProvider`, nunca cacheada (cambia en caliente, R-12.2).
 - Comparaciones "ya pasó" con `Instant` (`<=` now) (R-4.7).
+- Sin desugaring de `java.time`: no usar APIs posteriores a la 28 como `LocalDate.ofInstant` (API 31); usar `instant.atZone(zone).toLocalDate()`. Lint (`NewApi`) lo detecta.
 - Formato de presentación con `DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)` y locale del sistema; horas siempre `HH:mm`.
 
 ## 12. Estrategia de testing
