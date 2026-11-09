@@ -101,9 +101,10 @@
 
 ## Fase 5 · Nueva rutina y revisión
 
-- [ ] **T-20 · `ScheduleOrderUseCase` + `FindConflictingOrdersUseCase`** — (R-5.1, R-5.5, R-5.7, R-5.10, R-6.1–R-6.5)
+- [x] **T-20 · `ScheduleOrderUseCase` + `FindConflictingOrdersUseCase`** — (R-5.1, R-5.5, R-5.7, R-5.10, R-6.1–R-6.5)
   - Tests: pasadas/excluidas → SKIPPED; con REPLACE las órdenes previas pasan a CANCELLED y sus alarmas se cancelan; KEEP_BOTH no toca nada; fallo de Room → ninguna llamada al scheduler.
   - Límite de 500 (R-5.10): 500 exactas se programan; 501 → `TooManyAlarms` sin escribir en Room ni llamar al scheduler; con REPLACE se descuentan las pendientes que se cancelarían.
+  - _Hecho:_ `ScheduleOrderUseCase` → `ScheduleOrderResult` (`Scheduled`/`TooManyAlarms`/`NothingToSchedule`/`StorageFailure`) con `ConflictPolicy` REPLACE/KEEP_BOTH, y `FindConflictingOrdersUseCase` (D-42). `FakeOrderRepository.createOrder` comparte estado con el fake de alarmas y simula el fallo de Room. 17 tests: horas programadas, omitidas, canales, ventana, nada que programar, fallo de Room, REPLACE (órdenes, alarmas, notificaciones, otras fechas), KEEP_BOTH, 500/501, pausadas fuera del límite y descuento con REPLACE.
 - [ ] **T-21 · Pantalla Nueva rutina** — (R-1.1, R-1.2, R-1.4, R-2.1–R-2.5, R-3.19)
   - `ClipboardReader` en `data/system`, `DraftStore`, `NewRoutineViewModel` (texto en `SavedStateHandle`), `NewRoutineScreen` + previews (vacío, con errores, validando).
   - Tests VM: copiar plantilla emite efecto; portapapeles vacío; validar con error → issues; validar OK → efecto de navegación con `draftId`.
