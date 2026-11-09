@@ -105,9 +105,10 @@
   - Tests: pasadas/excluidas → SKIPPED; con REPLACE las órdenes previas pasan a CANCELLED y sus alarmas se cancelan; KEEP_BOTH no toca nada; fallo de Room → ninguna llamada al scheduler.
   - Límite de 500 (R-5.10): 500 exactas se programan; 501 → `TooManyAlarms` sin escribir en Room ni llamar al scheduler; con REPLACE se descuentan las pendientes que se cancelarían.
   - _Hecho:_ `ScheduleOrderUseCase` → `ScheduleOrderResult` (`Scheduled`/`TooManyAlarms`/`NothingToSchedule`/`StorageFailure`) con `ConflictPolicy` REPLACE/KEEP_BOTH, y `FindConflictingOrdersUseCase` (D-42). `FakeOrderRepository.createOrder` comparte estado con el fake de alarmas y simula el fallo de Room. 17 tests: horas programadas, omitidas, canales, ventana, nada que programar, fallo de Room, REPLACE (órdenes, alarmas, notificaciones, otras fechas), KEEP_BOTH, 500/501, pausadas fuera del límite y descuento con REPLACE.
-- [ ] **T-21 · Pantalla Nueva rutina** — (R-1.1, R-1.2, R-1.4, R-2.1–R-2.5, R-3.19)
+- [x] **T-21 · Pantalla Nueva rutina** — (R-1.1, R-1.2, R-1.4, R-2.1–R-2.5, R-3.19)
   - `ClipboardReader` en `data/system`, `DraftStore`, `NewRoutineViewModel` (texto en `SavedStateHandle`), `NewRoutineScreen` + previews (vacío, con errores, validando).
   - Tests VM: copiar plantilla emite efecto; portapapeles vacío; validar con error → issues; validar OK → efecto de navegación con `draftId`.
+  - _Hecho:_ `Clipboard` + `AndroidClipboard`, `PromptTemplateSource` + `RawPromptTemplateSource`, `DraftStore` + `InMemoryDraftStore` (con avisos), `NewRoutineViewModel` (texto en `SavedStateHandle`, efectos `ShowMessage`/`NavigateToReview`) y `NewRoutineRoute`/`NewRoutineScreen` con 4 previews (vacía, plantilla abierta, con errores, validando) (D-43). 15 tests: 11 del VM y 4 Robolectric del portapapeles real y la plantilla. No se ha visto aún en un emulador.
 - [ ] **T-22 · Pantalla Revisión** — (R-4.1–R-4.12, R-5.6, R-6.1–R-6.4)
   - `ReviewViewModel`: edición de hora/título/categoría con revalidación, quitar con deshacer, excluir, selector de fecha, resumen, diálogo de conflicto, borrador perdido.
   - `ReviewScreen` + previews (normal, con pasadas, sin futuras, diálogo de conflicto).

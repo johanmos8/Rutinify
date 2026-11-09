@@ -1,0 +1,132 @@
+package com.mirkwood.rutinify.ui.newroutine
+
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.mirkwood.rutinify.R
+import com.mirkwood.rutinify.domain.importer.ImportResult
+import com.mirkwood.rutinify.domain.importer.PromptTemplateSource
+import com.mirkwood.rutinify.domain.importer.RoutineImporter
+import com.mirkwood.rutinify.domain.repository.DraftEntry
+import com.mirkwood.rutinify.domain.repository.DraftStore
+import com.mirkwood.rutinify.domain.system.Clipboard
+import com.mirkwood.rutinify.ui.common.ErrorMessages
+import com.mirkwood.rutinify.ui.common.UiText
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+data class NewRoutineUiState(
+    val text: String = "",
+    /** null until loaded from `res/raw` (R-1.3). */
+    val template: String? = null,
+    val templateExpanded: Boolean = false,
+    val isValidating: Boolean = false,
+    /** Already-worded validation errors, at most 20 plus "y {k} errores más" (R-3.16). */
+    val issues: List<UiText> = emptyList(),
+) {
+    /** R-2.4: disabled while the field is empty (or only blanks) and while validating. */
+    val canValidate: Boolean get() = text.isNotBlank() && !isValidating
+}
+
+sealed interface NewRoutineAction {
+    data class TextChanged(val text: String) : NewRoutineAction
+    data object PasteClicked : NewRoutineAction
+    data object CopyTemplateClicked : NewRoutineAction
+    data object ToggleTemplate : NewRoutineAction
+    data object ValidateClicked : NewRoutineAction
+}
+
+sealed interface NewRoutineEffect {
+    /** Snackbar text ("Plantilla copiada", "El portapapeles está vacío"). */
+    data class ShowMessage(val message: UiText) : NewRoutineEffect
+    data class NavigateToReview(val draftId: String) : NewRoutineEffect
+}
+
+@HiltViewModel
+class NewRoutineViewModel @Inject constructor(
+    private val savedStateHandle: SavedStateHandle,
+    private val importer: RoutineImporter,
+    private val templateSource: PromptTemplateSource,
+    private val clipboard: Clipboard,
+    private val draftStore: DraftStore,
+) : ViewModel() {
+
+    /** Everything except the text, which lives in [savedStateHandle] (R-2.5). */
+    private val local = MutableStateFlow(NewRoutineUiState())
+    private val effectChannel = Channel<NewRoutineEffect>(Channel.BUFFERED)
+    val effects: Flow<NewRoutineEffect> = effectChannel.receiveAsFlow()
+
+    val uiState: StateFlow<NewRoutineUiState> =
+        combine(savedStateHandle.getStateFlow(KEY_TEXT, ""), local) { text, state -> state.copy(text = text) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NewRoutineUiState(text = currentText()))
+
+    init {
+        viewModelScope.launch { local.update { it.copy(template = templateSource.load()) } }
+    }
+
+    fun onAction(action: NewRoutineAction) {
+        when (action) {
+            is NewRoutineAction.TextChanged -> setText(action.text)
+            NewRoutineAction.PasteClicked -> paste()
+            NewRoutineAction.CopyTemplateClicked -> copyTemplate()
+            NewRoutineAction.ToggleTemplate -> local.update { it.copy(templateExpanded = !it.templateExpanded) }
+            NewRoutineAction.ValidateClicked -> validate()
+        }
+    }
+
+    private fun currentText(): String = savedStateHandle[KEY_TEXT] ?: ""
+
+    private fun setText(text: String) {
+        savedStateHandle[KEY_TEXT] = text
+        // Errors refer to the previous text
+        local.update { it.copy(issues = emptyList()) }
+    }
+
+    private fun paste() {
+        val text = clipboard.readText()
+        if (text == null) {
+            effectChannel.trySend(NewRoutineEffect.ShowMessage(UiText.Res(R.string.new_routine_clipboard_empty)))
+            return
+        }
+        setText(text)
+    }
+
+    private fun copyTemplate() {
+        viewModelScope.launch {
+            val template = local.value.template ?: templateSource.load()
+            clipboard.copyText(template)
+            effectChannel.send(NewRoutineEffect.ShowMessage(UiText.Res(R.string.new_routine_template_copied)))
+        }
+    }
+
+    private fun validate() {
+        val text = currentText()
+        if (text.isBlank() || local.value.isValidating) return
+        local.update { it.copy(isValidating = true, issues = emptyList()) }
+        viewModelScope.launch {
+            when (val result = importer.import(text)) {
+                is ImportResult.Success -> {
+                    draftStore.put(DraftEntry(result.draft, result.warnings))
+                    local.update { it.copy(isValidating = false) }
+                    effectChannel.send(NewRoutineEffect.NavigateToReview(result.draft.id))
+                }
+                is ImportResult.Failure ->
+                    local.update { it.copy(isValidating = false, issues = ErrorMessages.list(result.issues)) }
+            }
+        }
+    }
+
+    companion object {
+        const val KEY_TEXT = "text"
+    }
+}

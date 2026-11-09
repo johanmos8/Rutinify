@@ -13,7 +13,6 @@
 
     <!-- Temporary (T-03): replaced when each screen is implemented -->
     <string name="home_placeholder">Aquí aparecerán tus rutinas</string>
-    <string name="new_routine_placeholder">Aquí pegarás el JSON de tu rutina</string>
     <string name="placeholder_body">Pantalla en construcción</string>
 
     <!-- Import validation messages (T-12, R-3.3–R-3.22). Item prefix: "Actividad 3 («Siesta»)" -->
@@ -67,4 +66,20 @@
     <string name="notification_group_routines">Rutinas</string>
     <string name="notification_action_done">Hecho</string>
     <string name="notification_action_snooze">+5 min</string>
+
+    <!-- New routine screen (T-21, R-1, R-2) -->
+    <string name="new_routine_template_hint">Copia la plantilla, pégala en tu IA junto con tu rutina y trae aquí el JSON que te devuelva.</string>
+    <string name="action_copy_template">Copiar plantilla</string>
+    <string name="action_show_template">Ver plantilla</string>
+    <string name="action_hide_template">Ocultar plantilla</string>
+    <string name="new_routine_json_label">JSON de la rutina</string>
+    <string name="new_routine_json_placeholder">Pega aquí el JSON que te dio la IA</string>
+    <string name="action_paste">Pegar del portapapeles</string>
+    <string name="action_validate">Validar</string>
+    <string name="new_routine_validating">Validando…</string>
+    <string name="new_routine_issues_title">Hay que corregir el JSON:</string>
+    <string name="new_routine_issue_bullet">• %1$s</string>
+    <string name="new_routine_template_copied">Plantilla copiada</string>
+    <string name="new_routine_clipboard_empty">El portapapeles está vacío</string>
+    <string name="clipboard_label_template">Plantilla de Rutinify</string>
 </resources>

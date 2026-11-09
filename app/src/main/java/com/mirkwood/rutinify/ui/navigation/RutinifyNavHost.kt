@@ -9,12 +9,18 @@ import androidx.navigation.compose.rememberNavController
 import com.mirkwood.rutinify.R
 import com.mirkwood.rutinify.ui.common.PlaceholderScreen
 import com.mirkwood.rutinify.ui.home.HomeScreen
-import com.mirkwood.rutinify.ui.newroutine.NewRoutineScreen
+import com.mirkwood.rutinify.ui.newroutine.NewRoutineRoute
 
+/**
+ * App navigation graph (design §10). [newRoutineContent] is a seam so JVM navigation tests can show the
+ * stateless screen instead of the Hilt-backed route (D-43).
+ */
 @Composable
 fun RutinifyNavHost(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
+    newRoutineContent: @Composable (onBack: () -> Unit, onNavigateToReview: (String) -> Unit) -> Unit =
+        { onBack, onNavigateToReview -> NewRoutineRoute(onBack = onBack, onNavigateToReview = onNavigateToReview) },
 ) {
     val navigateUp: () -> Unit = { navController.navigateUp() }
 
@@ -27,7 +33,7 @@ fun RutinifyNavHost(
             HomeScreen(onNewRoutineClick = { navController.navigate(NewRoutineDestination) })
         }
         composable<NewRoutineDestination> {
-            NewRoutineScreen(onBack = navigateUp)
+            newRoutineContent(navigateUp) { draftId -> navController.navigate(ReviewDestination(draftId)) }
         }
         // Placeholders: replaced in T-22, T-24 and T-29
         composable<ReviewDestination> {
