@@ -26,7 +26,8 @@ fun RutinifyNavHost(
         { onNewRoutineClick, onOrderClick -> HomeRoute(onNewRoutineClick = onNewRoutineClick, onOrderClick = onOrderClick) },
     newRoutineContent: @Composable (onBack: () -> Unit, onNavigateToReview: (String) -> Unit) -> Unit =
         { onBack, onNavigateToReview -> NewRoutineRoute(onBack = onBack, onNavigateToReview = onNavigateToReview) },
-    orderDetailContent: @Composable (onBack: () -> Unit) -> Unit = { onBack -> OrderDetailRoute(onBack = onBack) },
+    orderDetailContent: @Composable (onBack: () -> Unit, onNavigateToReview: (String) -> Unit) -> Unit =
+        { onBack, onNavigateToReview -> OrderDetailRoute(onBack = onBack, onNavigateToReview = onNavigateToReview) },
 ) {
     val navigateUp: () -> Unit = { navController.navigateUp() }
 
@@ -56,7 +57,8 @@ fun RutinifyNavHost(
         }
         // Notification body (R-7.6); the PendingIntent is explicit, so no intent filter is needed
         composable<OrderDetailDestination>(deepLinks = listOf(navDeepLink { uriPattern = ORDER_DEEP_LINK })) {
-            orderDetailContent(navigateUp)
+            // "Duplicar para otra fecha" (R-10.7): Review then replaces the stack up to Home
+            orderDetailContent(navigateUp) { draftId -> navController.navigate(ReviewDestination(draftId)) }
         }
         // Placeholder: replaced in T-29
         composable<PermissionsDestination> {

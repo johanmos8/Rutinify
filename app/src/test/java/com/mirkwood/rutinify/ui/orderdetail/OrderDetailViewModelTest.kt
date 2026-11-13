@@ -4,6 +4,8 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import com.mirkwood.rutinify.R
+import com.mirkwood.rutinify.data.draft.InMemoryDraftStore
+import com.mirkwood.rutinify.domain.model.DraftOrigin
 import com.mirkwood.rutinify.domain.model.AlarmItem
 import com.mirkwood.rutinify.domain.model.AlarmStatus
 import com.mirkwood.rutinify.domain.model.OrderDisplayStatus
@@ -15,6 +17,7 @@ import com.mirkwood.rutinify.domain.usecase.CanScheduleExactAlarmsUseCase
 import com.mirkwood.rutinify.domain.usecase.CancelOrderAlarmsUseCase
 import com.mirkwood.rutinify.domain.usecase.DeleteAlarmUseCase
 import com.mirkwood.rutinify.domain.usecase.DeleteOrderUseCase
+import com.mirkwood.rutinify.domain.usecase.DuplicateOrderUseCase
 import com.mirkwood.rutinify.domain.usecase.MarkAlarmDoneUseCase
 import com.mirkwood.rutinify.domain.usecase.ObserveOrderDetailUseCase
 import com.mirkwood.rutinify.domain.usecase.PauseOrderUseCase
@@ -37,6 +40,7 @@ import org.junit.Rule
 import org.junit.Test
 import java.time.Clock
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 
@@ -55,6 +59,7 @@ class OrderDetailViewModelTest {
     private val scheduler = FakeAlarmScheduler(exact = true)
     private val publisher = FakeNotificationPublisher()
     private val lock = AlarmMutationLock()
+    private val drafts = InMemoryDraftStore()
 
     private fun handle(highlightAlarmId: Long? = null, scheduledCount: Int? = null) = SavedStateHandle(
         buildMap {
@@ -75,7 +80,9 @@ class OrderDetailViewModelTest {
         deleteOrder = DeleteOrderUseCase(orders, alarms, scheduler, publisher, lock),
         pauseOrder = PauseOrderUseCase(orders, alarms, scheduler, lock),
         resumeOrder = ResumeOrderUseCase(orders, alarms, scheduler, TriggerTimeCalculator(), { zone }, clock, lock),
+        duplicateOrder = DuplicateOrderUseCase(orders, drafts),
         zoneProvider = { zone },
+        clock = clock,
     )
 
     /** Keeps `uiState` subscribed (WhileSubscribed) for the whole test. */
@@ -465,5 +472,59 @@ class OrderDetailViewModelTest {
             expectNoEvents()
         }
         assertThat(scheduler.scheduled.keys).containsExactly(4L)
+    }
+
+    @Test
+    fun `duplicar abre el selector de fecha en manana`() = runTest { // R-10.7, D-50
+        setOrder(OrderStatus.ACTIVE, *defaultAlarms)
+        val vm = subscribed(viewModel())
+        assertThat(vm.uiState.value.canDuplicate).isTrue()
+
+        vm.onAction(OrderDetailAction.DuplicateClicked)
+
+        // 2026-11-06T00:00:00Z: tomorrow in Bogotá, as UTC midnight for the picker
+        assertThat(vm.uiState.value.duplicateDateMillis).isEqualTo(Instant.parse("2026-11-06T00:00:00Z").toEpochMilli())
+    }
+
+    @Test
+    fun `elegir fecha crea el borrador y abre la revision`() = runTest { // R-10.7
+        setOrder(OrderStatus.ACTIVE, *defaultAlarms)
+        val vm = subscribed(viewModel())
+        vm.onAction(OrderDetailAction.DuplicateClicked)
+
+        vm.effects.test {
+            vm.onAction(OrderDetailAction.DuplicateDateSelected(Instant.parse("2026-11-20T00:00:00Z").toEpochMilli()))
+
+            val effect = awaitItem() as OrderDetailEffect.NavigateToReview
+            val draft = requireNotNull(drafts.get(effect.draftId)).draft
+            assertThat(draft.date).isEqualTo(LocalDate.of(2026, 11, 20))
+            assertThat(draft.origin).isEqualTo(DraftOrigin.DUPLICATE)
+            assertThat(draft.items.map { it.title }).containsExactly("Desayuno", "Paseo", "Salida nocturna").inOrder()
+        }
+        assertThat(vm.uiState.value.duplicateDateMillis).isNull()
+    }
+
+    @Test
+    fun `cerrar el selector no duplica`() = runTest { // R-10.7
+        setOrder(OrderStatus.ACTIVE, *defaultAlarms)
+        val vm = subscribed(viewModel())
+        vm.onAction(OrderDetailAction.DuplicateClicked)
+
+        vm.effects.test {
+            vm.onAction(OrderDetailAction.DismissDuplicate)
+
+            expectNoEvents()
+        }
+        assertThat(vm.uiState.value.duplicateDateMillis).isNull()
+    }
+
+    @Test
+    fun `una orden cancelada se puede duplicar pero una sin alarmas no`() = runTest { // R-10.8, D-50
+        setOrder(OrderStatus.CANCELLED, testAlarm(id = 1, status = AlarmStatus.CANCELLED))
+        val vm = subscribed(viewModel())
+        assertThat(vm.uiState.value.canDuplicate).isTrue()
+
+        setOrder(OrderStatus.ACTIVE)
+        assertThat(vm.uiState.value.canDuplicate).isFalse()
     }
 }

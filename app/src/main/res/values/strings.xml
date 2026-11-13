@@ -162,6 +162,8 @@
         <item quantity="other">Rutina reanudada. Se omitieron %1$d alarmas cuya hora ya pasó</item>
     </plurals>
     <string name="action_delete_order">Eliminar orden</string>
+    <string name="action_duplicate_order">Duplicar para otra fecha</string>
+    <string name="action_duplicate">Duplicar</string>
     <string name="action_delete">Eliminar</string>
     <string name="cancel_all_title">¿Eliminar todas las alarmas?</string>
     <plurals name="cancel_all_body">

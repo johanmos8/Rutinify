@@ -17,9 +17,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,7 +31,6 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -58,6 +54,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.mirkwood.rutinify.R
 import com.mirkwood.rutinify.ui.common.BackTopAppBar
+import com.mirkwood.rutinify.ui.common.RoutineDatePickerDialog
 import com.mirkwood.rutinify.ui.common.UiText
 import com.mirkwood.rutinify.ui.common.asString
 import com.mirkwood.rutinify.ui.preview.PreviewData
@@ -147,7 +144,7 @@ fun ReviewScreen(
     }
 
     if (showDatePicker) {
-        ReviewDatePicker(
+        RoutineDatePickerDialog(
             initialMillis = state.dateMillisUtc,
             onConfirm = { millis ->
                 showDatePicker = false
@@ -282,23 +279,6 @@ private fun DraftLost(onBack: () -> Unit, modifier: Modifier = Modifier) {
             Text(stringResource(R.string.review_draft_lost), style = MaterialTheme.typography.bodyLarge)
             Button(onClick = onBack) { Text(stringResource(R.string.action_back)) }
         }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ReviewDatePicker(initialMillis: Long, onConfirm: (Long) -> Unit, onDismiss: () -> Unit) {
-    val pickerState = rememberDatePickerState(initialSelectedDateMillis = initialMillis)
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = { pickerState.selectedDateMillis?.let(onConfirm) ?: onDismiss() }) {
-                Text(stringResource(R.string.action_save))
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
-    ) {
-        DatePicker(state = pickerState)
     }
 }
 

@@ -15,6 +15,7 @@ import com.mirkwood.rutinify.domain.usecase.CanScheduleExactAlarmsUseCase
 import com.mirkwood.rutinify.domain.usecase.CancelOrderAlarmsUseCase
 import com.mirkwood.rutinify.domain.usecase.DeleteAlarmUseCase
 import com.mirkwood.rutinify.domain.usecase.DeleteOrderUseCase
+import com.mirkwood.rutinify.domain.usecase.DuplicateOrderUseCase
 import com.mirkwood.rutinify.domain.usecase.MarkAlarmDoneUseCase
 import com.mirkwood.rutinify.domain.usecase.ObserveOrderDetailUseCase
 import com.mirkwood.rutinify.domain.usecase.PauseOrderUseCase
@@ -32,6 +33,9 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 import javax.inject.Inject
 
 /** One alarm on the timeline (R-9.1). */
@@ -72,6 +76,10 @@ data class OrderDetailUiState(
     val canCancelAll: Boolean = false,
     /** Which of "Pausar" / "Reanudar" the header offers; none for cancelled or finished orders (R-10.8, D-49). */
     val pauseAction: PauseAction? = null,
+    /** "Duplicar para otra fecha" needs at least one activity to copy (R-10.7, D-50); kept for cancelled orders (R-10.8). */
+    val canDuplicate: Boolean = false,
+    /** Non-null while the date picker of [OrderDetailAction.DuplicateClicked] is open: its preselected date as UTC-midnight millis. */
+    val duplicateDateMillis: Long? = null,
     val dialog: OrderDetailDialog? = null,
 )
 
@@ -111,6 +119,14 @@ sealed interface OrderDetailAction {
     /** R-10.6 */
     data object ResumeClicked : OrderDetailAction
 
+    /** Opens the date picker of "Duplicar para otra fecha" (R-10.7). */
+    data object DuplicateClicked : OrderDetailAction
+
+    /** Date picked, as UTC-midnight millis: create the draft and open Review. */
+    data class DuplicateDateSelected(val utcMillis: Long) : OrderDetailAction
+
+    data object DismissDuplicate : OrderDetailAction
+
     data object ConfirmDialog : OrderDetailAction
     data object DismissDialog : OrderDetailAction
 }
@@ -123,6 +139,9 @@ sealed interface OrderDetailEffect {
 
     /** The order was deleted: leave the screen. */
     data object NavigateBack : OrderDetailEffect
+
+    /** Review of a duplicated draft (R-10.7). */
+    data class NavigateToReview(val draftId: String) : OrderDetailEffect
 }
 
 @HiltViewModel
@@ -137,7 +156,9 @@ class OrderDetailViewModel @Inject constructor(
     private val deleteOrder: DeleteOrderUseCase,
     private val pauseOrder: PauseOrderUseCase,
     private val resumeOrder: ResumeOrderUseCase,
+    private val duplicateOrder: DuplicateOrderUseCase,
     private val zoneProvider: ZoneProvider,
+    private val clock: Clock,
 ) : ViewModel() {
 
     // Argument names of OrderDetailDestination (type-safe navigation stores them under those keys)
@@ -146,6 +167,7 @@ class OrderDetailViewModel @Inject constructor(
 
     private val exactAllowed = MutableStateFlow(canScheduleExactAlarms())
     private val dialog = MutableStateFlow<OrderDetailDialog?>(null)
+    private val duplicateDate = MutableStateFlow<Long?>(null)
 
     /** Set while the order is being deleted, so the screen does not flash "Esta rutina ya no existe". */
     private var leaving = false
@@ -158,9 +180,9 @@ class OrderDetailViewModel @Inject constructor(
     val effects: Flow<OrderDetailEffect> = effectChannel.receiveAsFlow()
 
     val uiState: StateFlow<OrderDetailUiState> =
-        combine(observeOrderDetail(orderId), exactAllowed, dialog) { detail, exact, dialog ->
+        combine(observeOrderDetail(orderId), exactAllowed, dialog, duplicateDate) { detail, exact, dialog, duplicateDate ->
             val state = when {
-                detail != null -> toUiState(detail, exact).copy(dialog = dialog)
+                detail != null -> toUiState(detail, exact).copy(dialog = dialog, duplicateDateMillis = duplicateDate)
                 leaving -> lastShown?.copy(dialog = null) ?: OrderDetailUiState()
                 else -> OrderDetailUiState(isLoading = false, notFound = true)
             }
@@ -182,6 +204,9 @@ class OrderDetailViewModel @Inject constructor(
                 dialog.value = OrderDetailDialog.DeleteOrder(UiText.Res(R.string.delete_order_body, listOf(uiState.value.name)))
             OrderDetailAction.PauseClicked -> viewModelScope.launch { pauseOrder(orderId) }
             OrderDetailAction.ResumeClicked -> viewModelScope.launch { resume() }
+            OrderDetailAction.DuplicateClicked -> duplicateDate.value = tomorrowUtcMillis()
+            is OrderDetailAction.DuplicateDateSelected -> duplicate(action.utcMillis)
+            OrderDetailAction.DismissDuplicate -> duplicateDate.value = null
             OrderDetailAction.ConfirmDialog -> confirm()
             OrderDetailAction.DismissDialog -> dialog.value = null
         }
@@ -207,6 +232,20 @@ class OrderDetailViewModel @Inject constructor(
                     effectChannel.send(OrderDetailEffect.NavigateBack)
                 }
             }
+        }
+    }
+
+    /** The picker opens on tomorrow, the usual reason to repeat a routine (D-50). */
+    private fun tomorrowUtcMillis(): Long =
+        clock.instant().atZone(zoneProvider.zone()).toLocalDate().plusDays(1)
+            .atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+
+    private fun duplicate(utcMillis: Long) {
+        duplicateDate.value = null
+        val date = Instant.ofEpochMilli(utcMillis).atZone(ZoneOffset.UTC).toLocalDate()
+        viewModelScope.launch {
+            val draftId = duplicateOrder(orderId, date) ?: return@launch
+            effectChannel.send(OrderDetailEffect.NavigateToReview(draftId))
         }
     }
 
@@ -258,6 +297,7 @@ class OrderDetailViewModel @Inject constructor(
             // Only while something is still going to ring (D-46)
             windowedWarning = !exactAllowed && detail.nextAlarmId != null,
             canCancelAll = detail.order.status != OrderStatus.CANCELLED,
+            canDuplicate = detail.total > 0,
             pauseAction = when (detail.displayStatus) {
                 OrderDisplayStatus.ACTIVE -> PauseAction.PAUSE
                 OrderDisplayStatus.PAUSED -> PauseAction.RESUME

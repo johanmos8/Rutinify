@@ -51,7 +51,7 @@ class RutinifyNavHostTest {
                         HomeScreen(homeState.value, onNewRoutineClick = onNew, onOrderClick = onOrder)
                     },
                     newRoutineContent = { onBack, _ -> NewRoutineScreen(NewRoutineUiState(), onAction = {}, onBack = onBack) },
-                    orderDetailContent = { onBack -> OrderDetailScreen(OrderDetailUiState(isLoading = false, notFound = true), onAction = {}, onBack = onBack) },
+                    orderDetailContent = { onBack, _ -> OrderDetailScreen(OrderDetailUiState(isLoading = false, notFound = true), onAction = {}, onBack = onBack) },
                 )
             }
         }

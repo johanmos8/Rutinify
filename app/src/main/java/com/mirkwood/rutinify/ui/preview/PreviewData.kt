@@ -79,5 +79,6 @@ internal object PreviewData {
         windowedWarning = true,
         canCancelAll = true,
         pauseAction = PauseAction.PAUSE,
+        canDuplicate = true,
     )
 }

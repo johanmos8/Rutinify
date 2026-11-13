@@ -137,8 +137,9 @@
 - [x] **T-27 · Pausar / reanudar** — (R-10.5, R-10.6)
   - Tests: pausar cancela sin cambiar estado; reanudar omite pasadas y programa futuras; `RescheduleAll` ignora pausadas.
   - _Hecho:_ `PauseOrderUseCase` (orden → `PAUSED`, luego `cancel()` de sus pendientes, que siguen `PENDING`) y `ResumeOrderUseCase` (pendientes con hora no futura → `SKIPPED` sin tolerancia, orden → `ACTIVE`, luego programa las futuras; devuelve `ResumeResult`). El detalle muestra "Pausar" o "Reanudar" junto a "Eliminar todas las alarmas" y, al reanudar, avisa de cuántas alarmas se omitieron. `RescheduleAll` ya ignoraba las pausadas (test de T-19). 16 tests nuevos (4 + 6 use case + 6 VM); probado en emulador: pausar quita las alarmas de `AlarmManager` y reanudar tras las 22:04 omite esa y programa el resto (D-49).
-- [ ] **T-28 · Duplicar para otra fecha** — (R-10.7)
+- [x] **T-28 · Duplicar para otra fecha** — (R-10.7)
   - `DuplicateOrderUseCase` → borrador en `DraftStore` → navegar a Revisión con la fecha elegida. Tests.
+  - _Hecho:_ `DuplicateOrderUseCase` copia todas las alarmas de la orden (cualquier estado, a su hora original, en orden de línea de tiempo) a un borrador `DUPLICATE` sin `rawJson` con la fecha elegida. "Duplicar para otra fecha" va en el menú ⋮ del detalle (también en órdenes canceladas; oculto si no hay alarmas), abre un selector de fecha en mañana y navega a Revisión. El selector de fecha pasa a `ui/common/RoutineDatePickerDialog`, compartido con Revisión. 9 tests nuevos (5 use case + 4 VM); probado en emulador: duplicar al 20/11 abre Revisión con las 3 actividades y al programar vuelve con la nueva orden en Inicio (D-50).
 
 ## Fase 8 · Permisos
 

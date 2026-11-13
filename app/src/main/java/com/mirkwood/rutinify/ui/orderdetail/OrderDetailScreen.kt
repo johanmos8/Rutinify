@@ -58,6 +58,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.mirkwood.rutinify.R
 import com.mirkwood.rutinify.domain.model.AlarmStatus
 import com.mirkwood.rutinify.ui.common.BackTopAppBar
+import com.mirkwood.rutinify.ui.common.RoutineDatePickerDialog
 import com.mirkwood.rutinify.ui.common.OrderStatusLabel
 import com.mirkwood.rutinify.domain.model.OrderDisplayStatus
 import com.mirkwood.rutinify.ui.preview.PreviewData
@@ -69,6 +70,7 @@ import kotlinx.coroutines.flow.first
 @Composable
 fun OrderDetailRoute(
     onBack: () -> Unit,
+    onNavigateToReview: (draftId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: OrderDetailViewModel = hiltViewModel(),
 ) {
@@ -85,6 +87,7 @@ fun OrderDetailRoute(
             viewModel.effects.collect { effect ->
                 when (effect) {
                     OrderDetailEffect.NavigateBack -> onBack()
+                    is OrderDetailEffect.NavigateToReview -> onNavigateToReview(effect.draftId)
                     is OrderDetailEffect.ShowMessage ->
                         snackbarHostState.showSnackbar(effect.message.resolve(resources), duration = SnackbarDuration.Short)
                     is OrderDetailEffect.ShowUndo -> {
@@ -126,7 +129,7 @@ fun OrderDetailScreen(
             if (state.name.isEmpty()) {
                 BackTopAppBar(titleRes = R.string.order_detail_title, onBack = onBack)
             } else {
-                BackTopAppBar(title = state.name, onBack = onBack, actions = { OverflowMenu(onAction) })
+                BackTopAppBar(title = state.name, onBack = onBack, actions = { OverflowMenu(state.canDuplicate, onAction) })
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -138,17 +141,34 @@ fun OrderDetailScreen(
         }
     }
     state.dialog?.let { ConfirmDialog(it, onAction) }
+    state.duplicateDateMillis?.let { millis ->
+        RoutineDatePickerDialog(
+            initialMillis = millis,
+            onConfirm = { onAction(OrderDetailAction.DuplicateDateSelected(it)) },
+            onDismiss = { onAction(OrderDetailAction.DismissDuplicate) },
+            confirmLabel = R.string.action_duplicate,
+        )
+    }
 }
 
-/** "Eliminar orden" lives in the menu (R-10.4); it stays available in every status (R-10.8). */
+/** "Duplicar para otra fecha" and "Eliminar orden" live in the menu; both stay in every status (R-10.8). */
 @Composable
-private fun OverflowMenu(onAction: (OrderDetailAction) -> Unit) {
+private fun OverflowMenu(canDuplicate: Boolean, onAction: (OrderDetailAction) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { expanded = true }) {
             Icon(painterResource(R.drawable.ic_more_vert), contentDescription = stringResource(R.string.action_more_options))
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            if (canDuplicate) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.action_duplicate_order)) },
+                    onClick = {
+                        expanded = false
+                        onAction(OrderDetailAction.DuplicateClicked)
+                    },
+                )
+            }
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.action_delete_order)) },
                 onClick = {
