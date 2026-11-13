@@ -13,6 +13,9 @@ data object NewRoutineDestination
 @Serializable
 data class ReviewDestination(val draftId: String)
 
+/** Notification body link to an order with one alarm highlighted (R-7.6, design §6.1). */
+const val ORDER_DEEP_LINK = "rutinify://order/{orderId}?alarm={highlightAlarmId}"
+
 @Serializable
 data class OrderDetailDestination(
     val orderId: Long,

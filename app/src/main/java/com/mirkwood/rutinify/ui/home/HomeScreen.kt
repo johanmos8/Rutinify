@@ -18,14 +18,12 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -33,7 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mirkwood.rutinify.R
-import com.mirkwood.rutinify.domain.model.OrderDisplayStatus
+import com.mirkwood.rutinify.ui.common.OrderStatusLabel
 import com.mirkwood.rutinify.ui.preview.PreviewData
 import com.mirkwood.rutinify.ui.preview.ThemePreviews
 import com.mirkwood.rutinify.ui.theme.RutinifyTheme
@@ -103,7 +101,7 @@ private fun OrderCard(card: OrderCardUi, onClick: () -> Unit, modifier: Modifier
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                StatusLabel(card.status)
+                OrderStatusLabel(card.status)
             }
             Text(card.dateLabel, style = MaterialTheme.typography.bodyMedium)
             Text(
@@ -112,29 +110,6 @@ private fun OrderCard(card: OrderCardUi, onClick: () -> Unit, modifier: Modifier
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-    }
-}
-
-@Composable
-private fun StatusLabel(status: OrderDisplayStatus, modifier: Modifier = Modifier) {
-    val (textRes, container) = statusStyle(status)
-    Surface(color = container, shape = MaterialTheme.shapes.small, modifier = modifier) {
-        Text(
-            text = stringResource(textRes),
-            style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-        )
-    }
-}
-
-@Composable
-private fun statusStyle(status: OrderDisplayStatus): Pair<Int, Color> {
-    val colors = MaterialTheme.colorScheme
-    return when (status) {
-        OrderDisplayStatus.ACTIVE -> R.string.order_status_active to colors.primaryContainer
-        OrderDisplayStatus.PAUSED -> R.string.order_status_paused to colors.tertiaryContainer
-        OrderDisplayStatus.CANCELLED -> R.string.order_status_cancelled to colors.errorContainer
-        OrderDisplayStatus.FINISHED -> R.string.order_status_finished to colors.surfaceVariant
     }
 }
 

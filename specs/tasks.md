@@ -120,8 +120,9 @@
 - [x] **T-23 · Pantalla Inicio** — (R-8.1–R-8.6)
   - `HomeViewModel`, tarjeta de orden (nombre, fecha, pendientes/total, estado), estado vacío de 3 pasos, FAB. Previews.
   - _Hecho:_ `ObserveOrderSummariesUseCase` + `HomeViewModel` (`isLoading` evita el parpadeo del estado vacío) + `HomeRoute`/`HomeScreen` con tarjetas (nombre, fecha larga, "Pendientes: n de m", etiqueta de estado) y estado vacío de 3 pasos; tocar una tarjeta abre el detalle. Formato de fecha compartido con Revisión. 8 tests nuevos (7 VM + 1 navegación); probado en emulador con una orden real (D-45).
-- [ ] **T-24 · Pantalla Detalle de orden (lectura)** — (R-9.1, R-9.2, R-7.6, R-5.4)
+- [x] **T-24 · Pantalla Detalle de orden (lectura)** — (R-9.1, R-9.2, R-7.6, R-5.4)
   - Timeline con estados, próxima alarma destacada, aviso de modo ventana, deep link desde la notificación con `highlightAlarmId`. Previews.
+  - _Hecho:_ `ObserveOrderDetailUseCase` (orden por hora efectiva, próxima pendiente) + `CanScheduleExactAlarmsUseCase` + `OrderDetailViewModel`/`OrderDetailRoute`/`OrderDetailScreen`: cabecera, aviso de R-5.4 (revisado al volver), línea de tiempo con estado, "Próxima" y borde en la alarma resaltada, "{n} alarmas programadas" una vez, "Esta rutina ya no existe". Deep link `rutinify://order/{id}?alarm=` en el NavHost; etiqueta de estado compartida con Inicio. 21 tests nuevos (6 use case + 14 VM + 1 navegación); probado en emulador abriendo el enlace de la notificación (D-46).
 - [ ] **T-25 · Acciones sobre alarmas individuales** — (R-9.3–R-9.5)
   - `DeleteAlarmUseCase`, `RestoreAlarmUseCase`, marcar hecha. Snackbar "Deshacer".
   - Tests: deshacer reprograma si es futura y no si ya pasó.

@@ -40,7 +40,7 @@ class PendingIntentFactory @Inject constructor(
     fun snooze(alarmId: Long): PendingIntent =
         createBroadcast(alarmId, actionIntent(alarmId, ACTION_SNOOZE, "snooze"))
 
-    /** Notification body: order detail with [alarmId] highlighted (R-7.6); handled by the NavHost in T-24. */
+    /** Notification body: order detail with [alarmId] highlighted (R-7.6); matches `ORDER_DEEP_LINK` in the NavHost. */
     fun openOrder(orderId: Long, alarmId: Long): PendingIntent {
         val intent = Intent(context, MainActivity::class.java)
             .setAction(Intent.ACTION_VIEW)

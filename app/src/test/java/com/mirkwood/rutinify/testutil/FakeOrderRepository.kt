@@ -97,5 +97,10 @@ class FakeOrderRepository(
 
     override fun observeSummaries(): Flow<List<OrderSummary>> = summaries
 
-    override fun observeOrderWithAlarms(orderId: Long): Flow<OrderWithAlarms?> = TODO("Not needed yet")
+    /** What [observeOrderWithAlarms] emits per order; null until a test sets it (order not found). */
+    private val details = mutableMapOf<Long, MutableStateFlow<OrderWithAlarms?>>()
+
+    fun detail(orderId: Long): MutableStateFlow<OrderWithAlarms?> = details.getOrPut(orderId) { MutableStateFlow(null) }
+
+    override fun observeOrderWithAlarms(orderId: Long): Flow<OrderWithAlarms?> = detail(orderId)
 }

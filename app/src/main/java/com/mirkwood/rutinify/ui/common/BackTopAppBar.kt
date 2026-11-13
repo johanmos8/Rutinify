@@ -10,20 +10,31 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import com.mirkwood.rutinify.R
 import com.mirkwood.rutinify.ui.preview.ThemePreviews
 import com.mirkwood.rutinify.ui.theme.RutinifyTheme
 
 /** Top app bar with a title and a back arrow ("Volver"). */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BackTopAppBar(
     @StringRes titleRes: Int,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    BackTopAppBar(title = stringResource(titleRes), onBack = onBack, modifier = modifier)
+}
+
+/** Same bar with a runtime title, such as an order name (one line, ellipsized). */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BackTopAppBar(
+    title: String,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     TopAppBar(
-        title = { Text(stringResource(titleRes)) },
+        title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         navigationIcon = {
             IconButton(onClick = onBack) {
                 Icon(

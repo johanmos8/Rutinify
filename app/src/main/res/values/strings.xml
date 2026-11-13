@@ -139,4 +139,20 @@
     <string name="order_status_paused">Pausada</string>
     <string name="order_status_cancelled">Cancelada</string>
     <string name="order_status_finished">Terminada</string>
+
+    <!-- Order detail screen (T-24, R-9, R-5.4, R-5.6) -->
+    <plurals name="order_detail_scheduled">
+        <item quantity="one">%1$d alarma programada</item>
+        <item quantity="other">%1$d alarmas programadas</item>
+    </plurals>
+    <string name="order_detail_windowed_warning">Las alarmas pueden retrasarse unos minutos (permiso de alarmas exactas desactivado)</string>
+    <string name="order_detail_not_found">Esta rutina ya no existe</string>
+    <string name="order_detail_notes">Notas: %1$s</string>
+    <string name="order_detail_next">Próxima</string>
+    <string name="order_detail_next_day">+1 día</string>
+    <string name="alarm_status_pending">Pendiente</string>
+    <string name="alarm_status_fired">Disparada</string>
+    <string name="alarm_status_done">Hecha</string>
+    <string name="alarm_status_skipped">Omitida</string>
+    <string name="alarm_status_cancelled">Cancelada</string>
 </resources>

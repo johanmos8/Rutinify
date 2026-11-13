@@ -1,0 +1,243 @@
+package com.mirkwood.rutinify.ui.orderdetail
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import com.mirkwood.rutinify.R
+import com.mirkwood.rutinify.domain.model.AlarmStatus
+import com.mirkwood.rutinify.ui.common.BackTopAppBar
+import com.mirkwood.rutinify.ui.common.OrderStatusLabel
+import com.mirkwood.rutinify.ui.preview.PreviewData
+import com.mirkwood.rutinify.ui.preview.ThemePreviews
+import com.mirkwood.rutinify.ui.theme.RutinifyTheme
+import kotlinx.coroutines.flow.first
+
+/** Stateful order detail: collects the VM state, shows its messages and re-checks permissions on resume. */
+@Composable
+fun OrderDetailRoute(
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: OrderDetailViewModel = hiltViewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val resources = LocalResources.current
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onAction(OrderDetailAction.Resumed) }
+
+    LaunchedEffect(viewModel, lifecycle) {
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewModel.effects.collect { effect ->
+                when (effect) {
+                    is OrderDetailEffect.ShowMessage ->
+                        snackbarHostState.showSnackbar(effect.message.resolve(resources), duration = SnackbarDuration.Short)
+                }
+            }
+        }
+    }
+
+    OrderDetailScreen(state = state, onBack = onBack, snackbarHostState = snackbarHostState, modifier = modifier)
+}
+
+/** Stateless order detail: header, windowed-mode notice and timeline (R-9.1, R-9.2, R-7.6, R-5.4). */
+@Composable
+fun OrderDetailScreen(
+    state: OrderDetailUiState,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+) {
+    Scaffold(
+        modifier = modifier,
+        topBar = {
+            if (state.name.isEmpty()) {
+                BackTopAppBar(titleRes = R.string.order_detail_title, onBack = onBack)
+            } else {
+                BackTopAppBar(title = state.name, onBack = onBack)
+            }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+    ) { padding ->
+        when {
+            state.isLoading -> Unit
+            state.notFound -> NotFound(Modifier.padding(padding))
+            else -> Timeline(state, Modifier.padding(padding))
+        }
+    }
+}
+
+@Composable
+private fun Timeline(state: OrderDetailUiState, modifier: Modifier = Modifier) {
+    val listState = rememberLazyListState()
+    // Items above the timeline: header, plus the notice when shown
+    val headerCount = if (state.windowedWarning) 2 else 1
+    var scrolled by rememberSaveable { mutableStateOf(false) }
+
+    // Bring the highlighted (or next) alarm into view once, keeping the item above it as context
+    LaunchedEffect(state.scrollToIndex) {
+        val index = state.scrollToIndex ?: return@LaunchedEffect
+        if (scrolled) return@LaunchedEffect
+        scrolled = true
+        snapshotFlow { listState.layoutInfo.totalItemsCount }.first { it > 0 } // wait for the first layout
+        val target = headerCount + index
+        val visible = listState.layoutInfo.visibleItemsInfo
+        val fullyVisible = visible.any { it.index == target && it.offset + it.size <= listState.layoutInfo.viewportEndOffset }
+        if (!fullyVisible) listState.scrollToItem((target - 1).coerceAtLeast(0))
+    }
+
+    LazyColumn(
+        state = listState,
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        item(key = "header") { Header(state) }
+        if (state.windowedWarning) {
+            item(key = "windowed") { WindowedWarning() }
+        }
+        items(state.timeline, key = { it.id }) { item -> TimelineCard(item) }
+    }
+}
+
+@Composable
+private fun Header(state: OrderDetailUiState, modifier: Modifier = Modifier) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(state.dateLabel, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            OrderStatusLabel(state.status)
+        }
+        Text(
+            text = stringResource(R.string.home_order_pending, state.pending, state.total),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        state.notes?.let {
+            Text(stringResource(R.string.order_detail_notes, it), style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+}
+
+@Composable
+private fun WindowedWarning(modifier: Modifier = Modifier) {
+    Surface(
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        shape = MaterialTheme.shapes.medium,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Text(
+            text = stringResource(R.string.order_detail_windowed_warning),
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(12.dp),
+        )
+    }
+}
+
+@Composable
+private fun TimelineCard(item: TimelineItemUi, modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = if (item.isNext) CardDefaults.cardColors(containerColor = colors.primaryContainer) else CardDefaults.cardColors(),
+        border = if (item.isHighlighted) BorderStroke(2.dp, colors.primary) else null,
+    ) {
+        Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(modifier = Modifier.width(64.dp)) {
+                Text(item.time, style = MaterialTheme.typography.titleMedium)
+                if (item.nextDay) {
+                    Text(stringResource(R.string.order_detail_next_day), style = MaterialTheme.typography.labelSmall)
+                }
+            }
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(item.title, style = MaterialTheme.typography.titleMedium)
+                item.description?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = item.category,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = colors.onSurfaceVariant,
+                    )
+                    AlarmStatusText(item.status)
+                    if (item.isNext) {
+                        Text(
+                            text = stringResource(R.string.order_detail_next),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = colors.primary,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AlarmStatusText(status: AlarmStatus, modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    val (textRes, color: Color) = when (status) {
+        AlarmStatus.PENDING -> R.string.alarm_status_pending to colors.primary
+        AlarmStatus.FIRED -> R.string.alarm_status_fired to colors.tertiary
+        AlarmStatus.DONE -> R.string.alarm_status_done to colors.secondary
+        AlarmStatus.SKIPPED -> R.string.alarm_status_skipped to colors.onSurfaceVariant
+        AlarmStatus.CANCELLED -> R.string.alarm_status_cancelled to colors.error
+    }
+    Text(stringResource(textRes), style = MaterialTheme.typography.labelMedium, color = color, modifier = modifier)
+}
+
+@Composable
+private fun NotFound(modifier: Modifier = Modifier) {
+    Box(modifier = modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+        Text(stringResource(R.string.order_detail_not_found), style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+@ThemePreviews
+@Composable
+private fun OrderDetailScreenPreview() {
+    RutinifyTheme { OrderDetailScreen(state = PreviewData.orderDetailState, onBack = {}) }
+}
+
+@ThemePreviews
+@Composable
+private fun OrderDetailScreenNotFoundPreview() {
+    RutinifyTheme { OrderDetailScreen(state = OrderDetailUiState(isLoading = false, notFound = true), onBack = {}) }
+}

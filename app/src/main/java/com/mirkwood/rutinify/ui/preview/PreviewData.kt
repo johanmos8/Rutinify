@@ -1,6 +1,7 @@
 package com.mirkwood.rutinify.ui.preview
 
 import com.mirkwood.rutinify.R
+import com.mirkwood.rutinify.domain.model.AlarmStatus
 import com.mirkwood.rutinify.domain.model.OrderDisplayStatus
 import com.mirkwood.rutinify.domain.importer.IssueKind
 import com.mirkwood.rutinify.domain.importer.Severity
@@ -9,6 +10,8 @@ import com.mirkwood.rutinify.ui.common.ErrorMessages
 import com.mirkwood.rutinify.ui.common.UiText
 import com.mirkwood.rutinify.ui.home.HomeUiState
 import com.mirkwood.rutinify.ui.home.OrderCardUi
+import com.mirkwood.rutinify.ui.orderdetail.OrderDetailUiState
+import com.mirkwood.rutinify.ui.orderdetail.TimelineItemUi
 import com.mirkwood.rutinify.ui.review.ReviewItemUi
 import com.mirkwood.rutinify.ui.review.ReviewUiState
 
@@ -54,5 +57,24 @@ internal object PreviewData {
             OrderCardUi(1, "Mudanza", "miércoles 11 de noviembre de 2026", 0, 3, OrderDisplayStatus.FINISHED),
             OrderCardUi(4, "Viaje", "martes 10 de noviembre de 2026", 0, 2, OrderDisplayStatus.CANCELLED),
         ),
+    )
+
+    val orderDetailState = OrderDetailUiState(
+        isLoading = false,
+        name = "Cachorro",
+        dateLabel = "viernes 13 de noviembre de 2026",
+        notes = "Llevar bolsas y agua",
+        status = OrderDisplayStatus.ACTIVE,
+        pending = 2,
+        total = 5,
+        timeline = listOf(
+            TimelineItemUi(1, "06:45", false, "Desayuno", "Medio vaso de pienso", "comida", AlarmStatus.DONE, isNext = false, isHighlighted = false),
+            TimelineItemUi(2, "09:00", false, "Paseo corto", null, "paseo", AlarmStatus.FIRED, isNext = false, isHighlighted = true),
+            TimelineItemUi(3, "11:00", false, "Juego", null, "juego", AlarmStatus.SKIPPED, isNext = false, isHighlighted = false),
+            TimelineItemUi(4, "13:00", false, "Comida", null, "comida", AlarmStatus.PENDING, isNext = true, isHighlighted = false),
+            TimelineItemUi(5, "02:00", true, "Salida nocturna", "Solo al jardín", "paseo", AlarmStatus.PENDING, isNext = false, isHighlighted = false),
+        ),
+        scrollToIndex = 1,
+        windowedWarning = true,
     )
 }
