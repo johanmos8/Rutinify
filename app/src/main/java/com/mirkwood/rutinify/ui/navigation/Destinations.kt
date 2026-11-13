@@ -14,7 +14,12 @@ data object NewRoutineDestination
 data class ReviewDestination(val draftId: String)
 
 @Serializable
-data class OrderDetailDestination(val orderId: Long, val highlightAlarmId: Long? = null)
+data class OrderDetailDestination(
+    val orderId: Long,
+    val highlightAlarmId: Long? = null,
+    /** Set when arriving from Review, to show "{n} alarmas programadas" (R-5.6, D-44). */
+    val scheduledCount: Int? = null,
+)
 
 @Serializable
 data object PermissionsDestination

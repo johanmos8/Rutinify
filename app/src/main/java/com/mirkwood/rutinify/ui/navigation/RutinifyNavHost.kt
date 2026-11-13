@@ -10,6 +10,7 @@ import com.mirkwood.rutinify.R
 import com.mirkwood.rutinify.ui.common.PlaceholderScreen
 import com.mirkwood.rutinify.ui.home.HomeScreen
 import com.mirkwood.rutinify.ui.newroutine.NewRoutineRoute
+import com.mirkwood.rutinify.ui.review.ReviewRoute
 
 /**
  * App navigation graph (design §10). [newRoutineContent] is a seam so JVM navigation tests can show the
@@ -35,9 +36,16 @@ fun RutinifyNavHost(
         composable<NewRoutineDestination> {
             newRoutineContent(navigateUp) { draftId -> navController.navigate(ReviewDestination(draftId)) }
         }
-        // Placeholders: replaced in T-22, T-24 and T-29
+        // Placeholders: replaced in T-24 and T-29
         composable<ReviewDestination> {
-            PlaceholderScreen(titleRes = R.string.review_title, onBack = navigateUp)
+            ReviewRoute(
+                onBack = navigateUp,
+                onNavigateToOrder = { orderId, count ->
+                    navController.navigate(OrderDetailDestination(orderId, scheduledCount = count)) {
+                        popUpTo(HomeDestination) // Back from the new order goes Home (design §10)
+                    }
+                },
+            )
         }
         composable<OrderDetailDestination> {
             PlaceholderScreen(titleRes = R.string.order_detail_title, onBack = navigateUp)

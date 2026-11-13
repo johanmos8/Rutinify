@@ -109,10 +109,11 @@
   - `ClipboardReader` en `data/system`, `DraftStore`, `NewRoutineViewModel` (texto en `SavedStateHandle`), `NewRoutineScreen` + previews (vacío, con errores, validando).
   - Tests VM: copiar plantilla emite efecto; portapapeles vacío; validar con error → issues; validar OK → efecto de navegación con `draftId`.
   - _Hecho:_ `Clipboard` + `AndroidClipboard`, `PromptTemplateSource` + `RawPromptTemplateSource`, `DraftStore` + `InMemoryDraftStore` (con avisos), `NewRoutineViewModel` (texto en `SavedStateHandle`, efectos `ShowMessage`/`NavigateToReview`) y `NewRoutineRoute`/`NewRoutineScreen` con 4 previews (vacía, plantilla abierta, con errores, validando) (D-43). 15 tests: 11 del VM y 4 Robolectric del portapapeles real y la plantilla. No se ha visto aún en un emulador.
-- [ ] **T-22 · Pantalla Revisión** — (R-4.1–R-4.12, R-5.6, R-6.1–R-6.4)
+- [x] **T-22 · Pantalla Revisión** — (R-4.1–R-4.12, R-5.6, R-6.1–R-6.4)
   - `ReviewViewModel`: edición de hora/título/categoría con revalidación, quitar con deshacer, excluir, selector de fecha, resumen, diálogo de conflicto, borrador perdido.
   - `ReviewScreen` + previews (normal, con pasadas, sin futuras, diálogo de conflicto).
   - Tests VM con Turbine.
+  - _Hecho:_ `DraftItemRules` (reglas compartidas con el parser), `ReviewViewModel` (edición con revalidación, quitar con deshacer, excluir, fecha, resumen, aviso de fecha elegida, sugerir mañana, conflicto, 500, reintento, borrador perdido) y `ReviewRoute`/`ReviewScreen` con 4 previews (normal con pasadas, sin futuras, conflicto, edición) (D-44). 35 tests: 28 del VM y 7 de las reglas. No se ha visto aún en un emulador.
 
 ## Fase 6 · Inicio y detalle
 

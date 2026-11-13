@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.data.importer
 
+import com.mirkwood.rutinify.domain.importer.DraftItemRules
 import com.mirkwood.rutinify.domain.importer.ImportResult
 import com.mirkwood.rutinify.domain.importer.IssueKind
 import com.mirkwood.rutinify.domain.importer.Severity
@@ -115,12 +116,12 @@ class RoutineJsonParser @Inject constructor() {
         val items = element.mapIndexedNotNull { position, item -> readItem(position, item, issues) }
         // Counted over the items that parsed, so this error is reported together with item errors (R-3.16)
         val categories = items.mapTo(HashSet()) { it.category }.size
-        if (categories > MAX_CATEGORIES) {
+        if (categories > DraftItemRules.MAX_CATEGORIES) {
             issues += ValidationIssue(
                 field = "items",
                 kind = IssueKind.TOO_MANY_CATEGORIES,
                 received = categories.toString(),
-                limit = MAX_CATEGORIES,
+                limit = DraftItemRules.MAX_CATEGORIES,
             )
             return null
         }
@@ -198,13 +199,11 @@ class RoutineJsonParser @Inject constructor() {
             issues += ctx.issue("time", IssueKind.WRONG_TYPE, element, ValueType.TEXT)
             return null
         }
-        val match = TIME_PATTERN.matchEntire(element.content.trim())
-        if (match == null) {
+        val time = DraftItemRules.parseTime(element.content)
+        if (time == null) {
             issues += ctx.issue("time", IssueKind.INVALID_TIME, element)
-            return null
         }
-        val (hour, minute) = match.destructured
-        return LocalTime.of(hour.toInt(), minute.toInt())
+        return time
     }
 
     /** R-3.9, R-3.10. */
@@ -217,16 +216,18 @@ class RoutineJsonParser @Inject constructor() {
             issues += ctx.issue("title", IssueKind.WRONG_TYPE, element, ValueType.TEXT)
             return null
         }
-        val title = element.content.trim()
-        if (title.isEmpty()) {
-            issues += ctx.issue("title", IssueKind.BLANK_FIELD)
-            return null
+        return when (val title = DraftItemRules.checkTitle(element.content)) {
+            DraftItemRules.TitleCheck.Blank -> {
+                issues += ctx.issue("title", IssueKind.BLANK_FIELD)
+                null
+            }
+            is DraftItemRules.TitleCheck.Valid -> {
+                if (title.truncated) {
+                    issues += ctx.issue("title", IssueKind.TITLE_TRUNCATED, element, severity = Severity.WARNING)
+                }
+                title.value
+            }
         }
-        if (title.length > MAX_TITLE_LENGTH) {
-            issues += ctx.issue("title", IssueKind.TITLE_TRUNCATED, element, severity = Severity.WARNING)
-            return title.take(MAX_TITLE_LENGTH).trimEnd()
-        }
-        return title
     }
 
     /** R-3.11, R-3.15. */
@@ -253,16 +254,15 @@ class RoutineJsonParser @Inject constructor() {
 
     /**
      * R-3.14, R-3.21: absent/null/blank → "general"; otherwise lowercase, trimmed, inner whitespace → "-",
-     * and at most [MAX_CATEGORY_LENGTH] characters once normalized. Null only when invalid.
+     * and at most [DraftItemRules.MAX_CATEGORY_LENGTH] characters once normalized. Null only when invalid.
      */
     private fun readCategory(element: JsonElement?, ctx: ItemContext, issues: MutableList<ValidationIssue>): String? {
         val before = issues.size
         val raw = readOptionalText(element, "category", issues, ctx = ctx)
         if (issues.size > before) return null
-        val category = raw?.lowercase()?.replace(WHITESPACE, "-") ?: DEFAULT_CATEGORY
-        if (category.length > MAX_CATEGORY_LENGTH) {
-            issues += ctx.issue("category", IssueKind.TEXT_TOO_LONG, limit = MAX_CATEGORY_LENGTH)
-            return null
+        val category = DraftItemRules.normalizeCategory(raw)
+        if (category == null) {
+            issues += ctx.issue("category", IssueKind.TEXT_TOO_LONG, limit = DraftItemRules.MAX_CATEGORY_LENGTH)
         }
         return category
     }
@@ -325,16 +325,10 @@ class RoutineJsonParser @Inject constructor() {
 
     private companion object {
         const val MAX_ITEMS = 200
-        const val MAX_TITLE_LENGTH = 80
         const val MAX_LONG_TEXT = 500
         const val MAX_ASSIGNEE_LENGTH = 40
-        const val MAX_CATEGORY_LENGTH = 30
-        const val MAX_CATEGORIES = 10
         const val MAX_DAY_OFFSET = 1
-        const val DEFAULT_CATEGORY = "general"
         val DURATION_RANGE = 1..1440
-        val TIME_PATTERN = Regex("""^([01]?\d|2[0-3]):([0-5]\d)$""")
-        val WHITESPACE = Regex("""\s+""")
         val DRAFT_ORDER = compareBy<DraftItem>({ it.dayOffset }, { it.time }, { it.key })
     }
 }

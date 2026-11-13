@@ -82,4 +82,50 @@
     <string name="new_routine_template_copied">Plantilla copiada</string>
     <string name="new_routine_clipboard_empty">El portapapeles está vacío</string>
     <string name="clipboard_label_template">Plantilla de Rutinify</string>
+
+    <!-- Review screen (T-22, R-4, R-5.6, R-5.7, R-5.10, R-6) -->
+    <string name="review_date_label">Fecha</string>
+    <string name="action_change_date">Cambiar fecha</string>
+    <string name="review_date_defaulted">No venía fecha; elegí %1$s</string>
+    <string name="review_notes_title">Notas</string>
+    <string name="review_warnings_title">Avisos</string>
+    <string name="review_past">Ya pasó</string>
+    <string name="review_time_next_day">%1$s (+1 día)</string>
+    <plurals name="review_summary">
+        <item quantity="one">%1$d alarma, a las %2$s</item>
+        <item quantity="other">%1$d alarmas, de %2$s a %3$s</item>
+    </plurals>
+    <string name="review_nothing_to_schedule">No hay actividades futuras para programar</string>
+    <string name="review_suggest_tomorrow">La fecha elegida ya pasó y todas las actividades también.</string>
+    <string name="action_use_tomorrow">Cambiar a mañana</string>
+    <string name="action_schedule">Programar alarmas</string>
+    <string name="review_scheduling">Programando…</string>
+    <string name="review_include_item">Incluir «%1$s»</string>
+    <string name="review_edit_item">Editar «%1$s»</string>
+    <string name="review_remove_item">Quitar «%1$s»</string>
+    <string name="review_item_removed">Actividad quitada</string>
+    <string name="action_undo">Deshacer</string>
+    <string name="review_edit_title">Editar actividad</string>
+    <string name="review_field_time">Hora (24 h)</string>
+    <string name="review_field_title">Título</string>
+    <string name="review_field_category">Categoría</string>
+    <string name="action_save">Guardar</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="review_error_time">Usa el formato 24 h, por ejemplo 06:45</string>
+    <string name="review_error_title_blank">Falta el título</string>
+    <!-- The three numbers below are fixed limits (30, 10, 80): always plural, so no <plurals> needed -->
+    <string name="review_error_category_long" tools:ignore="PluralsCandidate">Máximo %1$d caracteres</string>
+    <string name="review_error_too_many_categories" tools:ignore="PluralsCandidate">Máximo %1$d categorías por rutina</string>
+    <string name="review_title_truncated" tools:ignore="PluralsCandidate">El título se recortó a %1$d caracteres</string>
+    <string name="review_conflict_title">Ya hay rutinas ese día</string>
+    <string name="review_conflict_body">Para esa fecha ya tienes: %1$s. ¿Qué quieres hacer?</string>
+    <string name="action_replace">Reemplazar la anterior</string>
+    <string name="action_keep_both">Mantener ambas</string>
+    <plurals name="review_too_many_alarms">
+        <item quantity="one">No se puede programar %1$d alarma: se superaría el máximo de 500 alarmas pendientes (%2$d ya programadas)</item>
+        <item quantity="other">No se pueden programar %1$d alarmas: se superaría el máximo de 500 alarmas pendientes (%2$d ya programadas)</item>
+    </plurals>
+    <string name="review_storage_failure">No se pudo guardar la rutina</string>
+    <string name="action_retry">Reintentar</string>
+    <string name="review_draft_lost">El borrador se perdió, vuelve a validar</string>
 </resources>
