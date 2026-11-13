@@ -10,9 +10,15 @@ import com.mirkwood.rutinify.domain.model.OrderDisplayStatus
 import com.mirkwood.rutinify.domain.model.OrderStatus
 import com.mirkwood.rutinify.domain.model.OrderWithAlarms
 import com.mirkwood.rutinify.domain.time.TriggerTimeCalculator
+import com.mirkwood.rutinify.domain.usecase.AlarmMutationLock
 import com.mirkwood.rutinify.domain.usecase.CanScheduleExactAlarmsUseCase
+import com.mirkwood.rutinify.domain.usecase.DeleteAlarmUseCase
+import com.mirkwood.rutinify.domain.usecase.MarkAlarmDoneUseCase
+import com.mirkwood.rutinify.domain.usecase.RestoreAlarmUseCase
 import com.mirkwood.rutinify.domain.usecase.ObserveOrderDetailUseCase
+import com.mirkwood.rutinify.testutil.FakeAlarmRepository
 import com.mirkwood.rutinify.testutil.FakeAlarmScheduler
+import com.mirkwood.rutinify.testutil.FakeNotificationPublisher
 import com.mirkwood.rutinify.testutil.FakeOrderRepository
 import com.mirkwood.rutinify.testutil.MainDispatcherRule
 import com.mirkwood.rutinify.testutil.testAlarm
@@ -25,6 +31,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
+import java.time.Clock
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
@@ -37,8 +44,13 @@ class OrderDetailViewModelTest {
     val mainRule = MainDispatcherRule(UnconfinedTestDispatcher())
 
     private val zone = ZoneId.of("America/Bogota")
+    // 2026-11-05 07:00 in Bogotá
+    private val clock = Clock.fixed(Instant.parse("2026-11-05T12:00:00Z"), zone)
     private val orders = FakeOrderRepository()
+    private val alarms = FakeAlarmRepository(clock)
     private val scheduler = FakeAlarmScheduler(exact = true)
+    private val publisher = FakeNotificationPublisher()
+    private val lock = AlarmMutationLock()
 
     private fun handle(highlightAlarmId: Long? = null, scheduledCount: Int? = null) = SavedStateHandle(
         buildMap {
@@ -52,6 +64,9 @@ class OrderDetailViewModelTest {
         savedStateHandle = handle,
         observeOrderDetail = ObserveOrderDetailUseCase(orders, TriggerTimeCalculator()) { zone },
         canScheduleExactAlarms = CanScheduleExactAlarmsUseCase(scheduler),
+        markAlarmDone = MarkAlarmDoneUseCase(alarms, scheduler, publisher, lock),
+        deleteAlarm = DeleteAlarmUseCase(alarms, scheduler, publisher, lock),
+        restoreAlarm = RestoreAlarmUseCase(alarms, orders, scheduler, TriggerTimeCalculator(), { zone }, clock, lock),
         zoneProvider = { zone },
     )
 
@@ -207,5 +222,77 @@ class OrderDetailViewModelTest {
     @Test
     fun `al abrirla desde Inicio no anuncia nada`() = runTest {
         viewModel().effects.test { expectNoEvents() }
+    }
+
+    @Test
+    fun `solo ofrece marcar como hecha las pendientes y las disparadas`() = runTest { // R-9.5
+        setOrder(
+            OrderStatus.ACTIVE,
+            testAlarm(id = 1, time = LocalTime.of(6, 0), status = AlarmStatus.PENDING),
+            testAlarm(id = 2, time = LocalTime.of(6, 1), status = AlarmStatus.FIRED),
+            testAlarm(id = 3, time = LocalTime.of(6, 2), status = AlarmStatus.DONE),
+            testAlarm(id = 4, time = LocalTime.of(6, 3), status = AlarmStatus.SKIPPED),
+            testAlarm(id = 5, time = LocalTime.of(6, 4), status = AlarmStatus.CANCELLED),
+        )
+
+        val offered = subscribed(viewModel()).uiState.value.timeline.map { it.canMarkDone }
+
+        assertThat(offered).containsExactly(true, true, false, false, false).inOrder()
+    }
+
+    @Test
+    fun `marcar como hecha una pendiente la cancela en el sistema`() = runTest { // R-9.5
+        alarms.add(testAlarm(id = 2, time = LocalTime.of(13, 0)))
+        scheduler.schedule(2, Instant.parse("2026-11-05T18:00:00Z"))
+
+        viewModel().onAction(OrderDetailAction.MarkDone(2))
+
+        assertThat(alarms.alarms.getValue(2).status).isEqualTo(AlarmStatus.DONE)
+        assertThat(scheduler.scheduled).isEmpty()
+    }
+
+    @Test
+    fun `eliminar borra la alarma y ofrece deshacer`() = runTest { // R-9.3
+        alarms.add(testAlarm(id = 2, time = LocalTime.of(13, 0)))
+        scheduler.schedule(2, Instant.parse("2026-11-05T18:00:00Z"))
+        val vm = viewModel()
+
+        vm.effects.test {
+            vm.onAction(OrderDetailAction.Delete(2))
+
+            assertThat(awaitItem()).isEqualTo(
+                OrderDetailEffect.ShowUndo(UiText.Res(R.string.order_detail_alarm_deleted), alarmId = 2),
+            )
+        }
+        assertThat(alarms.alarms).isEmpty()
+        assertThat(scheduler.scheduled).isEmpty()
+    }
+
+    @Test
+    fun `deshacer restaura la alarma y la reprograma si es futura`() = runTest { // R-9.4
+        orders.add(testOrder(id = 1))
+        val alarm = testAlarm(id = 2, time = LocalTime.of(13, 0))
+        alarms.add(alarm)
+        val vm = viewModel()
+
+        vm.onAction(OrderDetailAction.Delete(2))
+        vm.onAction(OrderDetailAction.UndoDelete(2))
+
+        assertThat(alarms.alarms[2L]).isEqualTo(alarm)
+        assertThat(scheduler.scheduled[2L]).isEqualTo(Instant.parse("2026-11-05T18:00:00Z"))
+    }
+
+    @Test
+    fun `deshacer dos veces no hace nada la segunda`() = runTest { // R-9.4
+        orders.add(testOrder(id = 1))
+        alarms.add(testAlarm(id = 2, time = LocalTime.of(13, 0)))
+        val vm = viewModel()
+        vm.onAction(OrderDetailAction.Delete(2))
+        vm.onAction(OrderDetailAction.UndoDelete(2))
+        alarms.alarms.clear()
+
+        vm.onAction(OrderDetailAction.UndoDelete(2))
+
+        assertThat(alarms.alarms).isEmpty()
     }
 }

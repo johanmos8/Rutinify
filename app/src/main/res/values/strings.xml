@@ -150,6 +150,9 @@
     <string name="order_detail_notes">Notas: %1$s</string>
     <string name="order_detail_next">Próxima</string>
     <string name="order_detail_next_day">+1 día</string>
+    <string name="order_detail_mark_done">Marcar «%1$s» como hecha</string>
+    <string name="order_detail_delete_alarm">Eliminar «%1$s»</string>
+    <string name="order_detail_alarm_deleted">Alarma eliminada</string>
     <string name="alarm_status_pending">Pendiente</string>
     <string name="alarm_status_fired">Disparada</string>
     <string name="alarm_status_done">Hecha</string>

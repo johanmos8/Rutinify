@@ -123,9 +123,10 @@
 - [x] **T-24 · Pantalla Detalle de orden (lectura)** — (R-9.1, R-9.2, R-7.6, R-5.4)
   - Timeline con estados, próxima alarma destacada, aviso de modo ventana, deep link desde la notificación con `highlightAlarmId`. Previews.
   - _Hecho:_ `ObserveOrderDetailUseCase` (orden por hora efectiva, próxima pendiente) + `CanScheduleExactAlarmsUseCase` + `OrderDetailViewModel`/`OrderDetailRoute`/`OrderDetailScreen`: cabecera, aviso de R-5.4 (revisado al volver), línea de tiempo con estado, "Próxima" y borde en la alarma resaltada, "{n} alarmas programadas" una vez, "Esta rutina ya no existe". Deep link `rutinify://order/{id}?alarm=` en el NavHost; etiqueta de estado compartida con Inicio. 21 tests nuevos (6 use case + 14 VM + 1 navegación); probado en emulador abriendo el enlace de la notificación (D-46).
-- [ ] **T-25 · Acciones sobre alarmas individuales** — (R-9.3–R-9.5)
+- [x] **T-25 · Acciones sobre alarmas individuales** — (R-9.3–R-9.5)
   - `DeleteAlarmUseCase`, `RestoreAlarmUseCase`, marcar hecha. Snackbar "Deshacer".
   - Tests: deshacer reprograma si es futura y no si ya pasó.
+  - _Hecho:_ `DeleteAlarmUseCase` (borra, cancela si estaba pendiente, quita la notificación y devuelve la alarma) y `RestoreAlarmUseCase` (misma fila e id; reprograma si es futura, *Omitida* si ya pasó, sin programar en órdenes pausadas). El detalle gana "Marcar como hecha" (pendientes y disparadas, con `MarkAlarmDoneUseCase`) y "Eliminar" con snackbar "Deshacer". 15 tests nuevos (4 + 6 use case, 5 VM); probado en emulador: borrar y deshacer vuelve a registrar la alarma en `AlarmManager` (D-47).
 
 ## Fase 7 · Gestión de órdenes
 

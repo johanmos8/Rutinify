@@ -4,12 +4,16 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mirkwood.rutinify.R
+import com.mirkwood.rutinify.domain.model.AlarmItem
 import com.mirkwood.rutinify.domain.model.AlarmStatus
 import com.mirkwood.rutinify.domain.model.OrderDetail
 import com.mirkwood.rutinify.domain.model.OrderDisplayStatus
 import com.mirkwood.rutinify.domain.model.TimelineEntry
 import com.mirkwood.rutinify.domain.time.ZoneProvider
 import com.mirkwood.rutinify.domain.usecase.CanScheduleExactAlarmsUseCase
+import com.mirkwood.rutinify.domain.usecase.DeleteAlarmUseCase
+import com.mirkwood.rutinify.domain.usecase.MarkAlarmDoneUseCase
+import com.mirkwood.rutinify.domain.usecase.RestoreAlarmUseCase
 import com.mirkwood.rutinify.domain.usecase.ObserveOrderDetailUseCase
 import com.mirkwood.rutinify.ui.common.DateFormats
 import com.mirkwood.rutinify.ui.common.UiText
@@ -22,6 +26,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /** One alarm on the timeline (R-9.1). */
@@ -39,6 +44,8 @@ data class TimelineItemUi(
     val isNext: Boolean,
     /** Opened from this alarm's notification (R-7.6). */
     val isHighlighted: Boolean,
+    /** "Marcar como hecha" is offered for PENDING and FIRED alarms (R-9.5). */
+    val canMarkDone: Boolean = status == AlarmStatus.PENDING || status == AlarmStatus.FIRED,
 )
 
 data class OrderDetailUiState(
@@ -61,10 +68,22 @@ data class OrderDetailUiState(
 sealed interface OrderDetailAction {
     /** Screen back in the foreground: the exact-alarm permission may have changed in Settings. */
     data object Resumed : OrderDetailAction
+
+    /** R-9.5 */
+    data class MarkDone(val alarmId: Long) : OrderDetailAction
+
+    /** R-9.3 */
+    data class Delete(val alarmId: Long) : OrderDetailAction
+
+    /** "Deshacer" on the snackbar of [Delete] (R-9.4). */
+    data class UndoDelete(val alarmId: Long) : OrderDetailAction
 }
 
 sealed interface OrderDetailEffect {
     data class ShowMessage(val message: UiText) : OrderDetailEffect
+
+    /** "Alarma eliminada" with "Deshacer", which sends [OrderDetailAction.UndoDelete] for [alarmId]. */
+    data class ShowUndo(val message: UiText, val alarmId: Long) : OrderDetailEffect
 }
 
 @HiltViewModel
@@ -72,6 +91,9 @@ class OrderDetailViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     observeOrderDetail: ObserveOrderDetailUseCase,
     private val canScheduleExactAlarms: CanScheduleExactAlarmsUseCase,
+    private val markAlarmDone: MarkAlarmDoneUseCase,
+    private val deleteAlarm: DeleteAlarmUseCase,
+    private val restoreAlarm: RestoreAlarmUseCase,
     private val zoneProvider: ZoneProvider,
 ) : ViewModel() {
 
@@ -80,6 +102,9 @@ class OrderDetailViewModel @Inject constructor(
     private val highlightAlarmId: Long? = savedStateHandle.get<Long>(KEY_HIGHLIGHT_ALARM_ID)
 
     private val exactAllowed = MutableStateFlow(canScheduleExactAlarms())
+
+    /** Deleted alarms that can still be restored, by id; only lives while the screen does. */
+    private val deleted = mutableMapOf<Long, AlarmItem>()
 
     private val effectChannel = Channel<OrderDetailEffect>(Channel.BUFFERED)
     val effects: Flow<OrderDetailEffect> = effectChannel.receiveAsFlow()
@@ -96,7 +121,21 @@ class OrderDetailViewModel @Inject constructor(
     fun onAction(action: OrderDetailAction) {
         when (action) {
             OrderDetailAction.Resumed -> exactAllowed.value = canScheduleExactAlarms()
+            is OrderDetailAction.MarkDone -> viewModelScope.launch { markAlarmDone(action.alarmId) }
+            is OrderDetailAction.Delete -> viewModelScope.launch { delete(action.alarmId) }
+            is OrderDetailAction.UndoDelete -> viewModelScope.launch { undoDelete(action.alarmId) }
         }
+    }
+
+    private suspend fun delete(alarmId: Long) {
+        val alarm = deleteAlarm(alarmId) ?: return
+        deleted[alarmId] = alarm
+        effectChannel.send(OrderDetailEffect.ShowUndo(UiText.Res(R.string.order_detail_alarm_deleted), alarmId))
+    }
+
+    private suspend fun undoDelete(alarmId: Long) {
+        val alarm = deleted.remove(alarmId) ?: return
+        restoreAlarm(alarm)
     }
 
     /** "{n} alarmas programadas" once per arrival from Review, surviving recreation (R-5.6). */

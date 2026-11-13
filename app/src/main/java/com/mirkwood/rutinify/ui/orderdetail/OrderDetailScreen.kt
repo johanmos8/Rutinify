@@ -16,6 +16,11 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import kotlinx.coroutines.launch
+import androidx.compose.ui.res.painterResource
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -62,6 +67,7 @@ fun OrderDetailRoute(
     val snackbarHostState = remember { SnackbarHostState() }
     val resources = LocalResources.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
+    val undoLabel = stringResource(R.string.action_undo)
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onAction(OrderDetailAction.Resumed) }
 
@@ -71,18 +77,35 @@ fun OrderDetailRoute(
                 when (effect) {
                     is OrderDetailEffect.ShowMessage ->
                         snackbarHostState.showSnackbar(effect.message.resolve(resources), duration = SnackbarDuration.Short)
+                    is OrderDetailEffect.ShowUndo -> {
+                        // A newer deletion replaces the previous offer instead of queueing behind it
+                        snackbarHostState.currentSnackbarData?.dismiss()
+                        launch {
+                            val result = snackbarHostState.showSnackbar(effect.message.resolve(resources), actionLabel = undoLabel)
+                            if (result == SnackbarResult.ActionPerformed) {
+                                viewModel.onAction(OrderDetailAction.UndoDelete(effect.alarmId))
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 
-    OrderDetailScreen(state = state, onBack = onBack, snackbarHostState = snackbarHostState, modifier = modifier)
+    OrderDetailScreen(
+        state = state,
+        onAction = viewModel::onAction,
+        onBack = onBack,
+        snackbarHostState = snackbarHostState,
+        modifier = modifier,
+    )
 }
 
-/** Stateless order detail: header, windowed-mode notice and timeline (R-9.1, R-9.2, R-7.6, R-5.4). */
+/** Stateless order detail: header, windowed-mode notice and timeline with per-alarm actions (R-9.*, R-7.6, R-5.4). */
 @Composable
 fun OrderDetailScreen(
     state: OrderDetailUiState,
+    onAction: (OrderDetailAction) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
@@ -101,13 +124,13 @@ fun OrderDetailScreen(
         when {
             state.isLoading -> Unit
             state.notFound -> NotFound(Modifier.padding(padding))
-            else -> Timeline(state, Modifier.padding(padding))
+            else -> Timeline(state, onAction, Modifier.padding(padding))
         }
     }
 }
 
 @Composable
-private fun Timeline(state: OrderDetailUiState, modifier: Modifier = Modifier) {
+private fun Timeline(state: OrderDetailUiState, onAction: (OrderDetailAction) -> Unit, modifier: Modifier = Modifier) {
     val listState = rememberLazyListState()
     // Items above the timeline: header, plus the notice when shown
     val headerCount = if (state.windowedWarning) 2 else 1
@@ -135,7 +158,14 @@ private fun Timeline(state: OrderDetailUiState, modifier: Modifier = Modifier) {
         if (state.windowedWarning) {
             item(key = "windowed") { WindowedWarning() }
         }
-        items(state.timeline, key = { it.id }) { item -> TimelineCard(item) }
+        items(state.timeline, key = { it.id }) { item ->
+            TimelineCard(
+                item = item,
+                onMarkDone = { onAction(OrderDetailAction.MarkDone(item.id)) },
+                onDelete = { onAction(OrderDetailAction.Delete(item.id)) },
+                modifier = Modifier.animateItem(),
+            )
+        }
     }
 }
 
@@ -173,14 +203,22 @@ private fun WindowedWarning(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun TimelineCard(item: TimelineItemUi, modifier: Modifier = Modifier) {
+private fun TimelineCard(
+    item: TimelineItemUi,
+    onMarkDone: () -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val colors = MaterialTheme.colorScheme
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = if (item.isNext) CardDefaults.cardColors(containerColor = colors.primaryContainer) else CardDefaults.cardColors(),
         border = if (item.isHighlighted) BorderStroke(2.dp, colors.primary) else null,
     ) {
-        Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        Row(
+            modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 16.dp, end = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
             Column(modifier = Modifier.width(64.dp)) {
                 Text(item.time, style = MaterialTheme.typography.titleMedium)
                 if (item.nextDay) {
@@ -204,6 +242,16 @@ private fun TimelineCard(item: TimelineItemUi, modifier: Modifier = Modifier) {
                             color = colors.primary,
                         )
                     }
+                }
+            }
+            Row {
+                if (item.canMarkDone) {
+                    IconButton(onClick = onMarkDone) {
+                        Icon(painterResource(R.drawable.ic_check), contentDescription = stringResource(R.string.order_detail_mark_done, item.title))
+                    }
+                }
+                IconButton(onClick = onDelete) {
+                    Icon(painterResource(R.drawable.ic_delete), contentDescription = stringResource(R.string.order_detail_delete_alarm, item.title))
                 }
             }
         }
@@ -233,11 +281,11 @@ private fun NotFound(modifier: Modifier = Modifier) {
 @ThemePreviews
 @Composable
 private fun OrderDetailScreenPreview() {
-    RutinifyTheme { OrderDetailScreen(state = PreviewData.orderDetailState, onBack = {}) }
+    RutinifyTheme { OrderDetailScreen(state = PreviewData.orderDetailState, onAction = {}, onBack = {}) }
 }
 
 @ThemePreviews
 @Composable
 private fun OrderDetailScreenNotFoundPreview() {
-    RutinifyTheme { OrderDetailScreen(state = OrderDetailUiState(isLoading = false, notFound = true), onBack = {}) }
+    RutinifyTheme { OrderDetailScreen(state = OrderDetailUiState(isLoading = false, notFound = true), onAction = {}, onBack = {}) }
 }
