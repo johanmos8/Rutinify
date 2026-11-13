@@ -11,6 +11,7 @@ import com.mirkwood.rutinify.domain.model.OrderWithAlarms
 import com.mirkwood.rutinify.domain.model.RoutineOrder
 import com.mirkwood.rutinify.domain.repository.OrderRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import java.time.Instant
 import java.time.LocalDate
 
@@ -91,7 +92,10 @@ class FakeOrderRepository(
         return Result.success(CreatedOrder(created, items, cancelled))
     }
 
-    override fun observeSummaries(): Flow<List<OrderSummary>> = TODO("Not needed yet")
+    /** What [observeSummaries] emits; tests push new lists to simulate Room changes (R-8.6). */
+    val summaries = MutableStateFlow<List<OrderSummary>>(emptyList())
+
+    override fun observeSummaries(): Flow<List<OrderSummary>> = summaries
 
     override fun observeOrderWithAlarms(orderId: Long): Flow<OrderWithAlarms?> = TODO("Not needed yet")
 }

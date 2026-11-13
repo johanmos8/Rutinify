@@ -17,6 +17,7 @@ import com.mirkwood.rutinify.domain.usecase.FindConflictingOrdersUseCase
 import com.mirkwood.rutinify.domain.usecase.ScheduleOrderResult
 import com.mirkwood.rutinify.domain.usecase.ScheduleOrderUseCase
 import com.mirkwood.rutinify.domain.usecase.ScheduleSummary
+import com.mirkwood.rutinify.ui.common.DateFormats
 import com.mirkwood.rutinify.ui.common.ErrorMessages
 import com.mirkwood.rutinify.ui.common.UiText
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -36,7 +37,6 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 import javax.inject.Inject
 
 data class ReviewItemUi(
@@ -363,9 +363,8 @@ class ReviewViewModel @Inject constructor(
     private companion object {
         /** Property name of `ReviewDestination.draftId` (type-safe navigation stores it under that key). */
         const val KEY_DRAFT_ID = "draftId"
-        val TIME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-        val DATE_FORMAT: DateTimeFormatter =
-            DateTimeFormatter.ofPattern("EEEE d 'de' MMMM 'de' yyyy", Locale.forLanguageTag("es-ES"))
+        val TIME_FORMAT: DateTimeFormatter = DateFormats.TIME
+        val DATE_FORMAT: DateTimeFormatter = DateFormats.LONG_DATE
         val ITEM_ORDER = compareBy<DraftItem>({ it.dayOffset }, { it.time }, { it.key })
     }
 }

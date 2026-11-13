@@ -12,7 +12,6 @@
     <string name="permissions_title">Permisos</string>
 
     <!-- Temporary (T-03): replaced when each screen is implemented -->
-    <string name="home_placeholder">Aquí aparecerán tus rutinas</string>
     <string name="placeholder_body">Pantalla en construcción</string>
 
     <!-- Import validation messages (T-12, R-3.3–R-3.22). Item prefix: "Actividad 3 («Siesta»)" -->
@@ -128,4 +127,16 @@
     <string name="review_storage_failure">No se pudo guardar la rutina</string>
     <string name="action_retry">Reintentar</string>
     <string name="review_draft_lost">El borrador se perdió, vuelve a validar</string>
+
+    <!-- Home screen (T-23, R-8) -->
+    <string name="home_empty_title">Aún no tienes rutinas</string>
+    <string name="home_empty_intro">Crear una lleva tres pasos:</string>
+    <string name="home_empty_step_1">1. Toca «Nueva rutina» y copia la plantilla.</string>
+    <string name="home_empty_step_2">2. Pégala en tu IA junto con tu rutina, escrita como quieras.</string>
+    <string name="home_empty_step_3">3. Copia el JSON que te devuelva y pégalo en Rutinify.</string>
+    <string name="home_order_pending">Pendientes: %1$d de %2$d</string>
+    <string name="order_status_active">Activa</string>
+    <string name="order_status_paused">Pausada</string>
+    <string name="order_status_cancelled">Cancelada</string>
+    <string name="order_status_finished">Terminada</string>
 </resources>

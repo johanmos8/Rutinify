@@ -1,11 +1,14 @@
 package com.mirkwood.rutinify.ui.preview
 
 import com.mirkwood.rutinify.R
+import com.mirkwood.rutinify.domain.model.OrderDisplayStatus
 import com.mirkwood.rutinify.domain.importer.IssueKind
 import com.mirkwood.rutinify.domain.importer.Severity
 import com.mirkwood.rutinify.domain.importer.ValidationIssue
 import com.mirkwood.rutinify.ui.common.ErrorMessages
 import com.mirkwood.rutinify.ui.common.UiText
+import com.mirkwood.rutinify.ui.home.HomeUiState
+import com.mirkwood.rutinify.ui.home.OrderCardUi
 import com.mirkwood.rutinify.ui.review.ReviewItemUi
 import com.mirkwood.rutinify.ui.review.ReviewUiState
 
@@ -41,5 +44,15 @@ internal object PreviewData {
             listOf(ValidationIssue(itemIndex = 4, itemTitle = "Salida nocturna", kind = IssueKind.TITLE_TRUNCATED, severity = Severity.WARNING)),
         ),
         canSchedule = true,
+    )
+
+    val homeState = HomeUiState(
+        isLoading = false,
+        orders = listOf(
+            OrderCardUi(3, "Cachorro", "viernes 13 de noviembre de 2026", 5, 8, OrderDisplayStatus.ACTIVE),
+            OrderCardUi(2, "Rutina de estudio para el examen final de matemáticas", "jueves 12 de noviembre de 2026", 4, 6, OrderDisplayStatus.PAUSED),
+            OrderCardUi(1, "Mudanza", "miércoles 11 de noviembre de 2026", 0, 3, OrderDisplayStatus.FINISHED),
+            OrderCardUi(4, "Viaje", "martes 10 de noviembre de 2026", 0, 2, OrderDisplayStatus.CANCELLED),
+        ),
     )
 }

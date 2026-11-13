@@ -113,12 +113,13 @@
   - `ReviewViewModel`: edición de hora/título/categoría con revalidación, quitar con deshacer, excluir, selector de fecha, resumen, diálogo de conflicto, borrador perdido.
   - `ReviewScreen` + previews (normal, con pasadas, sin futuras, diálogo de conflicto).
   - Tests VM con Turbine.
-  - _Hecho:_ `DraftItemRules` (reglas compartidas con el parser), `ReviewViewModel` (edición con revalidación, quitar con deshacer, excluir, fecha, resumen, aviso de fecha elegida, sugerir mañana, conflicto, 500, reintento, borrador perdido) y `ReviewRoute`/`ReviewScreen` con 4 previews (normal con pasadas, sin futuras, conflicto, edición) (D-44). 36 tests: 29 del VM y 7 de las reglas. No se ha visto aún en un emulador.
+  - _Hecho:_ `DraftItemRules` (reglas compartidas con el parser), `ReviewViewModel` (edición con revalidación, quitar con deshacer, excluir, fecha, resumen, aviso de fecha elegida, sugerir mañana, conflicto, 500, reintento, borrador perdido) y `ReviewRoute`/`ReviewScreen` con 4 previews (normal con pasadas, sin futuras, conflicto, edición) (D-44). 36 tests: 29 del VM y 7 de las reglas. Probado en emulador (API 36): pegar → revisar → editar → programar → notificación → "Hecho" y "+5 min".
 
 ## Fase 6 · Inicio y detalle
 
-- [ ] **T-23 · Pantalla Inicio** — (R-8.1–R-8.6)
+- [x] **T-23 · Pantalla Inicio** — (R-8.1–R-8.6)
   - `HomeViewModel`, tarjeta de orden (nombre, fecha, pendientes/total, estado), estado vacío de 3 pasos, FAB. Previews.
+  - _Hecho:_ `ObserveOrderSummariesUseCase` + `HomeViewModel` (`isLoading` evita el parpadeo del estado vacío) + `HomeRoute`/`HomeScreen` con tarjetas (nombre, fecha larga, "Pendientes: n de m", etiqueta de estado) y estado vacío de 3 pasos; tocar una tarjeta abre el detalle. Formato de fecha compartido con Revisión. 8 tests nuevos (7 VM + 1 navegación); probado en emulador con una orden real (D-45).
 - [ ] **T-24 · Pantalla Detalle de orden (lectura)** — (R-9.1, R-9.2, R-7.6, R-5.4)
   - Timeline con estados, próxima alarma destacada, aviso de modo ventana, deep link desde la notificación con `highlightAlarmId`. Previews.
 - [ ] **T-25 · Acciones sobre alarmas individuales** — (R-9.3–R-9.5)
