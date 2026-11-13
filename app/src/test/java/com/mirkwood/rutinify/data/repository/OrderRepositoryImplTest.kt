@@ -208,6 +208,26 @@ class OrderRepositoryImplTest {
         assertThat(db.alarmItemDao().getById(created.alarms.single().id)).isNull()
     }
 
+    @Test
+    fun `cancelOrder cancela la orden y solo sus alarmas pendientes`() = runTest { // R-10.2, R-10.3
+        val created = repository.createOrder(
+            newOrder(),
+            listOf(newAlarm(0), newAlarm(1), newAlarm(2), newAlarm(3, status = AlarmStatus.SKIPPED)),
+        ).getOrThrow()
+        val (pending, fired, done, skipped) = created.alarms.map { it.id }
+        db.alarmItemDao().updateStatus(listOf(fired), AlarmStatus.FIRED, now)
+        db.alarmItemDao().updateStatus(listOf(done), AlarmStatus.DONE, now)
+
+        val cancelled = repository.cancelOrder(created.order.id)
+
+        assertThat(cancelled).containsExactly(pending)
+        assertThat(repository.getOrder(created.order.id)?.status).isEqualTo(OrderStatus.CANCELLED)
+        val statuses = listOf(pending, fired, done, skipped).map { db.alarmItemDao().getById(it)?.status }
+        assertThat(statuses).containsExactly(
+            AlarmStatus.CANCELLED, AlarmStatus.FIRED, AlarmStatus.DONE, AlarmStatus.SKIPPED,
+        ).inOrder()
+    }
+
     private class FailingInsertAlarmDao(delegate: AlarmItemDao) : AlarmItemDao by delegate {
         override suspend fun insertAll(alarms: List<AlarmItemEntity>): List<Long> =
             throw SQLiteException("fallo simulado")

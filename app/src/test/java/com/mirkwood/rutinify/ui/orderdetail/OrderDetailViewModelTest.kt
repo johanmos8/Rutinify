@@ -12,7 +12,9 @@ import com.mirkwood.rutinify.domain.model.OrderWithAlarms
 import com.mirkwood.rutinify.domain.time.TriggerTimeCalculator
 import com.mirkwood.rutinify.domain.usecase.AlarmMutationLock
 import com.mirkwood.rutinify.domain.usecase.CanScheduleExactAlarmsUseCase
+import com.mirkwood.rutinify.domain.usecase.CancelOrderAlarmsUseCase
 import com.mirkwood.rutinify.domain.usecase.DeleteAlarmUseCase
+import com.mirkwood.rutinify.domain.usecase.DeleteOrderUseCase
 import com.mirkwood.rutinify.domain.usecase.MarkAlarmDoneUseCase
 import com.mirkwood.rutinify.domain.usecase.RestoreAlarmUseCase
 import com.mirkwood.rutinify.domain.usecase.ObserveOrderDetailUseCase
@@ -46,8 +48,8 @@ class OrderDetailViewModelTest {
     private val zone = ZoneId.of("America/Bogota")
     // 2026-11-05 07:00 in Bogotá
     private val clock = Clock.fixed(Instant.parse("2026-11-05T12:00:00Z"), zone)
-    private val orders = FakeOrderRepository()
     private val alarms = FakeAlarmRepository(clock)
+    private val orders = FakeOrderRepository(alarms)
     private val scheduler = FakeAlarmScheduler(exact = true)
     private val publisher = FakeNotificationPublisher()
     private val lock = AlarmMutationLock()
@@ -67,6 +69,8 @@ class OrderDetailViewModelTest {
         markAlarmDone = MarkAlarmDoneUseCase(alarms, scheduler, publisher, lock),
         deleteAlarm = DeleteAlarmUseCase(alarms, scheduler, publisher, lock),
         restoreAlarm = RestoreAlarmUseCase(alarms, orders, scheduler, TriggerTimeCalculator(), { zone }, clock, lock),
+        cancelOrderAlarms = CancelOrderAlarmsUseCase(orders, scheduler, publisher, lock),
+        deleteOrder = DeleteOrderUseCase(orders, alarms, scheduler, publisher, lock),
         zoneProvider = { zone },
     )
 
@@ -294,5 +298,92 @@ class OrderDetailViewModelTest {
         vm.onAction(OrderDetailAction.UndoDelete(2))
 
         assertThat(alarms.alarms).isEmpty()
+    }
+
+    @Test
+    fun `eliminar todas pide confirmacion diciendo cuantas pendientes se cancelan`() = runTest { // R-10.1
+        setOrder(OrderStatus.ACTIVE, *defaultAlarms)
+        val vm = subscribed(viewModel())
+
+        vm.onAction(OrderDetailAction.CancelAllClicked)
+
+        assertThat(vm.uiState.value.dialog).isEqualTo(
+            OrderDetailDialog.CancelAll(UiText.Plural(R.plurals.cancel_all_body, 2, listOf(2))),
+        )
+    }
+
+    @Test
+    fun `sin pendientes la confirmacion lo dice`() = runTest { // R-10.1
+        setOrder(OrderStatus.ACTIVE, testAlarm(id = 1, status = AlarmStatus.DONE))
+        val vm = subscribed(viewModel())
+
+        vm.onAction(OrderDetailAction.CancelAllClicked)
+
+        assertThat(vm.uiState.value.dialog).isEqualTo(OrderDetailDialog.CancelAll(UiText.Res(R.string.cancel_all_body_none)))
+    }
+
+    @Test
+    fun `cancelar el dialogo no toca nada`() = runTest { // R-10.1
+        orders.add(testOrder(id = 1))
+        alarms.add(testAlarm(id = 2, orderId = 1))
+        setOrder(OrderStatus.ACTIVE, *defaultAlarms)
+        val vm = subscribed(viewModel())
+        vm.onAction(OrderDetailAction.CancelAllClicked)
+
+        vm.onAction(OrderDetailAction.DismissDialog)
+
+        assertThat(vm.uiState.value.dialog).isNull()
+        assertThat(alarms.alarms.getValue(2).status).isEqualTo(AlarmStatus.PENDING)
+    }
+
+    @Test
+    fun `confirmar eliminar todas cancela las pendientes y la orden`() = runTest { // R-10.2
+        orders.add(testOrder(id = 1))
+        alarms.add(testAlarm(id = 2, orderId = 1), testAlarm(id = 3, orderId = 1, status = AlarmStatus.DONE))
+        setOrder(OrderStatus.ACTIVE, *defaultAlarms)
+        val vm = subscribed(viewModel())
+        vm.onAction(OrderDetailAction.CancelAllClicked)
+
+        vm.onAction(OrderDetailAction.ConfirmDialog)
+
+        assertThat(vm.uiState.value.dialog).isNull()
+        assertThat(alarms.alarms.values.map { it.status }).containsExactly(AlarmStatus.CANCELLED, AlarmStatus.DONE).inOrder()
+        assertThat(orders.orders.getValue(1).status).isEqualTo(OrderStatus.CANCELLED)
+    }
+
+    @Test
+    fun `una orden cancelada oculta eliminar todas`() = runTest { // R-10.8
+        setOrder(OrderStatus.CANCELLED, testAlarm(id = 1, status = AlarmStatus.CANCELLED))
+
+        assertThat(subscribed(viewModel()).uiState.value.canCancelAll).isFalse()
+    }
+
+    @Test
+    fun `una orden activa o pausada ofrece eliminar todas`() = runTest { // R-10.1
+        setOrder(OrderStatus.PAUSED, *defaultAlarms)
+
+        assertThat(subscribed(viewModel()).uiState.value.canCancelAll).isTrue()
+    }
+
+    @Test
+    fun `confirmar eliminar orden la borra y sale sin mostrar orden no encontrada`() = runTest { // R-10.4
+        orders.add(testOrder(id = 1))
+        alarms.add(testAlarm(id = 2, orderId = 1))
+        setOrder(OrderStatus.ACTIVE, *defaultAlarms)
+        val vm = subscribed(viewModel())
+        vm.onAction(OrderDetailAction.DeleteOrderClicked)
+        assertThat(vm.uiState.value.dialog)
+            .isEqualTo(OrderDetailDialog.DeleteOrder(UiText.Res(R.string.delete_order_body, listOf("Cachorro"))))
+
+        vm.effects.test {
+            vm.onAction(OrderDetailAction.ConfirmDialog)
+            orders.detail(1).value = null // what Room emits after the delete
+
+            assertThat(awaitItem()).isEqualTo(OrderDetailEffect.NavigateBack)
+        }
+        assertThat(orders.orders).isEmpty()
+        assertThat(alarms.alarms).isEmpty()
+        assertThat(vm.uiState.value.notFound).isFalse()
+        assertThat(vm.uiState.value.name).isEqualTo("Cachorro")
     }
 }

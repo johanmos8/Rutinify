@@ -1,6 +1,7 @@
 package com.mirkwood.rutinify.ui.common
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,6 +33,7 @@ fun BackTopAppBar(
     title: String,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    actions: @Composable RowScope.() -> Unit = {},
 ) {
     TopAppBar(
         title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
@@ -43,6 +45,7 @@ fun BackTopAppBar(
                 )
             }
         },
+        actions = actions,
         modifier = modifier,
     )
 }

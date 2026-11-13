@@ -18,6 +18,7 @@ import com.mirkwood.rutinify.domain.repository.OrderRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
@@ -48,12 +49,7 @@ class OrderRepositoryImpl @Inject constructor(
         val now = clock.instant()
         return try {
             val created = db.withTransaction {
-                val cancelledIds = replaceOrderIds.flatMap { replacedId ->
-                    val pendingIds = alarmDao.getPendingByOrder(replacedId).map { it.id }
-                    if (pendingIds.isNotEmpty()) alarmDao.updateStatus(pendingIds, AlarmStatus.CANCELLED, now)
-                    orderDao.updateStatus(replacedId, OrderStatus.CANCELLED, now)
-                    pendingIds
-                }
+                val cancelledIds = replaceOrderIds.flatMap { cancelPendingAndOrder(it, now) }
                 val orderEntity = order.toEntity(now)
                 val orderId = orderDao.insert(orderEntity)
                 val alarmEntities = alarms.map { it.toEntity(orderId, now) }
@@ -77,6 +73,17 @@ class OrderRepositoryImpl @Inject constructor(
 
     override suspend fun updateStatus(orderId: Long, status: OrderStatus) =
         orderDao.updateStatus(orderId, status, clock.instant())
+
+    override suspend fun cancelOrder(orderId: Long): List<Long> =
+        db.withTransaction { cancelPendingAndOrder(orderId, clock.instant()) }
+
+    /** Must run inside a transaction. */
+    private suspend fun cancelPendingAndOrder(orderId: Long, now: Instant): List<Long> {
+        val pendingIds = alarmDao.getPendingByOrder(orderId).map { it.id }
+        if (pendingIds.isNotEmpty()) alarmDao.updateStatus(pendingIds, AlarmStatus.CANCELLED, now)
+        orderDao.updateStatus(orderId, OrderStatus.CANCELLED, now)
+        return pendingIds
+    }
 
     override suspend fun delete(orderId: Long) = orderDao.delete(orderId)
 }

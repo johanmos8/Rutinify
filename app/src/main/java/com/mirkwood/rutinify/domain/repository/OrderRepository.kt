@@ -36,6 +36,12 @@ interface OrderRepository {
 
     suspend fun updateStatus(orderId: Long, status: OrderStatus)
 
+    /**
+     * In one transaction: the order's PENDING alarms become CANCELLED and the order becomes CANCELLED;
+     * FIRED, DONE and SKIPPED alarms are kept (R-10.2, R-10.3). @return the ids of the alarms cancelled.
+     */
+    suspend fun cancelOrder(orderId: Long): List<Long>
+
     /** Deletes the order and, by cascade, its alarms (R-10.4). */
     suspend fun delete(orderId: Long)
 }

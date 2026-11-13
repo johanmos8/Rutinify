@@ -50,6 +50,19 @@ class FakeOrderRepository(
 
     override suspend fun delete(orderId: Long) {
         orders.remove(orderId)
+        // ON DELETE CASCADE
+        alarmRepository?.alarms?.values?.removeAll { it.orderId == orderId }
+    }
+
+    override suspend fun cancelOrder(orderId: Long): List<Long> {
+        val alarmRepo = alarmRepository
+        val pendingIds = alarmRepo?.alarms?.values
+            ?.filter { it.orderId == orderId && it.status == AlarmStatus.PENDING }
+            ?.map { it.id }
+            .orEmpty()
+        alarmRepo?.updateStatus(pendingIds, AlarmStatus.CANCELLED)
+        updateStatus(orderId, OrderStatus.CANCELLED)
+        return pendingIds
     }
 
     override suspend fun createOrder(
@@ -61,14 +74,7 @@ class FakeOrderRepository(
         if (failCreate) return Result.failure(IllegalStateException("disk full"))
         val alarmRepo = requireNotNull(alarmRepository) { "Link a FakeAlarmRepository first" }
 
-        val cancelled = replaceOrderIds.flatMap { replacedId ->
-            val pendingIds = alarmRepo.alarms.values
-                .filter { it.orderId == replacedId && it.status == AlarmStatus.PENDING }
-                .map { it.id }
-            alarmRepo.updateStatus(pendingIds, AlarmStatus.CANCELLED)
-            updateStatus(replacedId, OrderStatus.CANCELLED)
-            pendingIds
-        }
+        val cancelled = replaceOrderIds.flatMap { cancelOrder(it) }
         val created = RoutineOrder(nextOrderId++, order.name, order.date, order.notes, OrderStatus.ACTIVE, now)
         orders[created.id] = created
         val items = alarms.map {

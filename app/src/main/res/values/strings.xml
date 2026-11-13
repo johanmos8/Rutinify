@@ -153,6 +153,18 @@
     <string name="order_detail_mark_done">Marcar «%1$s» como hecha</string>
     <string name="order_detail_delete_alarm">Eliminar «%1$s»</string>
     <string name="order_detail_alarm_deleted">Alarma eliminada</string>
+    <string name="action_more_options">Más opciones</string>
+    <string name="action_cancel_all">Eliminar todas las alarmas</string>
+    <string name="action_delete_order">Eliminar orden</string>
+    <string name="action_delete">Eliminar</string>
+    <string name="cancel_all_title">¿Eliminar todas las alarmas?</string>
+    <plurals name="cancel_all_body">
+        <item quantity="one">Se cancelará %1$d alarma pendiente y la orden quedará cancelada. Las hechas y disparadas se conservan.</item>
+        <item quantity="other">Se cancelarán %1$d alarmas pendientes y la orden quedará cancelada. Las hechas y disparadas se conservan.</item>
+    </plurals>
+    <string name="cancel_all_body_none">No quedan alarmas pendientes; la orden quedará cancelada. Las hechas y disparadas se conservan.</string>
+    <string name="delete_order_title">¿Eliminar la orden?</string>
+    <string name="delete_order_body">Se borrarán «%1$s» y todas sus alarmas, también el historial. No se puede deshacer.</string>
     <string name="alarm_status_pending">Pendiente</string>
     <string name="alarm_status_fired">Disparada</string>
     <string name="alarm_status_done">Hecha</string>

@@ -16,6 +16,12 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import com.mirkwood.rutinify.ui.common.asString
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.AlertDialog
 import kotlinx.coroutines.launch
 import androidx.compose.ui.res.painterResource
 import androidx.compose.material3.SnackbarResult
@@ -75,6 +81,7 @@ fun OrderDetailRoute(
         lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             viewModel.effects.collect { effect ->
                 when (effect) {
+                    OrderDetailEffect.NavigateBack -> onBack()
                     is OrderDetailEffect.ShowMessage ->
                         snackbarHostState.showSnackbar(effect.message.resolve(resources), duration = SnackbarDuration.Short)
                     is OrderDetailEffect.ShowUndo -> {
@@ -116,7 +123,7 @@ fun OrderDetailScreen(
             if (state.name.isEmpty()) {
                 BackTopAppBar(titleRes = R.string.order_detail_title, onBack = onBack)
             } else {
-                BackTopAppBar(title = state.name, onBack = onBack)
+                BackTopAppBar(title = state.name, onBack = onBack, actions = { OverflowMenu(onAction) })
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -127,6 +134,48 @@ fun OrderDetailScreen(
             else -> Timeline(state, onAction, Modifier.padding(padding))
         }
     }
+    state.dialog?.let { ConfirmDialog(it, onAction) }
+}
+
+/** "Eliminar orden" lives in the menu (R-10.4); it stays available in every status (R-10.8). */
+@Composable
+private fun OverflowMenu(onAction: (OrderDetailAction) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(painterResource(R.drawable.ic_more_vert), contentDescription = stringResource(R.string.action_more_options))
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.action_delete_order)) },
+                onClick = {
+                    expanded = false
+                    onAction(OrderDetailAction.DeleteOrderClicked)
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun ConfirmDialog(dialog: OrderDetailDialog, onAction: (OrderDetailAction) -> Unit) {
+    val (titleRes, message) = when (dialog) {
+        is OrderDetailDialog.CancelAll -> R.string.cancel_all_title to dialog.message
+        is OrderDetailDialog.DeleteOrder -> R.string.delete_order_title to dialog.message
+    }
+    AlertDialog(
+        onDismissRequest = { onAction(OrderDetailAction.DismissDialog) },
+        title = { Text(stringResource(titleRes)) },
+        text = { Text(message.asString()) },
+        confirmButton = {
+            TextButton(onClick = { onAction(OrderDetailAction.ConfirmDialog) }) {
+                Text(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = { onAction(OrderDetailAction.DismissDialog) }) { Text(stringResource(R.string.action_cancel)) }
+        },
+    )
 }
 
 @Composable
@@ -154,7 +203,7 @@ private fun Timeline(state: OrderDetailUiState, onAction: (OrderDetailAction) ->
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item(key = "header") { Header(state) }
+        item(key = "header") { Header(state, onCancelAll = { onAction(OrderDetailAction.CancelAllClicked) }) }
         if (state.windowedWarning) {
             item(key = "windowed") { WindowedWarning() }
         }
@@ -170,7 +219,7 @@ private fun Timeline(state: OrderDetailUiState, onAction: (OrderDetailAction) ->
 }
 
 @Composable
-private fun Header(state: OrderDetailUiState, modifier: Modifier = Modifier) {
+private fun Header(state: OrderDetailUiState, onCancelAll: () -> Unit, modifier: Modifier = Modifier) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(state.dateLabel, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
@@ -183,6 +232,11 @@ private fun Header(state: OrderDetailUiState, modifier: Modifier = Modifier) {
         )
         state.notes?.let {
             Text(stringResource(R.string.order_detail_notes, it), style = MaterialTheme.typography.bodyMedium)
+        }
+        if (state.canCancelAll) {
+            OutlinedButton(onClick = onCancelAll, modifier = Modifier.padding(top = 8.dp)) {
+                Text(stringResource(R.string.action_cancel_all), color = MaterialTheme.colorScheme.error)
+            }
         }
     }
 }

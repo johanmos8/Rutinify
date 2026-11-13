@@ -8,10 +8,13 @@ import com.mirkwood.rutinify.domain.model.AlarmItem
 import com.mirkwood.rutinify.domain.model.AlarmStatus
 import com.mirkwood.rutinify.domain.model.OrderDetail
 import com.mirkwood.rutinify.domain.model.OrderDisplayStatus
+import com.mirkwood.rutinify.domain.model.OrderStatus
 import com.mirkwood.rutinify.domain.model.TimelineEntry
 import com.mirkwood.rutinify.domain.time.ZoneProvider
 import com.mirkwood.rutinify.domain.usecase.CanScheduleExactAlarmsUseCase
+import com.mirkwood.rutinify.domain.usecase.CancelOrderAlarmsUseCase
 import com.mirkwood.rutinify.domain.usecase.DeleteAlarmUseCase
+import com.mirkwood.rutinify.domain.usecase.DeleteOrderUseCase
 import com.mirkwood.rutinify.domain.usecase.MarkAlarmDoneUseCase
 import com.mirkwood.rutinify.domain.usecase.RestoreAlarmUseCase
 import com.mirkwood.rutinify.domain.usecase.ObserveOrderDetailUseCase
@@ -63,7 +66,19 @@ data class OrderDetailUiState(
     val scrollToIndex: Int? = null,
     /** "Las alarmas pueden retrasarse unos minutos…" (R-5.4). */
     val windowedWarning: Boolean = false,
+    /** "Eliminar todas las alarmas" is hidden once the order is cancelled (R-10.8). */
+    val canCancelAll: Boolean = false,
+    val dialog: OrderDetailDialog? = null,
 )
+
+/** Confirmations before destructive order actions. */
+sealed interface OrderDetailDialog {
+    /** "Eliminar todas las alarmas", saying how many pending alarms will be cancelled (R-10.1). */
+    data class CancelAll(val message: UiText) : OrderDetailDialog
+
+    /** "Eliminar orden" (R-10.4). */
+    data class DeleteOrder(val message: UiText) : OrderDetailDialog
+}
 
 sealed interface OrderDetailAction {
     /** Screen back in the foreground: the exact-alarm permission may have changed in Settings. */
@@ -77,6 +92,15 @@ sealed interface OrderDetailAction {
 
     /** "Deshacer" on the snackbar of [Delete] (R-9.4). */
     data class UndoDelete(val alarmId: Long) : OrderDetailAction
+
+    /** Opens the R-10.1 confirmation. */
+    data object CancelAllClicked : OrderDetailAction
+
+    /** Opens the R-10.4 confirmation. */
+    data object DeleteOrderClicked : OrderDetailAction
+
+    data object ConfirmDialog : OrderDetailAction
+    data object DismissDialog : OrderDetailAction
 }
 
 sealed interface OrderDetailEffect {
@@ -84,6 +108,9 @@ sealed interface OrderDetailEffect {
 
     /** "Alarma eliminada" with "Deshacer", which sends [OrderDetailAction.UndoDelete] for [alarmId]. */
     data class ShowUndo(val message: UiText, val alarmId: Long) : OrderDetailEffect
+
+    /** The order was deleted: leave the screen. */
+    data object NavigateBack : OrderDetailEffect
 }
 
 @HiltViewModel
@@ -94,6 +121,8 @@ class OrderDetailViewModel @Inject constructor(
     private val markAlarmDone: MarkAlarmDoneUseCase,
     private val deleteAlarm: DeleteAlarmUseCase,
     private val restoreAlarm: RestoreAlarmUseCase,
+    private val cancelOrderAlarms: CancelOrderAlarmsUseCase,
+    private val deleteOrder: DeleteOrderUseCase,
     private val zoneProvider: ZoneProvider,
 ) : ViewModel() {
 
@@ -102,6 +131,11 @@ class OrderDetailViewModel @Inject constructor(
     private val highlightAlarmId: Long? = savedStateHandle.get<Long>(KEY_HIGHLIGHT_ALARM_ID)
 
     private val exactAllowed = MutableStateFlow(canScheduleExactAlarms())
+    private val dialog = MutableStateFlow<OrderDetailDialog?>(null)
+
+    /** Set while the order is being deleted, so the screen does not flash "Esta rutina ya no existe". */
+    private var leaving = false
+    private var lastShown: OrderDetailUiState? = null
 
     /** Deleted alarms that can still be restored, by id; only lives while the screen does. */
     private val deleted = mutableMapOf<Long, AlarmItem>()
@@ -110,8 +144,13 @@ class OrderDetailViewModel @Inject constructor(
     val effects: Flow<OrderDetailEffect> = effectChannel.receiveAsFlow()
 
     val uiState: StateFlow<OrderDetailUiState> =
-        combine(observeOrderDetail(orderId), exactAllowed) { detail, exact ->
-            detail?.let { toUiState(it, exact) } ?: OrderDetailUiState(isLoading = false, notFound = true)
+        combine(observeOrderDetail(orderId), exactAllowed, dialog) { detail, exact, dialog ->
+            val state = when {
+                detail != null -> toUiState(detail, exact).copy(dialog = dialog)
+                leaving -> lastShown?.copy(dialog = null) ?: OrderDetailUiState()
+                else -> OrderDetailUiState(isLoading = false, notFound = true)
+            }
+            state.also { lastShown = it }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OrderDetailUiState())
 
     init {
@@ -124,6 +163,34 @@ class OrderDetailViewModel @Inject constructor(
             is OrderDetailAction.MarkDone -> viewModelScope.launch { markAlarmDone(action.alarmId) }
             is OrderDetailAction.Delete -> viewModelScope.launch { delete(action.alarmId) }
             is OrderDetailAction.UndoDelete -> viewModelScope.launch { undoDelete(action.alarmId) }
+            OrderDetailAction.CancelAllClicked -> dialog.value = cancelAllDialog(uiState.value.pending)
+            OrderDetailAction.DeleteOrderClicked ->
+                dialog.value = OrderDetailDialog.DeleteOrder(UiText.Res(R.string.delete_order_body, listOf(uiState.value.name)))
+            OrderDetailAction.ConfirmDialog -> confirm()
+            OrderDetailAction.DismissDialog -> dialog.value = null
+        }
+    }
+
+    private fun cancelAllDialog(pending: Int) = OrderDetailDialog.CancelAll(
+        if (pending == 0) {
+            UiText.Res(R.string.cancel_all_body_none)
+        } else {
+            UiText.Plural(R.plurals.cancel_all_body, pending, listOf(pending))
+        },
+    )
+
+    private fun confirm() {
+        val confirmed = dialog.value ?: return
+        dialog.value = null
+        viewModelScope.launch {
+            when (confirmed) {
+                is OrderDetailDialog.CancelAll -> cancelOrderAlarms(orderId)
+                is OrderDetailDialog.DeleteOrder -> {
+                    leaving = true
+                    deleteOrder(orderId)
+                    effectChannel.send(OrderDetailEffect.NavigateBack)
+                }
+            }
         }
     }
 
@@ -164,6 +231,7 @@ class OrderDetailViewModel @Inject constructor(
             scrollToIndex = timeline.indexOfFirst { it.id == scrollTarget }.takeIf { it >= 0 },
             // Only while something is still going to ring (D-46)
             windowedWarning = !exactAllowed && detail.nextAlarmId != null,
+            canCancelAll = detail.order.status != OrderStatus.CANCELLED,
         )
     }
 

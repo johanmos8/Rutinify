@@ -130,9 +130,10 @@
 
 ## Fase 7 · Gestión de órdenes
 
-- [ ] **T-26 · Eliminar todas las alarmas / eliminar orden** — (R-10.1–R-10.4, R-10.8)
+- [x] **T-26 · Eliminar todas las alarmas / eliminar orden** — (R-10.1–R-10.4, R-10.8)
   - `CancelOrderAlarmsUseCase`, `DeleteOrderUseCase`, diálogo de confirmación con nº de pendientes, ocultar acciones en órdenes canceladas.
   - Tests: con alarmas FIRED/DONE se conservan; se quitan notificaciones visibles de la orden; scheduler recibe `cancel` solo de las PENDING.
+  - _Hecho:_ `OrderRepository.cancelOrder` (transacción, reutilizada por el reemplazo), `CancelOrderAlarmsUseCase` y `DeleteOrderUseCase`. El detalle gana el botón "Eliminar todas las alarmas" (oculto si la orden está cancelada) y "Eliminar orden" en el menú ⋮, ambos con confirmación; tras borrar vuelve a Inicio. 14 tests nuevos (1 repositorio + 3 + 3 use case + 7 VM); probado en emulador: la alarma pendiente desaparece de `AlarmManager` y borrar la orden vuelve al estado vacío (D-48).
 - [ ] **T-27 · Pausar / reanudar** — (R-10.5, R-10.6)
   - Tests: pausar cancela sin cambiar estado; reanudar omite pasadas y programa futuras; `RescheduleAll` ignora pausadas.
 - [ ] **T-28 · Duplicar para otra fecha** — (R-10.7)
