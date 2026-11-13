@@ -134,8 +134,9 @@
   - `CancelOrderAlarmsUseCase`, `DeleteOrderUseCase`, diálogo de confirmación con nº de pendientes, ocultar acciones en órdenes canceladas.
   - Tests: con alarmas FIRED/DONE se conservan; se quitan notificaciones visibles de la orden; scheduler recibe `cancel` solo de las PENDING.
   - _Hecho:_ `OrderRepository.cancelOrder` (transacción, reutilizada por el reemplazo), `CancelOrderAlarmsUseCase` y `DeleteOrderUseCase`. El detalle gana el botón "Eliminar todas las alarmas" (oculto si la orden está cancelada) y "Eliminar orden" en el menú ⋮, ambos con confirmación; tras borrar vuelve a Inicio. 14 tests nuevos (1 repositorio + 3 + 3 use case + 7 VM); probado en emulador: la alarma pendiente desaparece de `AlarmManager` y borrar la orden vuelve al estado vacío (D-48).
-- [ ] **T-27 · Pausar / reanudar** — (R-10.5, R-10.6)
+- [x] **T-27 · Pausar / reanudar** — (R-10.5, R-10.6)
   - Tests: pausar cancela sin cambiar estado; reanudar omite pasadas y programa futuras; `RescheduleAll` ignora pausadas.
+  - _Hecho:_ `PauseOrderUseCase` (orden → `PAUSED`, luego `cancel()` de sus pendientes, que siguen `PENDING`) y `ResumeOrderUseCase` (pendientes con hora no futura → `SKIPPED` sin tolerancia, orden → `ACTIVE`, luego programa las futuras; devuelve `ResumeResult`). El detalle muestra "Pausar" o "Reanudar" junto a "Eliminar todas las alarmas" y, al reanudar, avisa de cuántas alarmas se omitieron. `RescheduleAll` ya ignoraba las pausadas (test de T-19). 16 tests nuevos (4 + 6 use case + 6 VM); probado en emulador: pausar quita las alarmas de `AlarmManager` y reanudar tras las 22:04 omite esa y programa el resto (D-49).
 - [ ] **T-28 · Duplicar para otra fecha** — (R-10.7)
   - `DuplicateOrderUseCase` → borrador en `DraftStore` → navegar a Revisión con la fecha elegida. Tests.
 

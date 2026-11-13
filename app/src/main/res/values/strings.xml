@@ -155,6 +155,12 @@
     <string name="order_detail_alarm_deleted">Alarma eliminada</string>
     <string name="action_more_options">Más opciones</string>
     <string name="action_cancel_all">Eliminar todas las alarmas</string>
+    <string name="action_pause">Pausar</string>
+    <string name="action_resume">Reanudar</string>
+    <plurals name="order_detail_resumed_skipped">
+        <item quantity="one">Rutina reanudada. Se omitió %1$d alarma cuya hora ya pasó</item>
+        <item quantity="other">Rutina reanudada. Se omitieron %1$d alarmas cuya hora ya pasó</item>
+    </plurals>
     <string name="action_delete_order">Eliminar orden</string>
     <string name="action_delete">Eliminar</string>
     <string name="cancel_all_title">¿Eliminar todas las alarmas?</string>

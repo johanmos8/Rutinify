@@ -16,8 +16,10 @@ import com.mirkwood.rutinify.domain.usecase.CancelOrderAlarmsUseCase
 import com.mirkwood.rutinify.domain.usecase.DeleteAlarmUseCase
 import com.mirkwood.rutinify.domain.usecase.DeleteOrderUseCase
 import com.mirkwood.rutinify.domain.usecase.MarkAlarmDoneUseCase
-import com.mirkwood.rutinify.domain.usecase.RestoreAlarmUseCase
 import com.mirkwood.rutinify.domain.usecase.ObserveOrderDetailUseCase
+import com.mirkwood.rutinify.domain.usecase.PauseOrderUseCase
+import com.mirkwood.rutinify.domain.usecase.RestoreAlarmUseCase
+import com.mirkwood.rutinify.domain.usecase.ResumeOrderUseCase
 import com.mirkwood.rutinify.testutil.FakeAlarmRepository
 import com.mirkwood.rutinify.testutil.FakeAlarmScheduler
 import com.mirkwood.rutinify.testutil.FakeNotificationPublisher
@@ -71,6 +73,8 @@ class OrderDetailViewModelTest {
         restoreAlarm = RestoreAlarmUseCase(alarms, orders, scheduler, TriggerTimeCalculator(), { zone }, clock, lock),
         cancelOrderAlarms = CancelOrderAlarmsUseCase(orders, scheduler, publisher, lock),
         deleteOrder = DeleteOrderUseCase(orders, alarms, scheduler, publisher, lock),
+        pauseOrder = PauseOrderUseCase(orders, alarms, scheduler, lock),
+        resumeOrder = ResumeOrderUseCase(orders, alarms, scheduler, TriggerTimeCalculator(), { zone }, clock, lock),
         zoneProvider = { zone },
     )
 
@@ -385,5 +389,81 @@ class OrderDetailViewModelTest {
         assertThat(alarms.alarms).isEmpty()
         assertThat(vm.uiState.value.notFound).isFalse()
         assertThat(vm.uiState.value.name).isEqualTo("Cachorro")
+    }
+
+    @Test
+    fun `una orden activa con pendientes ofrece pausar`() = runTest { // R-10.5
+        setOrder(OrderStatus.ACTIVE, *defaultAlarms)
+
+        assertThat(subscribed(viewModel()).uiState.value.pauseAction).isEqualTo(PauseAction.PAUSE)
+    }
+
+    @Test
+    fun `una orden pausada ofrece reanudar`() = runTest { // R-10.6
+        setOrder(OrderStatus.PAUSED, *defaultAlarms)
+
+        assertThat(subscribed(viewModel()).uiState.value.pauseAction).isEqualTo(PauseAction.RESUME)
+    }
+
+    @Test
+    fun `una orden cancelada o terminada no ofrece pausar ni reanudar`() = runTest { // R-10.8, D-49
+        setOrder(OrderStatus.CANCELLED, testAlarm(id = 1, status = AlarmStatus.CANCELLED))
+        val vm = subscribed(viewModel())
+        assertThat(vm.uiState.value.pauseAction).isNull()
+
+        setOrder(OrderStatus.ACTIVE, testAlarm(id = 1, status = AlarmStatus.DONE))
+        assertThat(vm.uiState.value.pauseAction).isNull()
+    }
+
+    @Test
+    fun `pausar cancela las pendientes en el sistema y pone la orden en pausada`() = runTest { // R-10.5
+        orders.add(testOrder(id = 1))
+        alarms.add(testAlarm(id = 2, orderId = 1, time = LocalTime.of(13, 0)))
+        scheduler.schedule(2, Instant.parse("2026-11-05T18:00:00Z"))
+        setOrder(OrderStatus.ACTIVE, *defaultAlarms)
+        val vm = subscribed(viewModel())
+
+        vm.onAction(OrderDetailAction.PauseClicked)
+
+        assertThat(scheduler.scheduled).isEmpty()
+        assertThat(alarms.alarms.getValue(2).status).isEqualTo(AlarmStatus.PENDING)
+        assertThat(orders.orders.getValue(1).status).isEqualTo(OrderStatus.PAUSED)
+    }
+
+    @Test
+    fun `reanudar avisa cuantas alarmas se omitieron`() = runTest { // R-10.6, D-49
+        orders.add(testOrder(id = 1, status = OrderStatus.PAUSED))
+        alarms.add(
+            testAlarm(id = 2, orderId = 1, time = LocalTime.of(6, 0)),
+            testAlarm(id = 3, orderId = 1, time = LocalTime.of(6, 30)),
+            testAlarm(id = 4, orderId = 1, time = LocalTime.of(13, 0)),
+        )
+        setOrder(OrderStatus.PAUSED, *defaultAlarms)
+        val vm = subscribed(viewModel())
+
+        vm.effects.test {
+            vm.onAction(OrderDetailAction.ResumeClicked)
+
+            assertThat(awaitItem()).isEqualTo(
+                OrderDetailEffect.ShowMessage(UiText.Plural(R.plurals.order_detail_resumed_skipped, 2, listOf(2))),
+            )
+        }
+        assertThat(scheduler.scheduled.keys).containsExactly(4L)
+        assertThat(orders.orders.getValue(1).status).isEqualTo(OrderStatus.ACTIVE)
+    }
+
+    @Test
+    fun `reanudar sin alarmas omitidas no muestra mensaje`() = runTest { // R-10.6
+        orders.add(testOrder(id = 1, status = OrderStatus.PAUSED))
+        alarms.add(testAlarm(id = 4, orderId = 1, time = LocalTime.of(13, 0)))
+        setOrder(OrderStatus.PAUSED, *defaultAlarms)
+        val vm = subscribed(viewModel())
+
+        vm.effects.test {
+            vm.onAction(OrderDetailAction.ResumeClicked)
+
+            expectNoEvents()
+        }
+        assertThat(scheduler.scheduled.keys).containsExactly(4L)
     }
 }

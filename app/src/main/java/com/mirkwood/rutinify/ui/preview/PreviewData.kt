@@ -11,6 +11,7 @@ import com.mirkwood.rutinify.ui.common.UiText
 import com.mirkwood.rutinify.ui.home.HomeUiState
 import com.mirkwood.rutinify.ui.home.OrderCardUi
 import com.mirkwood.rutinify.ui.orderdetail.OrderDetailUiState
+import com.mirkwood.rutinify.ui.orderdetail.PauseAction
 import com.mirkwood.rutinify.ui.orderdetail.TimelineItemUi
 import com.mirkwood.rutinify.ui.review.ReviewItemUi
 import com.mirkwood.rutinify.ui.review.ReviewUiState
@@ -76,5 +77,7 @@ internal object PreviewData {
         ),
         scrollToIndex = 1,
         windowedWarning = true,
+        canCancelAll = true,
+        pauseAction = PauseAction.PAUSE,
     )
 }

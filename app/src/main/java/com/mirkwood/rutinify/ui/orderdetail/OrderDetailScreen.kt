@@ -2,6 +2,7 @@ package com.mirkwood.rutinify.ui.orderdetail
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -19,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import com.mirkwood.rutinify.ui.common.asString
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.AlertDialog
@@ -57,6 +59,7 @@ import com.mirkwood.rutinify.R
 import com.mirkwood.rutinify.domain.model.AlarmStatus
 import com.mirkwood.rutinify.ui.common.BackTopAppBar
 import com.mirkwood.rutinify.ui.common.OrderStatusLabel
+import com.mirkwood.rutinify.domain.model.OrderDisplayStatus
 import com.mirkwood.rutinify.ui.preview.PreviewData
 import com.mirkwood.rutinify.ui.preview.ThemePreviews
 import com.mirkwood.rutinify.ui.theme.RutinifyTheme
@@ -203,7 +206,7 @@ private fun Timeline(state: OrderDetailUiState, onAction: (OrderDetailAction) ->
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item(key = "header") { Header(state, onCancelAll = { onAction(OrderDetailAction.CancelAllClicked) }) }
+        item(key = "header") { Header(state, onAction) }
         if (state.windowedWarning) {
             item(key = "windowed") { WindowedWarning() }
         }
@@ -219,7 +222,7 @@ private fun Timeline(state: OrderDetailUiState, onAction: (OrderDetailAction) ->
 }
 
 @Composable
-private fun Header(state: OrderDetailUiState, onCancelAll: () -> Unit, modifier: Modifier = Modifier) {
+private fun Header(state: OrderDetailUiState, onAction: (OrderDetailAction) -> Unit, modifier: Modifier = Modifier) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(state.dateLabel, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
@@ -233,9 +236,25 @@ private fun Header(state: OrderDetailUiState, onCancelAll: () -> Unit, modifier:
         state.notes?.let {
             Text(stringResource(R.string.order_detail_notes, it), style = MaterialTheme.typography.bodyMedium)
         }
-        if (state.canCancelAll) {
-            OutlinedButton(onClick = onCancelAll, modifier = Modifier.padding(top = 8.dp)) {
-                Text(stringResource(R.string.action_cancel_all), color = MaterialTheme.colorScheme.error)
+        if (state.pauseAction != null || state.canCancelAll) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(top = 8.dp),
+            ) {
+                when (state.pauseAction) {
+                    PauseAction.PAUSE -> OutlinedButton(onClick = { onAction(OrderDetailAction.PauseClicked) }) {
+                        Text(stringResource(R.string.action_pause))
+                    }
+                    PauseAction.RESUME -> Button(onClick = { onAction(OrderDetailAction.ResumeClicked) }) {
+                        Text(stringResource(R.string.action_resume))
+                    }
+                    null -> Unit
+                }
+                if (state.canCancelAll) {
+                    OutlinedButton(onClick = { onAction(OrderDetailAction.CancelAllClicked) }) {
+                        Text(stringResource(R.string.action_cancel_all), color = MaterialTheme.colorScheme.error)
+                    }
+                }
             }
         }
     }
@@ -336,6 +355,18 @@ private fun NotFound(modifier: Modifier = Modifier) {
 @Composable
 private fun OrderDetailScreenPreview() {
     RutinifyTheme { OrderDetailScreen(state = PreviewData.orderDetailState, onAction = {}, onBack = {}) }
+}
+
+@ThemePreviews
+@Composable
+private fun OrderDetailScreenPausedPreview() {
+    val state = PreviewData.orderDetailState.copy(
+        status = OrderDisplayStatus.PAUSED,
+        pauseAction = PauseAction.RESUME,
+        windowedWarning = false,
+        timeline = PreviewData.orderDetailState.timeline.map { it.copy(isNext = false) },
+    )
+    RutinifyTheme { OrderDetailScreen(state = state, onAction = {}, onBack = {}) }
 }
 
 @ThemePreviews

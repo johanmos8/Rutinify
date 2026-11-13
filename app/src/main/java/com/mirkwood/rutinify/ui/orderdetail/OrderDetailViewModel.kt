@@ -16,8 +16,10 @@ import com.mirkwood.rutinify.domain.usecase.CancelOrderAlarmsUseCase
 import com.mirkwood.rutinify.domain.usecase.DeleteAlarmUseCase
 import com.mirkwood.rutinify.domain.usecase.DeleteOrderUseCase
 import com.mirkwood.rutinify.domain.usecase.MarkAlarmDoneUseCase
-import com.mirkwood.rutinify.domain.usecase.RestoreAlarmUseCase
 import com.mirkwood.rutinify.domain.usecase.ObserveOrderDetailUseCase
+import com.mirkwood.rutinify.domain.usecase.PauseOrderUseCase
+import com.mirkwood.rutinify.domain.usecase.RestoreAlarmUseCase
+import com.mirkwood.rutinify.domain.usecase.ResumeOrderUseCase
 import com.mirkwood.rutinify.ui.common.DateFormats
 import com.mirkwood.rutinify.ui.common.UiText
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -68,8 +70,12 @@ data class OrderDetailUiState(
     val windowedWarning: Boolean = false,
     /** "Eliminar todas las alarmas" is hidden once the order is cancelled (R-10.8). */
     val canCancelAll: Boolean = false,
+    /** Which of "Pausar" / "Reanudar" the header offers; none for cancelled or finished orders (R-10.8, D-49). */
+    val pauseAction: PauseAction? = null,
     val dialog: OrderDetailDialog? = null,
 )
+
+enum class PauseAction { PAUSE, RESUME }
 
 /** Confirmations before destructive order actions. */
 sealed interface OrderDetailDialog {
@@ -99,6 +105,12 @@ sealed interface OrderDetailAction {
     /** Opens the R-10.4 confirmation. */
     data object DeleteOrderClicked : OrderDetailAction
 
+    /** R-10.5; reversible, so no confirmation. */
+    data object PauseClicked : OrderDetailAction
+
+    /** R-10.6 */
+    data object ResumeClicked : OrderDetailAction
+
     data object ConfirmDialog : OrderDetailAction
     data object DismissDialog : OrderDetailAction
 }
@@ -123,6 +135,8 @@ class OrderDetailViewModel @Inject constructor(
     private val restoreAlarm: RestoreAlarmUseCase,
     private val cancelOrderAlarms: CancelOrderAlarmsUseCase,
     private val deleteOrder: DeleteOrderUseCase,
+    private val pauseOrder: PauseOrderUseCase,
+    private val resumeOrder: ResumeOrderUseCase,
     private val zoneProvider: ZoneProvider,
 ) : ViewModel() {
 
@@ -166,6 +180,8 @@ class OrderDetailViewModel @Inject constructor(
             OrderDetailAction.CancelAllClicked -> dialog.value = cancelAllDialog(uiState.value.pending)
             OrderDetailAction.DeleteOrderClicked ->
                 dialog.value = OrderDetailDialog.DeleteOrder(UiText.Res(R.string.delete_order_body, listOf(uiState.value.name)))
+            OrderDetailAction.PauseClicked -> viewModelScope.launch { pauseOrder(orderId) }
+            OrderDetailAction.ResumeClicked -> viewModelScope.launch { resume() }
             OrderDetailAction.ConfirmDialog -> confirm()
             OrderDetailAction.DismissDialog -> dialog.value = null
         }
@@ -191,6 +207,16 @@ class OrderDetailViewModel @Inject constructor(
                     effectChannel.send(OrderDetailEffect.NavigateBack)
                 }
             }
+        }
+    }
+
+    /** Says how many alarms were skipped because their time passed while paused (D-49). */
+    private suspend fun resume() {
+        val skipped = resumeOrder(orderId)?.skipped ?: return
+        if (skipped > 0) {
+            effectChannel.send(
+                OrderDetailEffect.ShowMessage(UiText.Plural(R.plurals.order_detail_resumed_skipped, skipped, listOf(skipped))),
+            )
         }
     }
 
@@ -232,6 +258,11 @@ class OrderDetailViewModel @Inject constructor(
             // Only while something is still going to ring (D-46)
             windowedWarning = !exactAllowed && detail.nextAlarmId != null,
             canCancelAll = detail.order.status != OrderStatus.CANCELLED,
+            pauseAction = when (detail.displayStatus) {
+                OrderDisplayStatus.ACTIVE -> PauseAction.PAUSE
+                OrderDisplayStatus.PAUSED -> PauseAction.RESUME
+                OrderDisplayStatus.CANCELLED, OrderDisplayStatus.FINISHED -> null
+            },
         )
     }
 
