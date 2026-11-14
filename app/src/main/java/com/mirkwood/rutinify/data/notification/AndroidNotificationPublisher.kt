@@ -66,12 +66,7 @@ class AndroidNotificationPublisher @Inject constructor(
             .forEach { manager.cancel(TAG, it.id) }
     }
 
-    private fun canNotify(): Boolean {
-        val permitted = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
-            PackageManager.PERMISSION_GRANTED
-        return permitted && manager.areNotificationsEnabled()
-    }
+    private fun canNotify(): Boolean = notificationsAllowed(context, manager)
 
     private fun build(n: AlarmNotification): Notification {
         val done = context.getString(R.string.notification_action_done)
@@ -107,4 +102,12 @@ class AndroidNotificationPublisher @Inject constructor(
         fun channelName(category: String) =
             category.replace('-', ' ').replaceFirstChar { it.titlecase(Locale.ROOT) }
     }
+}
+
+/** Runtime permission on Android 13+ plus the app-level switch in system settings (R-7.8, R-11.4). */
+internal fun notificationsAllowed(context: Context, manager: NotificationManager): Boolean {
+    val permitted = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+        PackageManager.PERMISSION_GRANTED
+    return permitted && manager.areNotificationsEnabled()
 }

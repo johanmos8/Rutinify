@@ -7,25 +7,27 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navDeepLink
-import com.mirkwood.rutinify.R
-import com.mirkwood.rutinify.ui.common.PlaceholderScreen
 import com.mirkwood.rutinify.ui.home.HomeRoute
 import com.mirkwood.rutinify.ui.newroutine.NewRoutineRoute
 import com.mirkwood.rutinify.ui.orderdetail.OrderDetailRoute
+import com.mirkwood.rutinify.ui.permissions.PermissionsRoute
 import com.mirkwood.rutinify.ui.review.ReviewRoute
 
 /**
- * App navigation graph (design §10). [homeContent], [newRoutineContent] and [orderDetailContent] are
+ * App navigation graph (design §10). [homeContent], [newRoutineContent], [orderDetailContent] and [permissionsContent] are
  * seams so JVM navigation tests can show the stateless screens instead of the Hilt-backed routes (D-43).
  */
 @Composable
 fun RutinifyNavHost(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
-    homeContent: @Composable (onNewRoutineClick: () -> Unit, onOrderClick: (Long) -> Unit) -> Unit =
-        { onNewRoutineClick, onOrderClick -> HomeRoute(onNewRoutineClick = onNewRoutineClick, onOrderClick = onOrderClick) },
+    homeContent: @Composable (onNewRoutineClick: () -> Unit, onOrderClick: (Long) -> Unit, onPermissionsClick: () -> Unit) -> Unit =
+        { onNewRoutineClick, onOrderClick, onPermissionsClick ->
+            HomeRoute(onNewRoutineClick = onNewRoutineClick, onOrderClick = onOrderClick, onPermissionsClick = onPermissionsClick)
+        },
     newRoutineContent: @Composable (onBack: () -> Unit, onNavigateToReview: (String) -> Unit) -> Unit =
         { onBack, onNavigateToReview -> NewRoutineRoute(onBack = onBack, onNavigateToReview = onNavigateToReview) },
+    permissionsContent: @Composable (onBack: () -> Unit) -> Unit = { onBack -> PermissionsRoute(onBack = onBack) },
     orderDetailContent: @Composable (onBack: () -> Unit, onNavigateToReview: (String) -> Unit) -> Unit =
         { onBack, onNavigateToReview -> OrderDetailRoute(onBack = onBack, onNavigateToReview = onNavigateToReview) },
 ) {
@@ -40,6 +42,7 @@ fun RutinifyNavHost(
             homeContent(
                 { navController.navigate(NewRoutineDestination) },
                 { orderId -> navController.navigate(OrderDetailDestination(orderId)) },
+                { navController.navigate(PermissionsDestination) },
             )
         }
         composable<NewRoutineDestination> {
@@ -60,9 +63,8 @@ fun RutinifyNavHost(
             // "Duplicar para otra fecha" (R-10.7): Review then replaces the stack up to Home
             orderDetailContent(navigateUp) { draftId -> navController.navigate(ReviewDestination(draftId)) }
         }
-        // Placeholder: replaced in T-29
         composable<PermissionsDestination> {
-            PlaceholderScreen(titleRes = R.string.permissions_title, onBack = navigateUp)
+            permissionsContent(navigateUp)
         }
     }
 }

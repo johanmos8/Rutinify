@@ -18,7 +18,9 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -29,6 +31,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mirkwood.rutinify.R
 import com.mirkwood.rutinify.ui.common.OrderStatusLabel
@@ -41,14 +45,18 @@ import com.mirkwood.rutinify.ui.theme.RutinifyTheme
 fun HomeRoute(
     onNewRoutineClick: () -> Unit,
     onOrderClick: (orderId: Long) -> Unit,
+    onPermissionsClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    // R-11.5: the banner follows changes made in system settings
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onAction(HomeAction.Resumed) }
     HomeScreen(
         state = state,
         onNewRoutineClick = onNewRoutineClick,
         onOrderClick = onOrderClick,
+        onPermissionsClick = onPermissionsClick,
         modifier = modifier,
     )
 }
@@ -60,6 +68,7 @@ fun HomeScreen(
     state: HomeUiState,
     onNewRoutineClick: () -> Unit,
     onOrderClick: (orderId: Long) -> Unit,
+    onPermissionsClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -73,18 +82,51 @@ fun HomeScreen(
             )
         },
     ) { padding ->
-        when {
-            state.showEmptyState -> EmptyState(Modifier.padding(padding))
-            else -> LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                // Bottom room so the FAB never covers the last card
-                contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 96.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                items(state.orders, key = { it.id }) { card ->
-                    OrderCard(card = card, onClick = { onOrderClick(card.id) })
-                }
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            if (state.missingPermissions) {
+                PermissionsBanner(onClick = onPermissionsClick, modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp))
             }
+            HomeContent(state, onOrderClick, Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun HomeContent(state: HomeUiState, onOrderClick: (orderId: Long) -> Unit, modifier: Modifier = Modifier) {
+    when {
+        state.showEmptyState -> EmptyState(modifier)
+        else -> LazyColumn(
+            modifier = modifier.fillMaxSize(),
+            // Bottom room so the FAB never covers the last card
+            contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 96.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            items(state.orders, key = { it.id }) { card ->
+                OrderCard(card = card, onClick = { onOrderClick(card.id) })
+            }
+        }
+    }
+}
+
+/** R-11.3: stays while any permission is missing; opens the Permissions screen. */
+@Composable
+private fun PermissionsBanner(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        color = MaterialTheme.colorScheme.errorContainer,
+        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        shape = MaterialTheme.shapes.medium,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 16.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.home_permissions_banner),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(onClick = onClick) { Text(stringResource(R.string.action_review_permissions)) }
         }
     }
 }
@@ -132,11 +174,24 @@ private fun EmptyState(modifier: Modifier = Modifier) {
 @ThemePreviews
 @Composable
 private fun HomeScreenOrdersPreview() {
-    RutinifyTheme { HomeScreen(state = PreviewData.homeState, onNewRoutineClick = {}, onOrderClick = {}) }
+    RutinifyTheme { HomeScreen(state = PreviewData.homeState, onNewRoutineClick = {}, onOrderClick = {}, onPermissionsClick = {}) }
 }
 
 @ThemePreviews
 @Composable
 private fun HomeScreenEmptyPreview() {
-    RutinifyTheme { HomeScreen(state = HomeUiState(isLoading = false), onNewRoutineClick = {}, onOrderClick = {}) }
+    RutinifyTheme { HomeScreen(state = HomeUiState(isLoading = false), onNewRoutineClick = {}, onOrderClick = {}, onPermissionsClick = {}) }
+}
+
+@ThemePreviews
+@Composable
+private fun HomeScreenMissingPermissionsPreview() {
+    RutinifyTheme {
+        HomeScreen(
+            state = PreviewData.homeState.copy(missingPermissions = true),
+            onNewRoutineClick = {},
+            onOrderClick = {},
+            onPermissionsClick = {},
+        )
+    }
 }

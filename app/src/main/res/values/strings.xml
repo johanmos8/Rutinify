@@ -10,9 +10,20 @@
     <string name="review_title">Revisión</string>
     <string name="order_detail_title">Detalle de la orden</string>
     <string name="permissions_title">Permisos</string>
+    <string name="permissions_intro">Rutinify necesita estos permisos para que cada alarma suene a su hora y se vea con sus botones.</string>
+    <string name="permissions_all_granted">Todo listo: las alarmas sonarán a su hora.</string>
+    <string name="permissions_notifications_title">Notificaciones</string>
+    <string name="permissions_notifications_description">Para mostrar cada aviso con sus botones «Hecho» y «+5 min». Sin él, las alarmas se marcan como disparadas pero no ves nada.</string>
+    <string name="permissions_exact_title">Alarmas exactas</string>
+    <string name="permissions_exact_description">Para que cada aviso llegue a su hora exacta. Sin él, Android puede retrasarlo unos minutos.</string>
+    <string name="permissions_granted">Concedido</string>
+    <string name="permissions_missing">Falta</string>
+    <string name="permissions_battery_note">Algunos fabricantes cierran las apps en segundo plano para ahorrar batería. Si una alarma no suena, busca tu modelo en dontkillmyapp.com y sigue sus pasos.</string>
+    <string name="action_fix">Corregir</string>
+    <string name="home_permissions_banner">Faltan permisos: puede que las alarmas no suenen a tiempo o no se vean.</string>
+    <string name="action_review_permissions">Revisar</string>
 
     <!-- Temporary (T-03): replaced when each screen is implemented -->
-    <string name="placeholder_body">Pantalla en construcción</string>
 
     <!-- Import validation messages (T-12, R-3.3–R-3.22). Item prefix: "Actividad 3 («Siesta»)" -->
     <string name="issue_prefix_title">Actividad %1$d («%2$s»)</string>

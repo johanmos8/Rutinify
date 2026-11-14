@@ -143,8 +143,9 @@
 
 ## Fase 8 · Permisos
 
-- [ ] **T-29 · `PermissionChecker` + pantalla Permisos + banner** — (R-11.3–R-11.5, R-11.8)
+- [x] **T-29 · `PermissionChecker` + pantalla Permisos + banner** — (R-11.3–R-11.5, R-11.8)
   - Estado refrescado en `ON_RESUME`, banner en Inicio, pantalla con botones a los ajustes correspondientes. Previews.
+  - _Hecho:_ `PermissionChecker` + `AndroidPermissionChecker` (mismas comprobaciones que el scheduler y el publicador), `GetPermissionStatusUseCase`, banner "Faltan permisos…" en Inicio y pantalla *Permisos* con el estado de cada permiso y "Corregir" (diálogo de Android 13+ o ajustes de notificaciones si se denegó para siempre; "Alarmas y recordatorios" para las exactas). Ambas se refrescan en `ON_RESUME`; al pasar de no exactas a exactas, *Permisos* llama a `RescheduleAll`. Se elimina `PlaceholderScreen`. 12 tests nuevos (3 use case + 4 VM Permisos + 3 VM Inicio + 2 navegación); probado en emulador: conceder alarmas exactas desde *Permisos* deja las 3 alarmas exactas en `AlarmManager` y quita el banner (D-51).
 - [ ] **T-30 · Flujo de permisos al programar** — (R-11.1, R-11.2, R-11.6)
   - Diálogos explicativos en Revisión antes de programar; al volver con permiso exacto concedido → `RescheduleAll`.
   - Tests VM de la máquina de pasos (notificaciones → exactas → conflicto → programar).

@@ -19,6 +19,8 @@ import com.mirkwood.rutinify.ui.newroutine.NewRoutineScreen
 import com.mirkwood.rutinify.ui.newroutine.NewRoutineUiState
 import com.mirkwood.rutinify.ui.orderdetail.OrderDetailScreen
 import com.mirkwood.rutinify.ui.orderdetail.OrderDetailUiState
+import com.mirkwood.rutinify.ui.permissions.PermissionsScreen
+import com.mirkwood.rutinify.ui.permissions.PermissionsUiState
 import com.google.common.truth.Truth.assertThat
 import com.mirkwood.rutinify.ui.theme.RutinifyTheme
 import org.junit.Before
@@ -47,10 +49,13 @@ class RutinifyNavHostTest {
                 // Stateless screen: hiltViewModel() needs a Hilt activity (D-43)
                 RutinifyNavHost(
                     navController = navController,
-                    homeContent = { onNew, onOrder ->
-                        HomeScreen(homeState.value, onNewRoutineClick = onNew, onOrderClick = onOrder)
+                    homeContent = { onNew, onOrder, onPermissions ->
+                        HomeScreen(homeState.value, onNewRoutineClick = onNew, onOrderClick = onOrder, onPermissionsClick = onPermissions)
                     },
                     newRoutineContent = { onBack, _ -> NewRoutineScreen(NewRoutineUiState(), onAction = {}, onBack = onBack) },
+                    permissionsContent = { onBack ->
+                        PermissionsScreen(PermissionsUiState(notifications = true, exactAlarms = false), onBack, {}, {})
+                    },
                     orderDetailContent = { onBack, _ -> OrderDetailScreen(OrderDetailUiState(isLoading = false, notFound = true), onAction = {}, onBack = onBack) },
                 )
             }
@@ -94,6 +99,26 @@ class RutinifyNavHostTest {
         composeRule.onNodeWithContentDescription(str(R.string.action_back)).performClick()
 
         composeRule.onNodeWithText("Cachorro").assertExists()
+    }
+
+    @Test
+    fun `el banner de permisos abre la pantalla Permisos y atras vuelve a Inicio`() { // R-11.3, R-11.4
+        composeRule.runOnUiThread { homeState.value = HomeUiState(isLoading = false, missingPermissions = true) }
+        composeRule.onNodeWithText(str(R.string.home_permissions_banner)).assertExists()
+
+        composeRule.onNodeWithText(str(R.string.action_review_permissions)).performClick()
+
+        composeRule.onNodeWithText(str(R.string.permissions_exact_title)).assertExists()
+        composeRule.onNodeWithText(str(R.string.action_fix)).assertExists()
+
+        composeRule.onNodeWithContentDescription(str(R.string.action_back)).performClick()
+
+        composeRule.onNodeWithText(str(R.string.home_permissions_banner)).assertExists()
+    }
+
+    @Test
+    fun `sin permisos que falten no hay banner`() { // R-11.3
+        composeRule.onNodeWithText(str(R.string.home_permissions_banner)).assertDoesNotExist()
     }
 
     @Test

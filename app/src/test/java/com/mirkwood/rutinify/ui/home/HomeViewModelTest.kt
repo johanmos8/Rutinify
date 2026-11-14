@@ -4,8 +4,10 @@ import com.google.common.truth.Truth.assertThat
 import com.mirkwood.rutinify.domain.model.OrderDisplayStatus
 import com.mirkwood.rutinify.domain.model.OrderStatus
 import com.mirkwood.rutinify.domain.model.OrderSummary
+import com.mirkwood.rutinify.domain.usecase.GetPermissionStatusUseCase
 import com.mirkwood.rutinify.domain.usecase.ObserveOrderSummariesUseCase
 import com.mirkwood.rutinify.testutil.FakeOrderRepository
+import com.mirkwood.rutinify.testutil.FakePermissionChecker
 import com.mirkwood.rutinify.testutil.MainDispatcherRule
 import com.mirkwood.rutinify.testutil.testOrder
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -26,7 +28,9 @@ class HomeViewModelTest {
 
     private val orders = FakeOrderRepository()
 
-    private fun viewModel() = HomeViewModel(ObserveOrderSummariesUseCase(orders))
+    private val checker = FakePermissionChecker()
+
+    private fun viewModel() = HomeViewModel(ObserveOrderSummariesUseCase(orders), GetPermissionStatusUseCase(checker))
 
     /** Keeps `uiState` subscribed (WhileSubscribed) for the whole test. */
     private fun TestScope.subscribed(vm: HomeViewModel) = vm.also {
@@ -123,5 +127,29 @@ class HomeViewModelTest {
         orders.summaries.value = emptyList()
 
         assertThat(vm.uiState.value.showEmptyState).isTrue()
+    }
+
+    @Test
+    fun `con todos los permisos no muestra el banner`() = runTest { // R-11.3
+        assertThat(subscribed(viewModel()).uiState.value.missingPermissions).isFalse()
+    }
+
+    @Test
+    fun `si falta algun permiso muestra el banner`() = runTest { // R-11.3
+        checker.exactAlarms = false
+
+        assertThat(subscribed(viewModel()).uiState.value.missingPermissions).isTrue()
+    }
+
+    @Test
+    fun `al volver a primer plano actualiza el banner`() = runTest { // R-11.5
+        checker.notifications = false
+        val vm = subscribed(viewModel())
+        assertThat(vm.uiState.value.missingPermissions).isTrue()
+
+        checker.notifications = true
+        vm.onAction(HomeAction.Resumed)
+
+        assertThat(vm.uiState.value.missingPermissions).isFalse()
     }
 }
