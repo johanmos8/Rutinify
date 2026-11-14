@@ -161,20 +161,45 @@
   - Prueba manual en dispositivo/emulador (checklist en `specs/manual-test.md`): importar JSON real del cachorro, disparo exacto, "Hecho", "+5 min", reinicio del emulador, cambio de zona horaria, revocar alarmas exactas, eliminar orden con alarmas disparadas.
   - _Hecho:_ plugin Kover 0.9.9 con filtro `domain` + `data.importer` (sin el código generado de Hilt y kotlinx.serialization) y regla `minBound(80)`: `koverVerify` pasa con un 99,2 % de líneas. `lintDebug` sin avisos propios, manifiesto final sin `INTERNET`. Checklist manual en `specs/manual-test.md`, los 11 pasos en verde en el emulador (D-54).
 
+## Fase 10 · Rutinas de varios días (v1.1)
+
+> Tratamientos y planes con fin en un solo JSON (D-55): `repeatDays` para días iguales, `dayOffset` hasta 30 para días distintos. Mismo DoD por tarea. D-55 y D-56 aprobadas el 2026-11-14.
+
+- [ ] **T-33 · Validador, `repeatDays` y plantilla para varios días** — (R-3.11, R-3.24–R-3.27, R-1.2)
+  - Tests primero: `dayOffset` 0, 6 y 30 válidos; 31, −1 y 1.5 dan el error nuevo de R-3.11; `repeatDays` ausente/null = 1, 7 y 30 válidos, 0, 31 y "7" dan R-3.24; `repeatDays` 7 con 3 tomas → 21 actividades con `dayOffset` 0..6; madrugada del último día → `dayOffset` N; `repeatDays` > 1 con `dayOffset` 2 → R-3.26; 70 tomas × 3 días → R-3.27; errores numerados sobre el JSON original.
+  - Fixtures `valid_repeat.json` (antibiótico cada 8 h, `repeatDays` 7) y `valid_multiday.json` (dosis que baja, días escritos a mano) importan sin avisos.
+  - `MAX_DAY_OFFSET = 30` y `MAX_REPEAT_DAYS = 30` en `domain/importer`, usados por parser y `DraftItemRules`; `IssueKind.REPEAT_DAYS_OUT_OF_RANGE` y `REPEAT_WITH_DAY_OFFSET`; strings nuevos y `issue_day_offset` actualizado.
+  - `prompt_template.txt`: "cada 8 h" se convierte en horas fijas; si todos los días son iguales, un solo día + `repeatDays`; si no, cada día con `dayOffset` 0, 1, 2… (máximo 30 días y 200 actividades en total). El ejemplo canónico sigue igual a `valid_v1.json`.
+  - Test de dominio: `TriggerTimeCalculator` con `dayOffset` 6 cruzando un cambio de horario (Europe/Madrid) mantiene la hora de pared.
+- [ ] **T-34 · Rango de la orden y conflictos** — (R-6.6, R-6.7)
+  - `RoutineSpan(start, end)` en dominio, calculado desde fecha + mayor `dayOffset` (borrador y orden); helper `isMultiDay`.
+  - `OrderDao.findOpenOverlapping(start, end)` (D-56) con tests Robolectric: solape parcial, contenido, adyacente sin solape, orden sin alarmas, canceladas excluidas. Sustituye a `findOpenByDate` en `ScheduleOrderUseCase`.
+  - Diálogo de conflicto con rangos y el aviso de "Reemplazar" cuando hay varios días; tests de VM.
+- [ ] **T-35 · Revisión de varios días** — (R-4.13, R-4.14, R-4.15)
+  - `BuildSchedulePreviewUseCase` agrupa por día y el resumen informa el número de días con alarmas; tests (TDD).
+  - `ReviewScreen`: cabeceras "Día {k} · {fecha}" en el `LazyColumn` (keys estables), resumen nuevo, previews claro/oscuro con `PreviewData` de varios días.
+  - Rutinas de 0–1 días sin cambios visibles (tests de regresión del VM).
+- [ ] **T-36 · Inicio y detalle de varios días** — (R-8.2, R-9.6, R-10.7)
+  - `observeSummaries` devuelve el mayor `dayOffset`; Inicio muestra el rango; detalle agrupa por día; duplicar conserva los `dayOffset` (test del use case).
+  - Previews nuevos y tests de VM.
+- [ ] **T-37 · Verificación v1.1** — (R-13.5)
+  - `koverVerify` ≥ 80 %; añadir a `specs/manual-test.md` los pasos del tratamiento de 7 días (importar, conflicto con la rutina del día, reinicio a mitad, duplicar) y ejecutarlos en el emulador.
+  - README: quitar "una rutina cubre un solo día" de los límites, documentar `repeatDays` en el contrato y añadir el ejemplo de medicación de varios días.
+
 ## Trazabilidad rápida
 
 | Requisito | Tareas |
 |---|---|
 | R-1 Plantilla | T-11, T-21 |
 | R-2 Entrada | T-21 |
-| R-3 Validación | T-08, T-09, T-10, T-11, T-12 |
-| R-4 Revisión | T-13, T-14, T-22 |
+| R-3 Validación | T-08, T-09, T-10, T-11, T-12, T-33 |
+| R-4 Revisión | T-13, T-14, T-22, T-35 |
 | R-5 Programación | T-13, T-15, T-16, T-20, T-22 |
-| R-6 Reemplazo | T-06, T-20, T-22 |
+| R-6 Reemplazo | T-06, T-20, T-22, T-34 |
 | R-7 Notificación | T-16, T-17, T-18, T-24 |
-| R-8 Inicio | T-04, T-06, T-23 |
-| R-9 Detalle | T-24, T-25 |
-| R-10 Gestión de orden | T-26, T-27, T-28 |
+| R-8 Inicio | T-04, T-06, T-23, T-36 |
+| R-9 Detalle | T-24, T-25, T-36 |
+| R-10 Gestión de orden | T-26, T-27, T-28, T-36 |
 | R-11 Permisos | T-19, T-29, T-30 |
 | R-12 Robustez | T-13, T-19 |
 | R-13 No funcionales | T-11, T-12, T-31, T-32 |

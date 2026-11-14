@@ -89,7 +89,7 @@ data class AlarmItem(
     val orderId: Long,
     val position: Int,                // índice original en el JSON (0-based)
     val time: LocalTime,              // hora de pared original
-    val dayOffset: Int,               // 0..1
+    val dayOffset: Int,               // 0..30 (D-55)
     val title: String,
     val description: String?,
     val durationMin: Int?,
@@ -144,6 +144,16 @@ Eliminar una alarma individual la **borra** de Room (R-9.3); no es un estado.
 ### 4.1 Contrato
 
 Igual al definido en el prompt del producto (`schemaVersion`, `routine{name,date,notes}`, `items[]{time,dayOffset,title,description,durationMin,category,assignee}`).
+v1.1 añade `routine.repeatDays` (opcional, 1..30) y amplía `dayOffset` a 0..30 sin cambiar `schemaVersion` (D-55):
+
+```json
+{ "schemaVersion": 1,
+  "routine": { "name": "Antibiótico de Luna", "date": "2026-11-14", "repeatDays": 7 },
+  "items": [ { "time": "06:00", "title": "Antibiótico", "category": "medicación" },
+             { "time": "14:00", "title": "Antibiótico", "category": "medicación" },
+             { "time": "22:00", "title": "Antibiótico", "category": "medicación" } ] }
+```
+
 La copia canónica vive en `app/src/main/res/raw/prompt_template.txt` y en el fixture de tests `src/test/resources/fixtures/valid_v1.json`;
 un test verifica que el ejemplo embebido en la plantilla **parsea sin errores** (evita que diverjan).
 
@@ -195,9 +205,10 @@ Reglas (→ requisito):
 | `routine.name` | string no vacío (trim) | R-3.5 |
 | `routine.date` | `null`/ausente o `LocalDate.parse` ISO estricto | R-3.6 |
 | `routine.notes` | string opcional; vacío → null; ≤ 500 | otro tipo → `WRONG_TYPE`; más largo → `TEXT_TOO_LONG` (R-3.21) |
-| `items` | array no vacío, ≤ 200 | R-3.7, R-3.18 |
+| `routine.repeatDays` | ausente/null → 1; entero 1..30 (`MAX_REPEAT_DAYS`); otro tipo → error de rango (como D-33) | R-3.24 |
+| `items` | array no vacío, ≤ 200 **tras expandir** `repeatDays` | R-3.7, R-3.18, R-3.27 |
 | `time` | regex `^([01]?\d|2[0-3]):[0-5]\d$`, se normaliza a `HH:mm` | R-3.8 |
-| `dayOffset` | ausente/null → 0; entero 0..1 | R-3.11, R-3.15 |
+| `dayOffset` | ausente/null → 0; entero 0..30 (`MAX_DAY_OFFSET`, D-55); con `repeatDays` > 1, solo 0..1 | R-3.11, R-3.15, R-3.26 |
 | `title` | string no vacío; > 80 → recorte + warning `TITLE_TRUNCATED` | R-3.9, R-3.10 |
 | `description` | string opcional; vacío → null; ≤ 500 | `TEXT_TOO_LONG` (R-3.21) |
 | `durationMin` | null o entero 1..1440 | R-3.12 |
@@ -210,7 +221,7 @@ Se acumulan errores hasta el final; la UI muestra 20 como máximo (R-3.16).
 
 ### 4.4 Mapeo
 
-`JsonObject` → `RoutineDraft` (con `items` ordenados por `(dayOffset, time, position)`) → al confirmar, `RoutineOrderEntity` + `AlarmItemEntity` (vía `ScheduleOrderUseCase`).
+`JsonObject` → (v1.1: expansión de `repeatDays`, R-3.25, tras validar los items originales; cada copia es un `DraftItem` con clave propia y la `position` del original) → `RoutineDraft` (con `items` ordenados por `(dayOffset, time, position)`) → al confirmar, `RoutineOrderEntity` + `AlarmItemEntity` (vía `ScheduleOrderUseCase`).
 `RoutineImporter` es la interfaz de dominio (`suspend fun import(text): ImportResult`); `RoutineJsonImporter` (data/importer) la implementa:
 comprueba el tamaño (≤ 100 KB en UTF-8, si no `INPUT_TOO_LONG` con los KB redondeados hacia arriba en `received`), extrae (`NO_JSON_FOUND` si no hay objeto),
 parsea con un `draftId` UUID nuevo y guarda el texto extraído en `RoutineDraft.rawJson`. Todo corre en `@DefaultDispatcher` (R-3.23).
@@ -251,7 +262,7 @@ parsea con un `draftId` UUID nuevo y guarda el texto extraído en `RoutineDraft.
 
 ### DAOs (resumen)
 
-- `OrderDao`: `observeSummaries(): Flow<List<OrderSummaryRow>>` (LEFT JOIN + `SUM(CASE WHEN status='PENDING')`, órdenes sin alarmas incluidas), `observeWithAlarms(id): Flow<OrderWithAlarmsRow?>` (`@Relation`), `findOpenByDate(date)` (ACTIVE o PAUSED), `insert`, `getById`, `updateStatus(id, status, at)`, `delete`.
+- `OrderDao`: `observeSummaries(): Flow<List<OrderSummaryRow>>` (LEFT JOIN + `SUM(CASE WHEN status='PENDING')`, órdenes sin alarmas incluidas; v1.1 añade `MAX(day_offset)` para el rango), `observeWithAlarms(id): Flow<OrderWithAlarmsRow?>` (`@Relation`), `findOpenByDate(date)` (ACTIVE o PAUSED; v1.1 lo sustituye `findOpenOverlapping(start, end)`, D-56), `insert`, `getById`, `updateStatus(id, status, at)`, `delete`.
 - `AlarmItemDao`: `insertAll`, `getById`, `getPendingForActiveOrders(): List<PendingAlarmRow>` (alarma + `order_date`, para calcular el disparo), `getPendingByOrder(id)`, `updateStatus(ids, status, at)` (rellena `fired_at`/`done_at` al pasar a FIRED/DONE), `snooze(id, until, at)` (vuelve a PENDING), `delete(id)`, `insert(entity)` (deshacer).
 - Operaciones compuestas (crear orden + alarmas, reemplazar) en una transacción (`withTransaction`) dentro del repositorio: `OrderRepository.createOrder(order, alarms, replaceOrderIds)` → `Result<CreatedOrder>` (orden, alarmas con ids y ids de alarmas canceladas por el reemplazo). Si falla, se deshace todo y devuelve `Result.failure` (R-5.7).
 
@@ -453,7 +464,7 @@ Cobertura: Kover con regla `minBound(80)` sobre `com.mirkwood.rutinify.domain.*`
 | D-02 | Semántica de **hora de pared**: si cambia la zona, "06:45" sigue siendo 06:45 local | Una rutina de cachorro sigue el reloj local, no un instante absoluto. | **Sí** |
 | D-03 | "Eliminar todas las alarmas" = cancelar + marcar `CANCELLED` y conservar historial; "Eliminar orden" (menú) = borrado total | El prompt decía "marca/borra"; ofrecer ambas cubre los dos usos. | **Sí** |
 | D-04 | Alarmas perdidas al reprogramar: ≤ 15 min tarde → disparar ya; > 15 min → `SKIPPED` | Evita una avalancha de avisos viejos tras un reinicio largo. | **Sí** (umbral) |
-| D-05 | `dayOffset` permitido 0..1 | El caso real solo cruza una medianoche; ampliar es trivial. | No |
+| D-05 | `dayOffset` permitido 0..1 *(sustituida por D-55 en v1.1)* | El caso real solo cruza una medianoche; ampliar es trivial. | No |
 | D-06 | `title` > 80 → recortar con aviso, no error | Menos fricción para el usuario no técnico. | No |
 | D-07 | Parseo manual sobre `JsonElement` en vez de DTOs `@Serializable` | Permite acumular errores por item/campo en español. | No |
 | D-08 | Fallback `setWindow` con ventana de 10 min | Pedido en el prompt; aviso visible. | No |
@@ -503,12 +514,14 @@ Cobertura: Kover con regla `minBound(80)` sobre `com.mirkwood.rutinify.domain.*`
 | D-52 | Flujo de permisos al programar (T-30): la explicación de notificaciones (R-11.1) se muestra una sola vez en la vida de la instalación, recordada con un booleano en `SharedPreferences` (`PermissionPromptStore`, sin dependencia nueva), y solo en Android 13+ con el permiso aún sin conceder; si luego sigue faltando, queda el banner de Inicio. "Ahora no" o denegar en el diálogo de Android no impide programar (R-7.8). La de alarmas exactas sale cada vez que faltan. Cerrar cualquiera de los dos diálogos cancela la programación. Al volver de "Abrir ajustes" se programa siempre, con exactas o en ventana según lo elegido, y si se concedieron se llama antes a `RescheduleAll` para el resto de órdenes (R-11.6). `SchedulingPermissionsUseCase` expone varios métodos en vez de `invoke`, porque el VM necesita preguntar y marcar por separado | Pedir permiso de notificaciones en cada programación cansa y Android deja de mostrarlo tras dos rechazos; el banner ya recuerda lo que falta | No |
 | D-53 | Pulido (T-31): icono de app propio, un despertador con check en blanco sobre `#6650A4` (el primario de reserva del tema), dibujado en vectores dentro de la zona segura y reutilizado como capa monocroma para los iconos temáticos de Android 13+. Con minSdk 28 todos los dispositivos usan el icono adaptativo, así que se eliminan los `.webp` por densidad. Se borra `colors.xml` de la plantilla (los colores viven en `ui/theme`). No se crean canales al arrancar la app para las órdenes activas: R-5.9 ya los crea al programar y `publish` crea el suyo si falta (D-38), así que un canal borrado reaparece en el siguiente aviso | Identidad propia sin recursos rasterizados; menos código de arranque | No |
 | D-54 | Verificación final (T-32): Kover 0.9.9 mide `com.mirkwood.rutinify.domain` y `com.mirkwood.rutinify.data.importer` excluyendo `*_Factory`, `*_MembersInjector` y `*$$serializer`, que genera el compilador junto a las clases medidas; la regla es `minBound(80)` sobre líneas. La prueba manual vive en `specs/manual-test.md` con el resultado de cada paso y se repite antes de cada versión | Medir solo el código escrito a mano; dejar constancia reproducible de la prueba en dispositivo | No |
+| D-55 | Rutinas de varios días (v1.1): `dayOffset` admite 0..30 (`MAX_DAY_OFFSET` en `domain/importer`), así un tratamiento con fin ("antibiótico cada 8 h durante 7 días") llega en un solo JSON con una actividad por toma. `schemaVersion` sigue en `1`: el cambio solo amplía lo aceptado y todo JSON v1 anterior sigue siendo válido. No cambia el esquema de Room (`day_offset` ya es INTEGER) ni `TriggerTimeCalculator`, `RescheduleAllUseCase`, pausa o duplicado, que ya trabajan con `fecha + dayOffset`; el cálculo es por día, así que un cambio de horario de verano a mitad del tratamiento mantiene la hora de pared (D-02). El rango de la orden no se guarda: se deriva de `date` y `MAX(day_offset)`. Para el caso habitual (todos los días iguales) el contrato gana `routine.repeatDays` (1..30): la IA escribe un solo día y el parser lo expande en el borrador, así el JSON es corto y la IA no puede saltarse una toma a mitad de lista; `dayOffset` hasta 30 queda para planes irregulares (dosis que bajan, toma extra el primer día). No se mezclan: con `repeatDays` > 1 solo se admite `dayOffset` 0..1 (R-3.26), y el máximo efectivo sigue siendo 30. La expansión ocurre al importar: el borrador, la orden y Room solo ven actividades concretas (no se guarda `repeatDays`; sí queda en `raw_json`), así Revisión, pausa, duplicado y reprogramación no cambian. Una rutina es "de varios días" si su mayor `dayOffset` (tras expandir) es ≥ 2; por debajo, la UI no cambia. R-4.5 (fecha por defecto) no cambia: en un tratamiento sin fecha elige hoy si queda alguna toma futura y desmarca las pasadas. Los límites de 200 actividades por rutina y 500 pendientes en la app siguen (6 tomas × 31 días = 186). Sustituye a D-05 | Cubre los tratamientos y planes con fin sin recurrencia real (§15), que exigiría un esquema nuevo y programar la siguiente repetición en cada disparo. `repeatDays` + `dayOffset` elegido por Johan el 2026-11-14 | ✅ Aprobada por Johan el 2026-11-14 (máximo 30) |
+| D-56 | Conflictos con rutinas de varios días: hay conflicto si los rangos comparten algún día (R-6.6), con la consulta `findOpenOverlapping(start, end)`: `date <= :end AND date(date, '+' \|\| (SELECT IFNULL(MAX(day_offset), 0) FROM alarm_item WHERE order_id = id) \|\| ' days') >= :start` (las fechas son texto ISO, así que `date()` de SQLite y la comparación de cadenas funcionan sin migración). "Reemplazar" sigue cancelando órdenes completas (R-6.2); el diálogo muestra los rangos y avisa (R-6.7). Alternativa descartada: reemplazar solo los días que coinciden, que partiría una orden en dos estados y complica pausa y duplicado | Con "misma fecha" un tratamiento que empezó ayer no avisaría al importar la rutina de hoy; el aviso evita cancelar un tratamiento entero por error; "Mantener ambas" es lo normal para pastillas + rutina diaria | ✅ Aprobada por Johan el 2026-11-14 |
 | D-01..D-04 | Aprobadas por Johan el 2026-11-04 | | ✅ |
 
 ## 15. Preparación para v2
 
 - **Alarmas relativas ("me desperté")**: añadir a `AlarmItem` un `anchor` opcional (`ABSOLUTE` | `RELATIVE_TO_EVENT`) y `offsetMin`; `TriggerTimeCalculator` ya es el único punto que calcula horas.
-- **Rutinas recurrentes**: `routine_order` puede ganar `recurrence_rule`; `DuplicateOrderUseCase` ya genera borradores a partir de una orden.
+- **Rutinas recurrentes**: los tratamientos con fin ya se cubren con rutinas de varios días (D-55). Para la recurrencia sin fin, `routine_order` puede ganar `recurrence_rule`; `DuplicateOrderUseCase` ya genera borradores a partir de una orden.
 - **Widget "lo siguiente"**: `AlarmItemDao` expondrá `observeNextPending()`; Glance consumirá un use case.
 - **API de Claude**: `RoutineImporter` es una interfaz; un `ClaudeRoutineImporter` produciría el mismo `ImportResult`.
 - **Exportar .ics / compartir**: `raw_json` y `schema_version` se guardan desde v1; `schemaVersion` del contrato permite evolucionar.

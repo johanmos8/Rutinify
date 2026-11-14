@@ -11,6 +11,9 @@
 | **JSON de rutina** | Respuesta de la IA que cumple el contrato v1 (`design.md` §4). |
 | **Borrador** | Rutina validada pero aún no programada (vive en la pantalla de Revisión). |
 | **Orden** | Rutina importada y confirmada; agrupa sus alarmas. Estados: Activa, Pausada, Cancelada (y "Terminada" derivada). |
+| **Rango de la orden** | Del día `routine.date` al día `routine.date + mayor dayOffset` de sus actividades. Una rutina de un día (con o sin madrugada) tiene `dayOffset` 0 o 1; un tratamiento de 7 días llega hasta `dayOffset` 6. |
+| **Rutina de varios días** | Rutina cuyo mayor `dayOffset` es 2 o más, ya sea porque la IA escribió cada día o porque se expandió `repeatDays` (v1.1). |
+| **`repeatDays`** | Campo opcional de `routine` (v1.1): repite las mismas actividades durante N días seguidos a partir de `routine.date`. |
 | **Alarma** | Una actividad con fecha y hora concretas. Estados: Pendiente, Disparada, Hecha, Omitida, Cancelada. |
 | **Hora de disparo** | `routine.date + dayOffset` a la hora `time`, en la zona horaria actual del teléfono. |
 
@@ -49,7 +52,7 @@
 - **R-3.8** IF un item no tiene `time` o este no corresponde a una hora real de 24 h (`H:mm` o `HH:mm`, 00:00–23:59), THEN THE SYSTEM SHALL mostrar "Actividad {n} («{title}»): la hora «{valor}» no es válida; usa el formato 24 h, por ejemplo 06:45".
 - **R-3.9** IF un item no tiene `title` o está vacío, THEN THE SYSTEM SHALL mostrar "Actividad {n} (a las {time}): falta el título".
 - **R-3.10** IF un `title` supera 80 caracteres, THEN THE SYSTEM SHALL recortarlo a 80 y mostrar un **aviso** no bloqueante que lo indique.
-- **R-3.11** IF `dayOffset` está presente y no es un entero entre 0 y 1, THEN THE SYSTEM SHALL mostrar "Actividad {n} («{title}»): dayOffset debe ser 0 (mismo día) o 1 (día siguiente)".
+- **R-3.11** IF `dayOffset` está presente y no es un entero entre 0 y 30, THEN THE SYSTEM SHALL mostrar "Actividad {n} («{title}»): dayOffset debe ser un número entero entre 0 y 30 (días después de la fecha de la rutina)". *(v1.1: antes 0–1, D-55)*
 - **R-3.12** IF `durationMin` está presente y no es un entero entre 1 y 1440, THEN THE SYSTEM SHALL mostrar un error que indique la actividad y el campo.
 - **R-3.13** IF un campo tiene un tipo incorrecto (por ejemplo, `time` numérico o `title` como lista), THEN THE SYSTEM SHALL indicar la actividad, el campo y el tipo esperado en lenguaje no técnico.
 - **R-3.14** WHERE `category` falta o está vacía, THE SYSTEM SHALL asignar `"general"`; en otro caso THE SYSTEM SHALL normalizarla (minúsculas, sin espacios al inicio ni al final, espacios internos convertidos a `-`).
@@ -62,6 +65,10 @@
 - **R-3.21** IF `routine.notes` o `description` superan 500 caracteres, `assignee` supera 40 o `category` supera 30 (tras normalizarla), THEN THE SYSTEM SHALL mostrar un error que indique la actividad (si aplica), el campo y el máximo.
 - **R-3.22** IF la rutina tiene más de 10 categorías distintas (tras normalizarlas), THEN THE SYSTEM SHALL rechazarla con "Demasiadas categorías distintas ({n}); el máximo es 10".
 - **R-3.23** THE SYSTEM SHALL analizar el texto fuera del hilo principal, probar como mucho 20 candidatos a objeto JSON y descartar objetos con más de 32 niveles de anidamiento, de modo que ningún texto pegado pueda congelar ni cerrar la app; si no queda ningún candidato válido se aplica R-3.3.
+- **R-3.24** *(v1.1)* IF `routine.repeatDays` está presente y no es un entero entre 1 y 30, THEN THE SYSTEM SHALL mostrar "repeatDays debe ser un número entero entre 1 y 30 (días que se repite la rutina)". WHERE falta o es `null`, THE SYSTEM SHALL usar `1` (sin repetición).
+- **R-3.25** *(v1.1)* WHERE `repeatDays` es N > 1, THE SYSTEM SHALL expandir las actividades: por cada día k de 0 a N−1, una copia de cada actividad con `dayOffset` = k + su `dayOffset` original. Una toma de madrugada (`dayOffset` 1) del último día cae así en el día N+1.
+- **R-3.26** *(v1.1)* IF `repeatDays` es mayor que 1 AND alguna actividad tiene `dayOffset` mayor que 1, THEN THE SYSTEM SHALL mostrar "Actividad {n} («{title}»): con repeatDays solo se admite dayOffset 0 o 1; para días distintos entre sí, escribe cada día sin repeatDays".
+- **R-3.27** *(v1.1)* THE SYSTEM SHALL aplicar el máximo de 200 actividades (R-3.18) **después** de expandir `repeatDays`, con el mensaje "Demasiadas actividades ({n} contando las repeticiones); el máximo es 200"; los demás errores se informan sobre las actividades del JSON, numeradas según su posición (R-3.17), no sobre las copias.
 
 ## R-4 Revisión del borrador
 
@@ -79,6 +86,10 @@
 - **R-4.10** IF no queda ninguna actividad futura incluida, THEN THE SYSTEM SHALL deshabilitar "Programar alarmas" y mostrar "No hay actividades futuras para programar".
 - **R-4.11** IF la fecha elegida está en el pasado y todas las actividades ya pasaron, THEN THE SYSTEM SHALL sugerir cambiar la fecha a mañana.
 - **R-4.12** THE SYSTEM SHALL mostrar las notas de la rutina (`routine.notes`) si existen.
+- **R-4.13** WHERE la rutina es de varios días, THE SYSTEM SHALL agrupar las actividades por día con una cabecera "Día {k} · {fecha}" (p. ej. "Día 3 · lunes 16 de noviembre") y mostrar cada hora sin el sufijo "(+N días)"; WHERE no lo es, THE SYSTEM SHALL mantener la lista sin cabeceras y el sufijo "(+1 día)" de R-4.9.
+- **R-4.14** WHERE la rutina es de varios días, THE SYSTEM SHALL mostrar el resumen como "{n} alarmas en {d} días, del {primer día} al {último día}" (p. ej. "21 alarmas en 7 días, del sábado 14 al viernes 20 de noviembre"), contando solo los días con alguna alarma incluida.
+- **R-4.15** WHEN el usuario cambia la fecha (R-4.6), THE SYSTEM SHALL desplazar todo el rango: la fecha elegida pasa a ser el Día 1 y cada actividad conserva su `dayOffset`.
+- **R-4.16** *(v1.1)* THE SYSTEM SHALL tratar en Revisión cada copia expandida de `repeatDays` como una actividad independiente (editar, excluir o quitar la toma de un día no cambia las de otros días).
 
 ## R-5 Programación de alarmas
 
@@ -104,6 +115,8 @@
 - **R-6.3** WHEN el usuario elige "Mantener ambas", THE SYSTEM SHALL programar la nueva orden sin modificar las existentes.
 - **R-6.4** WHEN el usuario elige "Cancelar", THE SYSTEM SHALL volver a la revisión sin cambios.
 - **R-6.5** IF hay varias órdenes en conflicto, THEN THE SYSTEM SHALL listarlas por nombre en el diálogo, y "Reemplazar" SHALL aplicarse a todas.
+- **R-6.6** *(v1.1, sustituye "misma fecha" en R-6.1)* THE SYSTEM SHALL considerar en conflicto toda orden *Activa* o *Pausada* cuyo rango comparta al menos un día con el rango de la nueva orden. *(D-56)*
+- **R-6.7** WHERE alguna orden en conflicto o la nueva es de varios días, THE SYSTEM SHALL mostrar junto a cada nombre su rango ("del 14 al 20 de noviembre") y avisar en el diálogo que "Reemplazar la anterior" cancela la rutina **completa**, no solo los días que coinciden.
 
 ## R-7 Notificación de la alarma
 
@@ -123,7 +136,7 @@
 **Historia:** Como usuario, quiero ver mis rutinas importadas y su estado de un vistazo.
 
 - **R-8.1** THE SYSTEM SHALL listar las órdenes ordenadas por fecha descendente y, a igual fecha, por fecha de creación descendente.
-- **R-8.2** THE SYSTEM SHALL mostrar por orden: nombre, fecha, número de alarmas pendientes / total, y estado (Activa, Pausada, Cancelada o Terminada).
+- **R-8.2** THE SYSTEM SHALL mostrar por orden: nombre, fecha, número de alarmas pendientes / total, y estado (Activa, Pausada, Cancelada o Terminada). WHERE la orden es de varios días, la fecha SHALL mostrarse como rango ("del sábado 14 al viernes 20 de noviembre de 2026").
 - **R-8.3** THE SYSTEM SHALL considerar *Terminada* una orden Activa sin alarmas *Pendientes*.
 - **R-8.4** THE SYSTEM SHALL mostrar un botón flotante "Nueva rutina".
 - **R-8.5** WHILE no hay órdenes, THE SYSTEM SHALL mostrar un estado vacío que explique el flujo en 3 pasos (copiar plantilla → pedir JSON a la IA → pegarlo).
@@ -138,6 +151,7 @@
 - **R-9.3** WHEN el usuario elimina una alarma individual, THE SYSTEM SHALL cancelarla en el sistema (si estaba pendiente), quitar su notificación si está visible, borrarla del almacenamiento y ofrecer "Deshacer" durante unos segundos.
 - **R-9.4** WHEN el usuario pulsa "Deshacer" tras eliminar una alarma, THE SYSTEM SHALL restaurarla y, si su hora sigue siendo futura, volver a programarla.
 - **R-9.5** THE SYSTEM SHALL permitir marcar manualmente como *Hecha* una alarma *Pendiente* o *Disparada*.
+- **R-9.6** WHERE la orden es de varios días, THE SYSTEM SHALL agrupar la línea de tiempo por día con las mismas cabeceras que R-4.13; WHERE no lo es, THE SYSTEM SHALL mantener la etiqueta "+1 día" actual.
 
 ## R-10 Gestión de la orden completa
 
@@ -149,7 +163,7 @@
 - **R-10.4** WHEN el usuario pulsa "Eliminar orden" (menú) y confirma, THE SYSTEM SHALL cancelar sus alarmas pendientes, quitar sus notificaciones y borrar la orden y todas sus alarmas del almacenamiento.
 - **R-10.5** WHEN el usuario pausa una orden *Activa*, THE SYSTEM SHALL cancelar en el sistema sus alarmas *Pendientes* (manteniéndolas *Pendientes* en almacenamiento) y poner la orden en *Pausada*.
 - **R-10.6** WHEN el usuario reanuda una orden *Pausada*, THE SYSTEM SHALL marcar como *Omitidas* las alarmas pendientes cuya hora ya pasó, programar las futuras y poner la orden en *Activa*.
-- **R-10.7** WHEN el usuario pulsa "Duplicar para otra fecha" y elige una fecha, THE SYSTEM SHALL crear un borrador con las mismas actividades (sin estados) y abrir la *Revisión* con esa fecha.
+- **R-10.7** WHEN el usuario pulsa "Duplicar para otra fecha" y elige una fecha, THE SYSTEM SHALL crear un borrador con las mismas actividades (sin estados) y abrir la *Revisión* con esa fecha. En una orden de varios días la fecha elegida es el nuevo Día 1 y se conservan los `dayOffset`.
 - **R-10.8** WHILE una orden está *Cancelada*, THE SYSTEM SHALL ocultar las acciones Pausar/Reanudar/Eliminar todas las alarmas y mantener Duplicar y Eliminar orden.
 
 ## R-11 Permisos
@@ -190,4 +204,4 @@
 
 ## Fuera de alcance (v2 — el diseño lo deja preparado)
 
-Alarmas relativas a "me desperté" · rutinas recurrentes · widget "lo siguiente" · llamada directa a la API de Claude · exportar a `.ics` · compartir rutina entre dispositivos.
+Alarmas relativas a "me desperté" · rutinas recurrentes sin fin ("todos los lunes", "cada día hasta que lo pare"; los tratamientos con fin se cubren con rutinas de varios días, v1.1) · widget "lo siguiente" · llamada directa a la API de Claude · exportar a `.ics` · compartir rutina entre dispositivos.
