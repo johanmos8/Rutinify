@@ -8,6 +8,16 @@ one exact alarm per activity. No backend, no account and no network access: ever
 
 > The app's user interface is in Spanish. Code, comments and commits are in English.
 
+## Screenshots
+
+| Home | New routine | Review | Order detail |
+|:---:|:---:|:---:|:---:|
+| <img src="docs/screenshots/home.png" width="200" alt="Home with three routines"> | <img src="docs/screenshots/new-routine.png" width="200" alt="New routine with an AI answer pasted"> | <img src="docs/screenshots/review.png" width="200" alt="Review screen with past activities unchecked"> | <img src="docs/screenshots/order-detail.png" width="200" alt="Order detail timeline"> |
+
+| Notification | Permissions | Dark theme |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/notification.png" width="200" alt="Alarm notification with Hecho and +5 min"> | <img src="docs/screenshots/permissions.png" width="200" alt="Permissions screen"> | <img src="docs/screenshots/home-dark.png" width="200" alt="Home in dark theme"> |
+
 ## How it works
 
 1. **New routine** → *Copiar plantilla* copies the prompt template. Paste it into your AI assistant together with your
@@ -31,6 +41,27 @@ one exact alarm per activity. No backend, no account and no network access: ever
   (alarms up to 15 minutes late still fire; later ones are skipped).
 - Permissions screen and a Home banner while a permission is missing.
 - Light and dark theme (dynamic color on Android 12+), adaptive and themed launcher icon.
+
+## Use cases
+
+Rutinify is not tied to any topic: it only sees times, titles and categories. Anything that can be expressed as
+**"one day with activities at specific times"** works; the scenario lives in what you ask the AI.
+
+| Scenario | What you might tell the AI | What helps |
+|---|---|---|
+| New puppy or pet | "3-month-old puppy: potty every 2 h, 4 meals, long naps" | Categories, after-midnight alarms, an assignee per task |
+| Reading or study plan | "Read *Dune* in 10 days: 40 min in the morning, 30 at night" | Duplicate for another date, notes with today's chapter |
+| Focused work | "Pomodoro blocks from 9 to 13, check email at 12" | Many alarms in one day, +5 min when you need to finish |
+| Medication or care | "Antibiotic every 8 h, a pill with breakfast, cream at 22:00" | Exact timing, *Hecho* as a record of what was taken |
+| Baby care | "Feed every 3 h, bath at 19:30, nap at 13:00" | Night alarms, several caregivers |
+| Fitness or diet | "Training day: water every hour, post-gym meal at 14:00" | One category per kind of task |
+| Events or moving day | "Truck at 8, keys at 12, internet install at 16" | Replace the plan if it changes, cancel all in one tap |
+| Family mornings | "Wake up 6:30, breakfast 7:00, leave for school 7:40" | Pause on weekends or holidays |
+| Step-by-step cooking | "Bread: knead at 9, first rise 1 h, oven at 13:00" | Close alarms with instructions in the description |
+
+Current limits: each routine covers a single day (plus the early hours of the next one), there is no automatic
+repetition ("every Monday"), relative intervals must become fixed times, and routines are not shared between phones.
+Recurring routines and scenario-specific prompt templates are the natural next steps.
 
 ## JSON contract (v1)
 
