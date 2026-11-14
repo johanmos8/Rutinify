@@ -63,6 +63,15 @@ enum class IssueKind {
 
     /** More distinct categories than allowed; count in `received`, maximum in `limit` (R-3.22). */
     TOO_MANY_CATEGORIES,
+
+    /** `routine.repeatDays` is not a whole number from 1 to 30 (R-3.24). */
+    REPEAT_DAYS_OUT_OF_RANGE,
+
+    /** An item uses `dayOffset` > 1 together with `repeatDays` > 1 (R-3.26). */
+    REPEAT_WITH_DAY_OFFSET,
+
+    /** Over 200 items once `repeatDays` is expanded; expanded count in `received` (R-3.27). */
+    TOO_MANY_REPEATED_ITEMS,
 }
 
 enum class Severity { ERROR, WARNING }

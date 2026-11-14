@@ -48,6 +48,7 @@
     <string name="issue_invalid_date" tools:ignore="TypographyDashes">La fecha «%1$s» no es válida; usa el formato 2026-11-05</string>
     <string name="issue_no_items">La rutina no tiene actividades (campo items)</string>
     <string name="issue_too_many_items">Demasiadas actividades (%1$s); el máximo es 200</string>
+    <string name="issue_too_many_repeated_items">Demasiadas actividades (%1$s contando las repeticiones); el máximo es 200</string>
     <string name="issue_input_too_long">El texto es demasiado largo (%1$s KB); el máximo es %2$d KB</string>
     <string name="issue_too_many_categories">Demasiadas categorías distintas (%1$s); el máximo es %2$d</string>
     <string name="issue_missing_field">Falta el campo %1$s</string>
@@ -61,7 +62,9 @@
     <string name="issue_item_missing_title">%1$s: falta el título</string>
     <string name="issue_item_missing_field">%1$s: falta el campo %2$s</string>
     <string name="issue_title_truncated">%1$s: el título tenía más de 80 caracteres y se ha recortado</string>
-    <string name="issue_day_offset">%1$s: dayOffset debe ser 0 (mismo día) o 1 (día siguiente)</string>
+    <string name="issue_day_offset">%1$s: dayOffset debe ser un número entero entre 0 y 30 (días después de la fecha de la rutina)</string>
+    <string name="issue_repeat_days">repeatDays debe ser un número entero entre 1 y 30 (días que se repite la rutina)</string>
+    <string name="issue_repeat_with_day_offset">%1$s: con repeatDays solo se admite dayOffset 0 o 1; para días distintos entre sí, escribe cada día sin repeatDays</string>
     <string name="issue_duration">%1$s: durationMin debe ser un número de minutos entre 1 y 1440</string>
     <string name="issue_item_wrong_type">%1$s: el campo %2$s debe ser %3$s</string>
     <string name="issue_item_wrong_type_received">%1$s: el campo %2$s debe ser %3$s (se recibió «%4$s»)</string>

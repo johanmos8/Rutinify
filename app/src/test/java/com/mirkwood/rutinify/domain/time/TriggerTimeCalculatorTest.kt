@@ -46,6 +46,24 @@ class TriggerTimeCalculatorTest {
     }
 
     @Test
+    fun `un tratamiento que cruza el cambio de hora mantiene la hora de pared cada dia`() { // D-55, D-02
+        // Europe/Madrid moves to summer time on 2026-03-29: 08:00 is +01:00 before and +02:00 after
+        val start = LocalDate.of(2026, 3, 25)
+
+        assertThat(calculator.triggerAt(start, LocalTime.of(8, 0), dayOffset = 0, zone = madrid))
+            .isEqualTo(Instant.parse("2026-03-25T07:00:00Z"))
+        assertThat(calculator.triggerAt(start, LocalTime.of(8, 0), dayOffset = 6, zone = madrid))
+            .isEqualTo(Instant.parse("2026-03-31T06:00:00Z"))
+    }
+
+    @Test
+    fun `dayOffset 30 cae treinta dias despues`() { // D-55
+        val trigger = calculator.triggerAt(date, LocalTime.of(6, 45), dayOffset = 30, zone = bogota)
+
+        assertThat(trigger).isEqualTo(Instant.parse("2026-12-05T11:45:00Z"))
+    }
+
+    @Test
     fun `una hora inexistente por el salto de verano se desplaza la duracion del salto`() { // R-5.8
         // Europe/Madrid jumps from 02:00 to 03:00 on 2026-03-29: 02:30 does not exist → 03:30 (+02:00)
         val trigger = calculator.triggerAt(LocalDate.of(2026, 3, 29), LocalTime.of(2, 30), dayOffset = 0, zone = madrid)

@@ -131,8 +131,28 @@ class ErrorMessagesTest {
 
     @Test
     fun `dayOffset fuera de rango`() { // R-3.11
-        assertThat(text(item(IssueKind.DAY_OFFSET_OUT_OF_RANGE, "dayOffset", received = "2")))
-            .isEqualTo("Actividad 3 («Siesta»): dayOffset debe ser 0 (mismo día) o 1 (día siguiente)")
+        assertThat(text(item(IssueKind.DAY_OFFSET_OUT_OF_RANGE, "dayOffset", received = "31")))
+            .isEqualTo("Actividad 3 («Siesta»): dayOffset debe ser un número entero entre 0 y 30 (días después de la fecha de la rutina)")
+    }
+
+    @Test
+    fun `repeatDays fuera de rango`() { // R-3.24
+        assertThat(text(ValidationIssue(field = "routine.repeatDays", kind = IssueKind.REPEAT_DAYS_OUT_OF_RANGE, received = "31")))
+            .isEqualTo("repeatDays debe ser un número entero entre 1 y 30 (días que se repite la rutina)")
+    }
+
+    @Test
+    fun `repeatDays con dayOffset mayor que 1`() { // R-3.26
+        assertThat(text(item(IssueKind.REPEAT_WITH_DAY_OFFSET, "dayOffset", received = "2"))).isEqualTo(
+            "Actividad 3 («Siesta»): con repeatDays solo se admite dayOffset 0 o 1; " +
+                "para días distintos entre sí, escribe cada día sin repeatDays",
+        )
+    }
+
+    @Test
+    fun `demasiadas actividades contando las repeticiones`() { // R-3.27
+        assertThat(text(ValidationIssue(field = "items", kind = IssueKind.TOO_MANY_REPEATED_ITEMS, received = "210")))
+            .isEqualTo("Demasiadas actividades (210 contando las repeticiones); el máximo es 200")
     }
 
     @Test

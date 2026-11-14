@@ -13,6 +13,15 @@ object DraftItemRules {
     const val MAX_CATEGORIES = 10
     const val DEFAULT_CATEGORY = "general"
 
+    /** Largest `dayOffset`: a routine spans at most 31 days (R-3.11, D-55). */
+    const val MAX_DAY_OFFSET = 30
+
+    /** Largest `routine.repeatDays` (R-3.24). */
+    const val MAX_REPEAT_DAYS = 30
+
+    /** With `repeatDays` > 1 an item may only use the same day or the early hours of the next (R-3.26). */
+    const val MAX_DAY_OFFSET_WITH_REPEAT = 1
+
     private val TIME_PATTERN = Regex("""^([01]?\d|2[0-3]):([0-5]\d)$""")
     private val WHITESPACE = Regex("""\s+""")
 

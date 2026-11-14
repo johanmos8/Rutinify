@@ -7,7 +7,7 @@ import com.mirkwood.rutinify.domain.importer.ValidationIssue
 import com.mirkwood.rutinify.domain.importer.ValueType
 
 /**
- * Turns [ValidationIssue]s into Spanish messages from resources (R-3.3–R-3.22, R-13.3). The domain only
+ * Turns [ValidationIssue]s into Spanish messages from resources (R-3.3–R-3.27, R-13.3). The domain only
  * returns types; this is the single place that decides the wording.
  */
 object ErrorMessages {
@@ -48,6 +48,9 @@ object ErrorMessages {
                     res(R.string.issue_item_text_too_long, prefix, field(issue), limit)
                 }
             IssueKind.TOO_MANY_CATEGORIES -> res(R.string.issue_too_many_categories, received, limit)
+            IssueKind.REPEAT_DAYS_OUT_OF_RANGE -> res(R.string.issue_repeat_days)
+            IssueKind.REPEAT_WITH_DAY_OFFSET -> res(R.string.issue_repeat_with_day_offset, prefix ?: routinePrefix())
+            IssueKind.TOO_MANY_REPEATED_ITEMS -> res(R.string.issue_too_many_repeated_items, received)
         }
     }
 

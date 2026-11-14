@@ -165,12 +165,13 @@
 
 > Tratamientos y planes con fin en un solo JSON (D-55): `repeatDays` para días iguales, `dayOffset` hasta 30 para días distintos. Mismo DoD por tarea. D-55 y D-56 aprobadas el 2026-11-14.
 
-- [ ] **T-33 · Validador, `repeatDays` y plantilla para varios días** — (R-3.11, R-3.24–R-3.27, R-1.2)
+- [x] **T-33 · Validador, `repeatDays` y plantilla para varios días** — (R-3.11, R-3.24–R-3.27, R-1.2)
   - Tests primero: `dayOffset` 0, 6 y 30 válidos; 31, −1 y 1.5 dan el error nuevo de R-3.11; `repeatDays` ausente/null = 1, 7 y 30 válidos, 0, 31 y "7" dan R-3.24; `repeatDays` 7 con 3 tomas → 21 actividades con `dayOffset` 0..6; madrugada del último día → `dayOffset` N; `repeatDays` > 1 con `dayOffset` 2 → R-3.26; 70 tomas × 3 días → R-3.27; errores numerados sobre el JSON original.
   - Fixtures `valid_repeat.json` (antibiótico cada 8 h, `repeatDays` 7) y `valid_multiday.json` (dosis que baja, días escritos a mano) importan sin avisos.
   - `MAX_DAY_OFFSET = 30` y `MAX_REPEAT_DAYS = 30` en `domain/importer`, usados por parser y `DraftItemRules`; `IssueKind.REPEAT_DAYS_OUT_OF_RANGE` y `REPEAT_WITH_DAY_OFFSET`; strings nuevos y `issue_day_offset` actualizado.
   - `prompt_template.txt`: "cada 8 h" se convierte en horas fijas; si todos los días son iguales, un solo día + `repeatDays`; si no, cada día con `dayOffset` 0, 1, 2… (máximo 30 días y 200 actividades en total). El ejemplo canónico sigue igual a `valid_v1.json`.
   - Test de dominio: `TriggerTimeCalculator` con `dayOffset` 6 cruzando un cambio de horario (Europe/Madrid) mantiene la hora de pared.
+  - _Hecho:_ el parser lee `routine.repeatDays` (1–30) y expande las actividades al importar; `dayOffset` admite 0–30, y con repetición solo 0–1. El límite de 200 se aplica tras expandir. Los errores siguen numerados sobre el JSON original. Tres `IssueKind` nuevos con sus textos, constantes en `DraftItemRules` y plantilla del prompt con las dos formas de escribir varios días. 22 tests nuevos (17 del parser, 3 de mensajes, 2 de horas) y fixtures `valid_repeat.json` / `valid_multiday.json`: 505 en verde, `koverVerify` pasa (D-57).
 - [ ] **T-34 · Rango de la orden y conflictos** — (R-6.6, R-6.7)
   - `RoutineSpan(start, end)` en dominio, calculado desde fecha + mayor `dayOffset` (borrador y orden); helper `isMultiDay`.
   - `OrderDao.findOpenOverlapping(start, end)` (D-56) con tests Robolectric: solape parcial, contenido, adyacente sin solape, orden sin alarmas, canceladas excluidas. Sustituye a `findOpenByDate` en `ScheduleOrderUseCase`.

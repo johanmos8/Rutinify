@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "routine": {
+    "name": "Corticoide en descenso",
+    "date": "2026-11-14",
+    "notes": "3 días con dos tomas, 2 días con una y el último día media pastilla"
+  },
+  "items": [
+    { "time": "08:00", "dayOffset": 0, "title": "Prednisona 1 pastilla", "category": "medicación" },
+    { "time": "20:00", "dayOffset": 0, "title": "Prednisona 1 pastilla", "category": "medicación" },
+    { "time": "08:00", "dayOffset": 1, "title": "Prednisona 1 pastilla", "category": "medicación" },
+    { "time": "20:00", "dayOffset": 1, "title": "Prednisona 1 pastilla", "category": "medicación" },
+    { "time": "08:00", "dayOffset": 2, "title": "Prednisona 1 pastilla", "category": "medicación" },
+    { "time": "20:00", "dayOffset": 2, "title": "Prednisona 1 pastilla", "category": "medicación" },
+    { "time": "08:00", "dayOffset": 3, "title": "Prednisona 1 pastilla", "category": "medicación" },
+    { "time": "08:00", "dayOffset": 4, "title": "Prednisona 1 pastilla", "category": "medicación" },
+    { "time": "08:00", "dayOffset": 5, "title": "Prednisona media pastilla", "category": "medicación" }
+  ]
+}

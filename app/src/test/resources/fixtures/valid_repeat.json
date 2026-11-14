@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "routine": {
+    "name": "Antibiótico de Luna",
+    "date": "2026-11-14",
+    "notes": "Amoxicilina cada 8 horas durante 7 días",
+    "repeatDays": 7
+  },
+  "items": [
+    { "time": "06:00", "title": "Antibiótico", "description": "Con un poco de comida", "category": "medicación" },
+    { "time": "14:00", "title": "Antibiótico", "description": "Con un poco de comida", "category": "medicación" },
+    { "time": "22:00", "title": "Antibiótico", "description": "Con un poco de comida", "category": "medicación" }
+  ]
+}

@@ -181,13 +181,15 @@ class RoutineJsonParserItemTest {
     }
 
     @Test
-    fun `dayOffset 1 se acepta`() { // R-3.11
-        assertThat(singleItem(parseItems(item("dayOffset" to number(1)))).dayOffset).isEqualTo(1)
+    fun `dayOffset 1, 6 y 30 se aceptan`() { // R-3.11, D-55
+        listOf(1, 6, 30).forEach { offset ->
+            assertThat(singleItem(parseItems(item("dayOffset" to number(offset)))).dayOffset).isEqualTo(offset)
+        }
     }
 
     @Test
-    fun `dayOffset fuera de 0 a 1 o no entero se rechaza`() { // R-3.11
-        val invalid = listOf<JsonElement>(number(2), number(-1), number(0.5), text("1"), JsonPrimitive(true))
+    fun `dayOffset fuera de 0 a 30 o no entero se rechaza`() { // R-3.11
+        val invalid = listOf<JsonElement>(number(31), number(-1), number(1.5), text("1"), JsonPrimitive(true))
 
         invalid.forEach { value ->
             val issue = issuesOf(parseItems(item("dayOffset" to value))).single()
@@ -197,8 +199,8 @@ class RoutineJsonParserItemTest {
     }
 
     @Test
-    fun `dayOffset 2 indica el valor recibido`() { // R-3.11
-        assertThat(issuesOf(parseItems(item("dayOffset" to number(2)))).single().received).isEqualTo("2")
+    fun `dayOffset 31 indica el valor recibido`() { // R-3.11
+        assertThat(issuesOf(parseItems(item("dayOffset" to number(31)))).single().received).isEqualTo("31")
     }
 
     // ---- durationMin (R-3.12) ----
@@ -379,7 +381,7 @@ class RoutineJsonParserItemTest {
     fun `acumula todos los errores de todos los items en orden del JSON`() { // R-3.16, R-3.17
         val issues = issuesOf(
             parseItems(
-                item("time" to text("25:00"), "dayOffset" to number(3)),
+                item("time" to text("25:00"), "dayOffset" to number(31)),
                 item(),
                 """{"time": 645, "title": "", "durationMin": 0, "category": 1}""",
             ),

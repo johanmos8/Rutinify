@@ -7,15 +7,19 @@ Instrucciones:
    - routine.name: nombre corto de la rutina. Obligatorio.
    - routine.date: fecha de la rutina en formato AAAA-MM-DD, o null si no se indica.
    - routine.notes: notas generales (máximo 500 caracteres), o null.
-   - items: lista de actividades (entre 1 y 200). Cada actividad tiene:
+   - routine.repeatDays: cuántos días seguidos se repiten las mismas actividades (de 1 a 30), o null si es un solo día.
+   - items: lista de actividades (entre 1 y 200 en total, contando las repeticiones). Cada actividad tiene:
      - time: hora en formato 24 h "HH:mm", por ejemplo "06:45". Obligatoria.
-     - dayOffset: 0 si es el mismo día; 1 si es de madrugada del día siguiente (por ejemplo, las 02:00 después de la noche).
+     - dayOffset: días después de routine.date (de 0 a 30). 0 es el mismo día; 1 es el día siguiente, también la madrugada (por ejemplo, las 02:00 después de la noche).
      - title: título corto (máximo 80 caracteres). Obligatorio.
      - description: detalle (máximo 500 caracteres), o null.
      - durationMin: duración en minutos (de 1 a 1440), o null.
      - category: una palabra que agrupe actividades parecidas (máximo 30 caracteres y 10 categorías distintas en total), o null.
      - assignee: quién la hace (máximo 40 caracteres), o null.
-3. Si una actividad se repite durante el día, crea una actividad por cada hora.
+3. Si una actividad se repite durante el día (por ejemplo, "cada 8 horas"), crea una actividad por cada hora fija (06:00, 14:00, 22:00).
+   Si la rutina dura varios días:
+   - Si todos los días son iguales (por ejemplo, un tratamiento de 7 días), escribe las actividades de un solo día y pon routine.repeatDays con el número de días. Con repeatDays, dayOffset solo puede ser 0 o 1.
+   - Si los días son distintos (por ejemplo, una dosis que baja), no uses repeatDays: escribe cada día con dayOffset: 0, 1, 2… hasta un máximo de 30.
 4. No inventes actividades. Si una actividad no tiene una hora clara, elige la más razonable e indícalo en description.
 5. Usa comillas rectas (") y no añadas comentarios dentro del JSON.
 

@@ -32,4 +32,11 @@ class PromptTemplateTest {
 
         assertThat(extracted.json).isEqualTo(Fixtures.json("valid_v1.json"))
     }
+
+    @Test
+    fun `la plantilla explica repeatDays y los dias distintos con dayOffset`() { // R-1.2, D-55
+        assertThat(template).contains("repeatDays")
+        assertThat(template).contains("dayOffset: 0, 1, 2")
+        assertThat(template).contains("30")
+    }
 }

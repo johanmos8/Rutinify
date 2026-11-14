@@ -21,7 +21,8 @@ import java.time.format.DateTimeParseException
 import javax.inject.Inject
 
 /**
- * Validates a JSON v1 routine and maps it to a [RoutineDraft] (design §4.3).
+ * Validates a JSON v1 routine and maps it to a [RoutineDraft] (design §4.3), expanding
+ * `routine.repeatDays` into one concrete item per day (R-3.25, D-55).
  *
  * The tree is walked by hand instead of deserializing `@Serializable` DTOs so that **every** error is
  * collected, per item and field (R-3.13, R-3.16, D-07). Unknown fields are simply never read (R-3.2).
@@ -45,7 +46,9 @@ class RoutineJsonParser @Inject constructor() {
 
         val issues = mutableListOf<ValidationIssue>()
         val routine = readRoutine(root["routine"], issues)
-        val items = readItems(root["items"], issues)
+        // An invalid repeatDays is already reported; items are then checked as a single day
+        val repeatDays = routine?.repeatDays ?: readableRepeatDays(root["routine"])
+        val items = readItems(root["items"], repeatDays, issues)
 
         val errors = issues.filter { it.severity == Severity.ERROR }
         if (errors.isNotEmpty() || routine == null || items == null) {
@@ -64,7 +67,7 @@ class RoutineJsonParser @Inject constructor() {
 
     // ---- Routine level (T-09) ----
 
-    private class RoutineFields(val name: String, val date: LocalDate?, val notes: String?)
+    private class RoutineFields(val name: String, val date: LocalDate?, val notes: String?, val repeatDays: Int)
 
     private fun isVersionOne(element: JsonElement?): Boolean =
         element is JsonPrimitive && !element.isString && element.content == "1"
@@ -82,9 +85,33 @@ class RoutineJsonParser @Inject constructor() {
         val name = readRequiredText(element["name"], "routine.name", issues)
         val date = readDate(element["date"], issues)
         val notes = readOptionalText(element["notes"], "routine.notes", issues, maxLength = MAX_LONG_TEXT)
-        if (name == null || issues.size > before) return null
-        return RoutineFields(name, date, notes)
+        val repeatDays = readRepeatDays(element["repeatDays"], issues)
+        if (name == null || repeatDays == null || issues.size > before) return null
+        return RoutineFields(name, date, notes, repeatDays)
     }
+
+    /** R-3.24: absent or null → 1 (no repetition); otherwise a whole number from 1 to 30. Null when invalid. */
+    private fun readRepeatDays(element: JsonElement?, issues: MutableList<ValidationIssue>): Int? {
+        val value = repeatDaysOf(element)
+        if (value == null) {
+            issues += ValidationIssue(
+                field = "routine.repeatDays",
+                kind = IssueKind.REPEAT_DAYS_OUT_OF_RANGE,
+                received = element.describeOrNull(),
+            )
+        }
+        return value
+    }
+
+    private fun repeatDaysOf(element: JsonElement?): Int? {
+        if (element == null || element is JsonNull) return 1
+        val value = (element as? JsonPrimitive)?.takeIf { !it.isString }?.intOrNull
+        return value?.takeIf { it in 1..DraftItemRules.MAX_REPEAT_DAYS }
+    }
+
+    /** repeatDays of a routine that failed for another reason, so items are still checked against it. */
+    private fun readableRepeatDays(element: JsonElement?): Int =
+        (element as? JsonObject)?.let { repeatDaysOf(it["repeatDays"]) } ?: 1
 
     /** R-3.6: absent or null → no date; otherwise strict ISO `yyyy-MM-dd` that must be a real date. */
     private fun readDate(element: JsonElement?, issues: MutableList<ValidationIssue>): LocalDate? {
@@ -103,8 +130,15 @@ class RoutineJsonParser @Inject constructor() {
         return parsed
     }
 
-    /** R-3.7, R-3.18, R-3.22. Returns null when the list itself is unusable or any item is invalid. */
-    private fun readItems(element: JsonElement?, issues: MutableList<ValidationIssue>): List<DraftItem>? {
+    /**
+     * R-3.7, R-3.18, R-3.22, R-3.25–R-3.27. Returns null when the list itself is unusable or any item is
+     * invalid; otherwise the items expanded over [repeatDays] days.
+     */
+    private fun readItems(
+        element: JsonElement?,
+        repeatDays: Int,
+        issues: MutableList<ValidationIssue>,
+    ): List<DraftItem>? {
         if (element !is JsonArray || element.isEmpty()) {
             issues += ValidationIssue(field = "items", kind = IssueKind.NO_ITEMS)
             return null
@@ -113,7 +147,16 @@ class RoutineJsonParser @Inject constructor() {
             issues += ValidationIssue(field = "items", kind = IssueKind.TOO_MANY_ITEMS, received = element.size.toString())
             return null
         }
-        val items = element.mapIndexedNotNull { position, item -> readItem(position, item, issues) }
+        val expandedCount = element.size * repeatDays
+        if (expandedCount > MAX_ITEMS) {
+            issues += ValidationIssue(
+                field = "items",
+                kind = IssueKind.TOO_MANY_REPEATED_ITEMS,
+                received = expandedCount.toString(),
+            )
+            return null
+        }
+        val items = element.mapIndexedNotNull { position, item -> readItem(position, item, repeatDays, issues) }
         // Counted over the items that parsed, so this error is reported together with item errors (R-3.16)
         val categories = items.mapTo(HashSet()) { it.category }.size
         if (categories > DraftItemRules.MAX_CATEGORIES) {
@@ -125,12 +168,28 @@ class RoutineJsonParser @Inject constructor() {
             )
             return null
         }
-        return if (items.size == element.size) items.sortedWith(DRAFT_ORDER) else null
+        return if (items.size == element.size) expand(items, repeatDays).sortedWith(DRAFT_ORDER) else null
+    }
+
+    /**
+     * R-3.25: day k gets a copy of every item with `dayOffset + k`. Keys stay unique and keep the JSON order
+     * inside a day (`k * size + position`), so each copy is an independent item in Review (R-4.16).
+     */
+    private fun expand(items: List<DraftItem>, repeatDays: Int): List<DraftItem> {
+        if (repeatDays == 1) return items
+        return (0 until repeatDays).flatMap { day ->
+            items.map { it.copy(key = day * items.size + it.key, dayOffset = it.dayOffset + day) }
+        }
     }
 
     // ---- Item level (T-10) ----
 
-    private fun readItem(position: Int, element: JsonElement, issues: MutableList<ValidationIssue>): DraftItem? {
+    private fun readItem(
+        position: Int,
+        element: JsonElement,
+        repeatDays: Int,
+        issues: MutableList<ValidationIssue>,
+    ): DraftItem? {
         val index = position + 1
         if (element !is JsonObject) {
             issues += ValidationIssue(
@@ -148,7 +207,7 @@ class RoutineJsonParser @Inject constructor() {
 
         val time = readTime(element["time"], context, issues)
         val title = readTitle(element["title"], context, issues)
-        val dayOffset = readDayOffset(element["dayOffset"], context, issues)
+        val dayOffset = readDayOffset(element["dayOffset"], context, repeatDays, issues)
         val durationMin = readDuration(element["durationMin"], context, issues)
         val description = readOptionalText(element["description"], "description", issues, MAX_LONG_TEXT, context)
         val category = readCategory(element["category"], context, issues)
@@ -230,12 +289,21 @@ class RoutineJsonParser @Inject constructor() {
         }
     }
 
-    /** R-3.11, R-3.15. */
-    private fun readDayOffset(element: JsonElement?, ctx: ItemContext, issues: MutableList<ValidationIssue>): Int? {
+    /** R-3.11, R-3.15, R-3.26. */
+    private fun readDayOffset(
+        element: JsonElement?,
+        ctx: ItemContext,
+        repeatDays: Int,
+        issues: MutableList<ValidationIssue>,
+    ): Int? {
         if (element == null || element is JsonNull) return 0
         val value = (element as? JsonPrimitive)?.takeIf { !it.isString }?.intOrNull
-        if (value == null || value !in 0..MAX_DAY_OFFSET) {
+        if (value == null || value !in 0..DraftItemRules.MAX_DAY_OFFSET) {
             issues += ctx.issue("dayOffset", IssueKind.DAY_OFFSET_OUT_OF_RANGE, element)
+            return null
+        }
+        if (repeatDays > 1 && value > DraftItemRules.MAX_DAY_OFFSET_WITH_REPEAT) {
+            issues += ctx.issue("dayOffset", IssueKind.REPEAT_WITH_DAY_OFFSET, element)
             return null
         }
         return value
@@ -327,7 +395,6 @@ class RoutineJsonParser @Inject constructor() {
         const val MAX_ITEMS = 200
         const val MAX_LONG_TEXT = 500
         const val MAX_ASSIGNEE_LENGTH = 40
-        const val MAX_DAY_OFFSET = 1
         val DURATION_RANGE = 1..1440
         val DRAFT_ORDER = compareBy<DraftItem>({ it.dayOffset }, { it.time }, { it.key })
     }
