@@ -153,8 +153,9 @@
 
 ## Fase 9 · Pulido y verificación
 
-- [ ] **T-31 · Pulido** — (R-13.3, R-13.4)
+- [x] **T-31 · Pulido** — (R-13.3, R-13.4)
   - Revisión de strings y plurales, accesibilidad (contentDescription, 48 dp), modo oscuro, icono de notificación monocromo, icono de app.
+  - _Hecho:_ revisados textos (ningún literal en composables; los 6 plurales con `one`/`other`), iconos accionables con `contentDescription` y botones de 48 dp, modo oscuro probado en emulador, icono de notificación monocromo (campana). Nuevo icono de app adaptativo (despertador con check, también como icono temático) en lugar del robot de la plantilla; se borran los `.webp` de mipmap (con minSdk 28 basta el adaptativo), `colors.xml` de la plantilla y la etiqueta redundante de la Activity. Lint queda sin avisos propios (solo versiones de dependencias). Sin tests nuevos: 483 en verde (D-53).
 - [ ] **T-32 · Cobertura y verificación final** — (R-13.5, R-13.6)
   - Añadir el plugin Kover (D-19) con regla `minBound(80)`; `koverVerify` ≥ 80 % en dominio + importer; `lintDebug` limpio; manifiesto sin `INTERNET`.
   - Prueba manual en dispositivo/emulador (checklist en `specs/manual-test.md`): importar JSON real del cachorro, disparo exacto, "Hecho", "+5 min", reinicio del emulador, cambio de zona horaria, revocar alarmas exactas, eliminar orden con alarmas disparadas.
