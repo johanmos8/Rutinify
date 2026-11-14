@@ -13,4 +13,7 @@ interface PermissionChecker {
 
     /** `canScheduleExactAlarms()`; always true below Android 12. */
     fun exactAlarmsGranted(): Boolean
+
+    /** Android 13+ and the runtime notification permission not granted yet, so the app may ask for it (R-11.1). */
+    fun notificationsRequestable(): Boolean
 }

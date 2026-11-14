@@ -19,11 +19,16 @@ import com.mirkwood.rutinify.domain.time.TriggerTimeCalculator
 import com.mirkwood.rutinify.domain.usecase.AlarmMutationLock
 import com.mirkwood.rutinify.domain.usecase.BuildSchedulePreviewUseCase
 import com.mirkwood.rutinify.domain.usecase.FindConflictingOrdersUseCase
+import com.mirkwood.rutinify.domain.usecase.HandleAlarmFiredUseCase
+import com.mirkwood.rutinify.domain.usecase.RescheduleAllUseCase
+import com.mirkwood.rutinify.domain.usecase.SchedulingPermissionsUseCase
 import com.mirkwood.rutinify.domain.usecase.ScheduleOrderUseCase
 import com.mirkwood.rutinify.testutil.FakeAlarmRepository
 import com.mirkwood.rutinify.testutil.FakeAlarmScheduler
 import com.mirkwood.rutinify.testutil.FakeNotificationPublisher
 import com.mirkwood.rutinify.testutil.FakeOrderRepository
+import com.mirkwood.rutinify.testutil.FakePermissionChecker
+import com.mirkwood.rutinify.testutil.FakePermissionPromptStore
 import com.mirkwood.rutinify.testutil.MainDispatcherRule
 import com.mirkwood.rutinify.testutil.testAlarm
 import com.mirkwood.rutinify.testutil.testOrder
@@ -63,6 +68,8 @@ class ReviewViewModelTest {
     private val lock = AlarmMutationLock()
     private val buildPreview = BuildSchedulePreviewUseCase(calculator)
     private val draftStore = InMemoryDraftStore()
+    private val checker = FakePermissionChecker()
+    private val prompts = FakePermissionPromptStore()
 
     private val warning = ValidationIssue(itemIndex = 2, itemTitle = "Paseo", kind = IssueKind.TITLE_TRUNCATED, severity = Severity.WARNING)
 
@@ -87,6 +94,16 @@ class ReviewViewModelTest {
             buildPreview = buildPreview,
             findConflicts = FindConflictingOrdersUseCase(orders),
             scheduleOrder = ScheduleOrderUseCase(orders, alarms, scheduler, publisher, buildPreview, calculator, { bogota }, clock, lock),
+            permissions = SchedulingPermissionsUseCase(checker, prompts),
+            rescheduleAll = RescheduleAllUseCase(
+                alarms = alarms,
+                scheduler = scheduler,
+                handleFired = HandleAlarmFiredUseCase(alarms, orders, publisher, calculator, { bogota }, lock),
+                calculator = calculator,
+                zoneProvider = { bogota },
+                clock = clock,
+                lock = lock,
+            ),
             clock = clock,
             zoneProvider = { bogota },
         )
@@ -460,6 +477,164 @@ class ReviewViewModelTest {
 
             orders.failCreate = false
             vm.onAction(ReviewAction.RetrySchedule)
+            assertThat(awaitItem()).isInstanceOf(ReviewEffect.NavigateToOrder::class.java)
+        }
+    }
+
+    // --- Permission steps before scheduling (T-30) ----------------------------------------------
+
+    @Test
+    fun `la primera vez explica las notificaciones antes de programar`() = runTest { // R-11.1
+        checker.notificationsRequestable = true
+        val vm = subscribed(viewModel())
+
+        vm.onAction(ReviewAction.ScheduleClicked)
+
+        assertThat(vm.state.dialog).isEqualTo(ReviewDialog.NotificationsRationale)
+        assertThat(orders.createCalls).isEqualTo(0)
+    }
+
+    @Test
+    fun `aceptar la explicacion pide el permiso y al responder sigue programando`() = runTest { // R-11.1
+        checker.notificationsRequestable = true
+        val vm = subscribed(viewModel())
+        vm.onAction(ReviewAction.ScheduleClicked)
+
+        vm.effects.test {
+            vm.onAction(ReviewAction.NotificationsRationaleAccepted)
+            assertThat(awaitItem()).isEqualTo(ReviewEffect.RequestNotificationPermission)
+            assertThat(vm.state.dialog).isNull()
+            assertThat(prompts.explained).isTrue()
+
+            vm.onAction(ReviewAction.NotificationPermissionResult)
+            assertThat(awaitItem()).isInstanceOf(ReviewEffect.NavigateToOrder::class.java)
+        }
+    }
+
+    @Test
+    fun `ahora no salta el permiso de notificaciones y programa igual`() = runTest { // R-11.1, R-7.8
+        checker.notificationsRequestable = true
+        val vm = subscribed(viewModel())
+        vm.onAction(ReviewAction.ScheduleClicked)
+
+        vm.effects.test {
+            vm.onAction(ReviewAction.NotificationsRationaleSkipped)
+
+            assertThat(awaitItem()).isInstanceOf(ReviewEffect.NavigateToOrder::class.java)
+        }
+        assertThat(prompts.explained).isTrue()
+    }
+
+    @Test
+    fun `ya explicadas no vuelve a preguntar por las notificaciones`() = runTest { // R-11.1
+        checker.notificationsRequestable = true
+        prompts.explained = true
+        val vm = subscribed(viewModel())
+
+        vm.effects.test {
+            vm.onAction(ReviewAction.ScheduleClicked)
+
+            assertThat(awaitItem()).isInstanceOf(ReviewEffect.NavigateToOrder::class.java)
+        }
+    }
+
+    @Test
+    fun `sin alarmas exactas lo explica antes de programar`() = runTest { // R-11.2
+        checker.exactAlarms = false
+        val vm = subscribed(viewModel())
+
+        vm.onAction(ReviewAction.ScheduleClicked)
+
+        assertThat(vm.state.dialog).isEqualTo(ReviewDialog.ExactAlarms)
+        assertThat(orders.createCalls).isEqualTo(0)
+    }
+
+    @Test
+    fun `continuar sin exactas programa igual`() = runTest { // R-11.2
+        checker.exactAlarms = false
+        val vm = subscribed(viewModel())
+        vm.onAction(ReviewAction.ScheduleClicked)
+
+        vm.effects.test {
+            vm.onAction(ReviewAction.ExactAlarmsContinueWithout)
+
+            assertThat(awaitItem()).isInstanceOf(ReviewEffect.NavigateToOrder::class.java)
+        }
+    }
+
+    @Test
+    fun `abrir ajustes espera a volver y entonces sigue`() = runTest { // R-11.2
+        checker.exactAlarms = false
+        val vm = subscribed(viewModel())
+        vm.onAction(ReviewAction.ScheduleClicked)
+
+        vm.effects.test {
+            vm.onAction(ReviewAction.ExactAlarmsOpenSettings)
+            assertThat(awaitItem()).isEqualTo(ReviewEffect.OpenExactAlarmSettings)
+            assertThat(vm.state.dialog).isNull()
+            assertThat(orders.createCalls).isEqualTo(0)
+
+            checker.exactAlarms = true
+            vm.onAction(ReviewAction.Resumed)
+
+            assertThat(awaitItem()).isInstanceOf(ReviewEffect.NavigateToOrder::class.java)
+        }
+    }
+
+    @Test
+    fun `volver con el permiso exacto concedido reprograma las demas ordenes`() = runTest { // R-11.6
+        orders.add(testOrder(id = 7, date = today.plusDays(3)))
+        alarms.add(testAlarm(id = 70, orderId = 7, time = LocalTime.of(9, 0)))
+        checker.exactAlarms = false
+        val vm = subscribed(viewModel())
+        vm.onAction(ReviewAction.ScheduleClicked)
+        vm.onAction(ReviewAction.ExactAlarmsOpenSettings)
+
+        checker.exactAlarms = true
+        vm.onAction(ReviewAction.Resumed)
+
+        assertThat(scheduler.scheduled).containsKey(70L)
+    }
+
+    @Test
+    fun `volver a primer plano sin haber abierto ajustes no programa`() = runTest { // R-11.2
+        val vm = subscribed(viewModel())
+
+        vm.onAction(ReviewAction.Resumed)
+
+        assertThat(orders.createCalls).isEqualTo(0)
+    }
+
+    @Test
+    fun `cerrar el dialogo de permisos cancela la programacion`() = runTest { // R-11.2
+        checker.exactAlarms = false
+        val vm = subscribed(viewModel())
+        vm.onAction(ReviewAction.ScheduleClicked)
+
+        vm.onAction(ReviewAction.DismissDialog)
+
+        assertThat(vm.state.dialog).isNull()
+        assertThat(orders.createCalls).isEqualTo(0)
+    }
+
+    @Test
+    fun `los pasos van en orden notificaciones exactas conflicto y programar`() = runTest { // R-11.1, R-11.2, R-6.1
+        checker.notificationsRequestable = true
+        checker.exactAlarms = false
+        orders.add(testOrder(id = 7, date = today))
+        val vm = subscribed(viewModel())
+
+        vm.onAction(ReviewAction.ScheduleClicked)
+        assertThat(vm.state.dialog).isEqualTo(ReviewDialog.NotificationsRationale)
+
+        vm.onAction(ReviewAction.NotificationsRationaleSkipped)
+        assertThat(vm.state.dialog).isEqualTo(ReviewDialog.ExactAlarms)
+
+        vm.onAction(ReviewAction.ExactAlarmsContinueWithout)
+        assertThat(vm.state.dialog).isEqualTo(ReviewDialog.Conflict(listOf("Cachorro")))
+
+        vm.effects.test {
+            vm.onAction(ReviewAction.ConflictKeepBoth)
             assertThat(awaitItem()).isInstanceOf(ReviewEffect.NavigateToOrder::class.java)
         }
     }

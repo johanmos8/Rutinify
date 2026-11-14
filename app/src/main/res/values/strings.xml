@@ -22,6 +22,14 @@
     <string name="action_fix">Corregir</string>
     <string name="home_permissions_banner">Faltan permisos: puede que las alarmas no suenen a tiempo o no se vean.</string>
     <string name="action_review_permissions">Revisar</string>
+    <string name="review_notifications_title">Avisos en pantalla</string>
+    <string name="review_notifications_body">Para que veas cada alarma con sus botones «Hecho» y «+5 min», Rutinify necesita permiso para mostrar notificaciones. Android te lo preguntará ahora.</string>
+    <string name="review_exact_title">Alarmas exactas desactivadas</string>
+    <string name="review_exact_body">Sin el permiso de alarmas exactas, Android puede retrasar cada aviso unos minutos. Puedes activarlo en ajustes o programar igualmente.</string>
+    <string name="action_continue">Continuar</string>
+    <string name="action_not_now">Ahora no</string>
+    <string name="action_open_settings">Abrir ajustes</string>
+    <string name="action_continue_without_exact">Continuar sin exactas</string>
 
     <!-- Temporary (T-03): replaced when each screen is implemented -->
 

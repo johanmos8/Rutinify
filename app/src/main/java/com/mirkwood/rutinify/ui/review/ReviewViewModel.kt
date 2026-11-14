@@ -15,7 +15,9 @@ import com.mirkwood.rutinify.domain.usecase.BuildSchedulePreviewUseCase
 import com.mirkwood.rutinify.domain.usecase.ConflictPolicy
 import com.mirkwood.rutinify.domain.usecase.FindConflictingOrdersUseCase
 import com.mirkwood.rutinify.domain.usecase.ScheduleOrderResult
+import com.mirkwood.rutinify.domain.usecase.RescheduleAllUseCase
 import com.mirkwood.rutinify.domain.usecase.ScheduleOrderUseCase
+import com.mirkwood.rutinify.domain.usecase.SchedulingPermissionsUseCase
 import com.mirkwood.rutinify.domain.usecase.ScheduleSummary
 import com.mirkwood.rutinify.ui.common.DateFormats
 import com.mirkwood.rutinify.ui.common.ErrorMessages
@@ -65,6 +67,12 @@ data class EditItemUi(
 )
 
 sealed interface ReviewDialog {
+    /** Why notifications are needed, before Android's own permission dialog (R-11.1). */
+    data object NotificationsRationale : ReviewDialog
+
+    /** Why exact alarms matter: "Abrir ajustes" or "Continuar sin exactas" (R-11.2). */
+    data object ExactAlarms : ReviewDialog
+
     /** "Reemplazar la anterior / Mantener ambas / Cancelar" listing the orders by name (R-6.1, R-6.5). */
     data class Conflict(val orderNames: List<String>) : ReviewDialog
 }
@@ -101,6 +109,21 @@ sealed interface ReviewAction {
     data object SaveEdit : ReviewAction
     data object DismissEdit : ReviewAction
     data object ScheduleClicked : ReviewAction
+
+    /** "Continuar" on [ReviewDialog.NotificationsRationale]: the UI then shows Android's dialog. */
+    data object NotificationsRationaleAccepted : ReviewAction
+
+    /** "Ahora no" on [ReviewDialog.NotificationsRationale]: schedule anyway (R-7.8). */
+    data object NotificationsRationaleSkipped : ReviewAction
+
+    /** Android's notification dialog closed, granted or not. */
+    data object NotificationPermissionResult : ReviewAction
+
+    data object ExactAlarmsOpenSettings : ReviewAction
+    data object ExactAlarmsContinueWithout : ReviewAction
+
+    /** Back in the foreground, maybe from the exact-alarm settings page. */
+    data object Resumed : ReviewAction
     data object ConflictReplace : ReviewAction
     data object ConflictKeepBoth : ReviewAction
     data object DismissDialog : ReviewAction
@@ -118,6 +141,12 @@ sealed interface ReviewEffect {
 
     /** Order detail, which shows "{n} alarmas programadas" (R-5.6). */
     data class NavigateToOrder(val orderId: Long, val scheduledCount: Int) : ReviewEffect
+
+    /** Launch Android's `POST_NOTIFICATIONS` dialog (R-11.1). */
+    data object RequestNotificationPermission : ReviewEffect
+
+    /** Open "Alarmas y recordatorios" for this app (R-11.2). */
+    data object OpenExactAlarmSettings : ReviewEffect
 }
 
 @HiltViewModel
@@ -128,6 +157,8 @@ class ReviewViewModel @Inject constructor(
     private val buildPreview: BuildSchedulePreviewUseCase,
     private val findConflicts: FindConflictingOrdersUseCase,
     private val scheduleOrder: ScheduleOrderUseCase,
+    private val permissions: SchedulingPermissionsUseCase,
+    private val rescheduleAll: RescheduleAllUseCase,
     private val clock: Clock,
     private val zoneProvider: ZoneProvider,
 ) : ViewModel() {
@@ -180,7 +211,28 @@ class ReviewViewModel @Inject constructor(
             }
             ReviewAction.SaveEdit -> saveEdit()
             ReviewAction.DismissEdit -> model.update { it.copy(editing = null) }
-            ReviewAction.ScheduleClicked -> checkConflictsAndSchedule()
+            ReviewAction.ScheduleClicked -> startScheduling()
+            ReviewAction.NotificationsRationaleAccepted -> {
+                permissions.markNotificationsExplained()
+                model.update { it.copy(dialog = null) }
+                effectChannel.trySend(ReviewEffect.RequestNotificationPermission)
+            }
+            ReviewAction.NotificationsRationaleSkipped -> {
+                permissions.markNotificationsExplained()
+                model.update { it.copy(dialog = null) }
+                exactAlarmsStep()
+            }
+            ReviewAction.NotificationPermissionResult -> exactAlarmsStep()
+            ReviewAction.ExactAlarmsOpenSettings -> {
+                awaitingExactSettings = true
+                model.update { it.copy(dialog = null) }
+                effectChannel.trySend(ReviewEffect.OpenExactAlarmSettings)
+            }
+            ReviewAction.ExactAlarmsContinueWithout -> {
+                model.update { it.copy(dialog = null) }
+                checkConflictsAndSchedule()
+            }
+            ReviewAction.Resumed -> backFromExactSettings()
             ReviewAction.ConflictReplace -> schedule(ConflictPolicy.REPLACE)
             ReviewAction.ConflictKeepBoth -> schedule(ConflictPolicy.KEEP_BOTH)
             ReviewAction.DismissDialog -> model.update { it.copy(dialog = null) } // R-6.4
@@ -317,7 +369,39 @@ class ReviewViewModel @Inject constructor(
         }
     }
 
-    // ---- Scheduling ----
+    // ---- Scheduling: notifications → exact alarms → date conflict → schedule (design §9, D-52) ----
+
+    /** Set while the user is in the exact-alarm settings page from [ReviewDialog.ExactAlarms]. */
+    private var awaitingExactSettings = false
+
+    private fun startScheduling() {
+        val m = model.value
+        if (m.draft == null || m.isScheduling) return
+        if (permissions.shouldExplainNotifications()) {
+            model.update { it.copy(dialog = ReviewDialog.NotificationsRationale) }
+        } else {
+            exactAlarmsStep()
+        }
+    }
+
+    private fun exactAlarmsStep() {
+        if (permissions.exactAlarmsGranted()) {
+            checkConflictsAndSchedule()
+        } else {
+            model.update { it.copy(dialog = ReviewDialog.ExactAlarms) }
+        }
+    }
+
+    /** Whatever the user chose in settings, scheduling goes on: windowed alarms still ring (R-11.7). */
+    private fun backFromExactSettings() {
+        if (!awaitingExactSettings) return
+        awaitingExactSettings = false
+        viewModelScope.launch {
+            // R-11.6: other orders' windowed alarms become exact now (idempotent, R-12.6)
+            if (permissions.exactAlarmsGranted()) rescheduleAll()
+            checkConflictsAndSchedule()
+        }
+    }
 
     private fun checkConflictsAndSchedule() {
         val m = model.value

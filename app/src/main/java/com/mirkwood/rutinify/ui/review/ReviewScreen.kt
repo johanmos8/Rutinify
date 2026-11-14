@@ -1,5 +1,12 @@
 package com.mirkwood.rutinify.ui.review
 
+import com.mirkwood.rutinify.ui.permissions.openExactAlarmSettings
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.compose.ui.platform.LocalContext
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.rememberLauncherForActivityResult
+import android.os.Build
+import android.Manifest
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -75,6 +82,13 @@ fun ReviewRoute(
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val undoLabel = stringResource(R.string.action_undo)
     val retryLabel = stringResource(R.string.action_retry)
+    val context = LocalContext.current
+    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        viewModel.onAction(ReviewAction.NotificationPermissionResult)
+    }
+
+    // Back from the exact-alarm settings page (R-11.2)
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onAction(ReviewAction.Resumed) }
 
     LaunchedEffect(viewModel, lifecycle) {
         lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -95,6 +109,14 @@ fun ReviewRoute(
                         if (result == SnackbarResult.ActionPerformed) viewModel.onAction(ReviewAction.RetrySchedule)
                     }
                     is ReviewEffect.NavigateToOrder -> onNavigateToOrder(effect.orderId, effect.scheduledCount)
+                    ReviewEffect.RequestNotificationPermission ->
+                        // The effect is only sent on Android 13+ (SchedulingPermissionsUseCase)
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        } else {
+                            viewModel.onAction(ReviewAction.NotificationPermissionResult)
+                        }
+                    ReviewEffect.OpenExactAlarmSettings -> openExactAlarmSettings(context)
                 }
             }
         }
@@ -155,6 +177,8 @@ fun ReviewScreen(
     }
     state.editing?.let { EditItemDialog(form = it, onAction = onAction) }
     when (val dialog = state.dialog) {
+        ReviewDialog.NotificationsRationale -> NotificationsRationaleDialog(onAction)
+        ReviewDialog.ExactAlarms -> ExactAlarmsDialog(onAction)
         is ReviewDialog.Conflict -> ConflictDialog(dialog, onAction)
         null -> Unit
     }
@@ -331,6 +355,46 @@ private fun ConflictDialog(dialog: ReviewDialog.Conflict, onAction: (ReviewActio
     )
 }
 
+/** R-11.1: shown once, before Android's own dialog. */
+@Composable
+private fun NotificationsRationaleDialog(onAction: (ReviewAction) -> Unit) {
+    AlertDialog(
+        onDismissRequest = { onAction(ReviewAction.DismissDialog) },
+        title = { Text(stringResource(R.string.review_notifications_title)) },
+        text = { Text(stringResource(R.string.review_notifications_body)) },
+        confirmButton = {
+            TextButton(onClick = { onAction(ReviewAction.NotificationsRationaleAccepted) }) {
+                Text(stringResource(R.string.action_continue))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = { onAction(ReviewAction.NotificationsRationaleSkipped) }) {
+                Text(stringResource(R.string.action_not_now))
+            }
+        },
+    )
+}
+
+/** R-11.2: every time exact alarms are not allowed. */
+@Composable
+private fun ExactAlarmsDialog(onAction: (ReviewAction) -> Unit) {
+    AlertDialog(
+        onDismissRequest = { onAction(ReviewAction.DismissDialog) },
+        title = { Text(stringResource(R.string.review_exact_title)) },
+        text = { Text(stringResource(R.string.review_exact_body)) },
+        confirmButton = {
+            Column(horizontalAlignment = Alignment.End) {
+                TextButton(onClick = { onAction(ReviewAction.ExactAlarmsOpenSettings) }) {
+                    Text(stringResource(R.string.action_open_settings))
+                }
+                TextButton(onClick = { onAction(ReviewAction.ExactAlarmsContinueWithout) }) {
+                    Text(stringResource(R.string.action_continue_without_exact))
+                }
+            }
+        },
+    )
+}
+
 private fun Modifier.semanticsLabel(label: String): Modifier =
     this.then(Modifier.semantics { contentDescription = label })
 
@@ -338,6 +402,20 @@ private fun Modifier.semanticsLabel(label: String): Modifier =
 @Composable
 private fun ReviewScreenPreview() {
     RutinifyTheme { ReviewScreen(state = PreviewData.reviewState, onAction = {}, onBack = {}) }
+}
+
+@ThemePreviews
+@Composable
+private fun ReviewScreenNotificationsDialogPreview() {
+    RutinifyTheme {
+        ReviewScreen(state = PreviewData.reviewState.copy(dialog = ReviewDialog.NotificationsRationale), onAction = {}, onBack = {})
+    }
+}
+
+@ThemePreviews
+@Composable
+private fun ReviewScreenExactDialogPreview() {
+    RutinifyTheme { ReviewScreen(state = PreviewData.reviewState.copy(dialog = ReviewDialog.ExactAlarms), onAction = {}, onBack = {}) }
 }
 
 @ThemePreviews

@@ -6,9 +6,12 @@ import com.mirkwood.rutinify.domain.scheduler.PermissionChecker
 class FakePermissionChecker(
     var notifications: Boolean = true,
     var exactAlarms: Boolean = true,
+    var notificationsRequestable: Boolean = false,
 ) : PermissionChecker {
 
     override fun notificationsGranted(): Boolean = notifications
 
     override fun exactAlarmsGranted(): Boolean = exactAlarms
+
+    override fun notificationsRequestable(): Boolean = notificationsRequestable
 }
