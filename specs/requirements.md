@@ -78,7 +78,7 @@
 - **R-4.2** THE SYSTEM SHALL permitir editar la hora, el título y la categoría de cada actividad, aplicando las mismas reglas de R-3.8, R-3.9, R-3.10 y R-3.14.
 - **R-4.3** THE SYSTEM SHALL permitir quitar una actividad del borrador (con opción de deshacer).
 - **R-4.4** WHERE `routine.date` venía en el JSON, THE SYSTEM SHALL usarla como fecha preseleccionada.
-- **R-4.5** WHERE `routine.date` no venía en el JSON, THE SYSTEM SHALL preseleccionar **hoy** si al menos una actividad tiene hora de disparo futura y, si no, **mañana**, e informar "No venía fecha; elegí {fecha}".
+- **R-4.5** WHERE `routine.date` no venía en el JSON, THE SYSTEM SHALL preseleccionar **hoy** si al menos una actividad tiene hora de disparo futura y, si no, **mañana**, e informar "No venía fecha; elegí {fecha}". WHERE la rutina es de varios días, solo cuentan las actividades del Día 1 (`dayOffset` 0), para no empezar con un Día 1 ya pasado.
 - **R-4.6** THE SYSTEM SHALL permitir cambiar la fecha con un selector de fecha y recalcular de inmediato las horas de disparo y las actividades pasadas.
 - **R-4.7** WHILE la hora de disparo de una actividad es anterior o igual al momento actual, THE SYSTEM SHALL mostrarla como "Ya pasó", atenuada y excluida por defecto.
 - **R-4.8** THE SYSTEM SHALL permitir excluir manualmente cualquier actividad futura (casilla) sin quitarla de la lista.

@@ -189,7 +189,11 @@
 - [x] **T-37 · Verificación v1.1** — (R-13.5)
   - `koverVerify` ≥ 80 %; añadir a `specs/manual-test.md` los pasos del tratamiento de 7 días (importar, conflicto con la rutina del día, reinicio a mitad, duplicar) y ejecutarlos en el emulador.
   - README: quitar "una rutina cubre un solo día" de los límites, documentar `repeatDays` en el contrato y añadir el ejemplo de medicación de varios días.
-  - _Hecho:_ Kover 99,2 % (782 de 788 líneas). Pasos 12–18 de `manual-test.md` ejecutados en el emulador: importar, conflicto con rango, Inicio y detalle, reinicio el día 4 (11 tomas exactas restauradas) y duplicar. Se corrigió el aviso de reemplazo, cuyas comillas quitaba Android («»). README actualizado. Queda una propuesta pendiente sobre la fecha por defecto de rutinas de varios días (nota en `manual-test.md`).
+  - _Hecho:_ Kover 99,2 % (782 de 788 líneas). Pasos 12–18 de `manual-test.md` ejecutados en el emulador: importar, conflicto con rango, Inicio y detalle, reinicio el día 4 (11 tomas exactas restauradas) y duplicar. Se corrigió el aviso de reemplazo, cuyas comillas quitaba Android («»). README actualizado. La fecha por defecto de rutinas de varios días se corrige en T-38.
+- [x] **T-38 · Fecha por defecto en rutinas de varios días** — (R-4.5, D-61)
+  - `DefaultDatePolicy`: en rutinas de varios días solo cuentan las actividades del Día 1 (`dayOffset` 0); tests (TDD).
+  - Las rutinas de un día no cambian (tests existentes).
+  - _Hecho:_ en rutinas de varios días `DefaultDatePolicy` solo mira `dayOffset` 0 (D-61); la madrugada del Día 1 no cuenta porque tras expandir `repeatDays` no se distingue del Día 2. 3 tests nuevos (554 en verde). En el emulador, el tratamiento importado a las 23:25 elige el lunes 16 y muestra "21 alarmas en 7 días".
 
 ## Trazabilidad rápida
 
@@ -198,7 +202,7 @@
 | R-1 Plantilla | T-11, T-21 |
 | R-2 Entrada | T-21 |
 | R-3 Validación | T-08, T-09, T-10, T-11, T-12, T-33 |
-| R-4 Revisión | T-13, T-14, T-22, T-35 |
+| R-4 Revisión | T-13, T-14, T-22, T-35, T-38 |
 | R-5 Programación | T-13, T-15, T-16, T-20, T-22 |
 | R-6 Reemplazo | T-06, T-20, T-22, T-34 |
 | R-7 Notificación | T-16, T-17, T-18, T-24 |

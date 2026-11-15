@@ -37,14 +37,13 @@ Cada paso dice qué hacer y qué se espera. La columna *Resultado* recoge la úl
 | # | Paso | Esperado | Resultado (2026-11-15, emulador Android 16) |
 |---|---|---|---|
 | 12 | Programar "Paseos de Luna" para el miércoles 18 | Orden de un día con 2 alarmas | ✅ |
-| 13 | Importar el tratamiento (`repeatDays` 7) y elegir el lunes 16 con "Cambiar fecha" | Revisión con "Día 1 · lunes 16 de noviembre" … "Día 7", horas sin "(+1 día)" y "21 alarmas en 7 días, del lunes 16 al domingo 22 de noviembre" (R-4.13–R-4.15) | ✅ Con la fecha que eligió la app (hoy a las 23:04) el resumen decía "18 alarmas en 6 días": el Día 1 ya había pasado entero (ver nota) |
+| 13 | Importar el tratamiento (`repeatDays` 7) y elegir el lunes 16 con "Cambiar fecha" | Revisión con "Día 1 · lunes 16 de noviembre" … "Día 7", horas sin "(+1 día)" y "21 alarmas en 7 días, del lunes 16 al domingo 22 de noviembre" (R-4.13–R-4.15) | ✅ Con la fecha que eligió la app (hoy a las 23:04) el resumen decía "18 alarmas en 6 días": el Día 1 ya había pasado entero; corregido en T-38 (ver nota) |
 | 14 | "Programar alarmas" | Diálogo "Ya hay rutinas en esas fechas" con "Paseos de Luna (18 de noviembre)" y el aviso de reemplazo (R-6.6, R-6.7) | ✅ Tras corregir las comillas del aviso, que Android quitaba; "Mantener ambas" programa 21 alarmas exactas |
 | 15 | Inicio y detalle | Inicio: "del lunes 16 al domingo 22 de noviembre de 2026"; detalle con el mismo rango y cabeceras por día (R-8.2, R-9.6) | ✅ |
 | 16 | Adelantar el reloj al jueves 19 a las 12:00 y reiniciar | Tras el arranque quedan las 11 tomas futuras, exactas; la de las 06:00 del jueves y los paseos aparecen como *Omitidos*; el detalle baja hasta "Día 4" con la toma de las 14:00 como próxima | ✅ 11 alarmas con `window=0` |
 | 17 | "Duplicar para otra fecha" → lunes 30 de noviembre | Revisión con "Día 1 · lunes 30 de noviembre", "Día 2 · martes 1 de diciembre" y "21 alarmas en 7 días, del lunes 30 de noviembre al domingo 6 de diciembre" (R-10.7) | ✅ |
 | 18 | `./gradlew koverVerify` | ≥ 80 % (R-13.5) | ✅ 99,2 % (782 de 788 líneas) |
 
-**Nota (pendiente de decisión):** sin `date`, la app elige hoy si queda alguna actividad futura en *toda* la rutina
-(R-4.5). En una rutina de varios días importada por la noche eso da un Día 1 ya pasado y un tratamiento un día más
-corto. Propuesta: en rutinas de varios días, elegir hoy solo si queda alguna actividad del Día 1 (`dayOffset` 0–1);
-si no, mañana.
+**Nota:** sin `date`, la app elegía hoy si quedaba alguna actividad futura en *toda* la rutina. En una rutina de
+varios días importada por la noche eso daba un Día 1 ya pasado. Desde T-38 (D-61) solo cuentan las actividades del
+Día 1, y el paso 13 debe elegir mañana sin tocar la fecha.

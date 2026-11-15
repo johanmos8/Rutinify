@@ -10,7 +10,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 
-/** T-13: preselected date on the Review screen (R-4.4, R-4.5). */
+/** T-13, T-38: preselected date on the Review screen (R-4.4, R-4.5, D-61). */
 class DefaultDatePolicyTest {
 
     private val bogota = ZoneId.of("America/Bogota")
@@ -83,5 +83,32 @@ class DefaultDatePolicyTest {
 
         assertThat(policy.defaultDate(routine, now, bogota).date).isEqualTo(LocalDate.of(2026, 11, 5))
         assertThat(policy.defaultDate(routine, now, ZoneId.of("Europe/Madrid")).date).isEqualTo(LocalDate.of(2026, 11, 6))
+    }
+
+    // ---- Multi-day routines (T-38) ----
+
+    /** 06:00, 14:00 and 22:00 for 7 days (dayOffset 0..6). */
+    private val treatment = (0..6).flatMap { day -> listOf("06:00", "14:00", "22:00").map { it to day } }.toTypedArray()
+
+    @Test
+    fun `una rutina de varios dias con el dia 1 ya pasado empieza manana`() { // R-4.5, D-61
+        val result = policy.defaultDate(draft(null, *treatment), nowAt(23), bogota)
+
+        assertThat(result).isEqualTo(DefaultDate(LocalDate.of(2026, 11, 6), chosenByApp = true))
+    }
+
+    @Test
+    fun `una rutina de varios dias con tomas del dia 1 por delante empieza hoy`() { // R-4.5
+        val result = policy.defaultDate(draft(null, *treatment), nowAt(12), bogota)
+
+        assertThat(result).isEqualTo(DefaultDate(LocalDate.of(2026, 11, 5), chosenByApp = true))
+    }
+
+    @Test
+    fun `en una rutina de varios dias el dayOffset 1 es el dia 2 y no cuenta`() { // R-4.5, D-61
+        // After repeatDays expansion, Day 1's 02:00 and Day 2's activities both have dayOffset 1
+        val result = policy.defaultDate(draft(null, "22:00" to 0, "02:00" to 1, "22:00" to 4), nowAt(23), bogota)
+
+        assertThat(result).isEqualTo(DefaultDate(LocalDate.of(2026, 11, 6), chosenByApp = true))
     }
 }
