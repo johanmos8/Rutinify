@@ -15,4 +15,7 @@ data class OrderDetail(
     val pending: Int get() = timeline.count { it.alarm.status == AlarmStatus.PENDING }
     val total: Int get() = timeline.size
     val displayStatus: OrderDisplayStatus get() = OrderSummary(order, pending, total).displayStatus
+
+    /** Days the order covers, from its activities' `dayOffset` (R-9.6, D-55). */
+    val span: RoutineSpan get() = RoutineSpan.of(order.date, timeline.maxOfOrNull { it.alarm.dayOffset } ?: 0)
 }

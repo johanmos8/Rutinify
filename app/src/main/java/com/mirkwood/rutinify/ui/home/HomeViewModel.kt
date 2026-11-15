@@ -6,7 +6,8 @@ import com.mirkwood.rutinify.domain.model.OrderDisplayStatus
 import com.mirkwood.rutinify.domain.model.OrderSummary
 import com.mirkwood.rutinify.domain.usecase.GetPermissionStatusUseCase
 import com.mirkwood.rutinify.domain.usecase.ObserveOrderSummariesUseCase
-import com.mirkwood.rutinify.ui.common.DateFormats
+import com.mirkwood.rutinify.ui.common.SpanLabels
+import com.mirkwood.rutinify.ui.common.UiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -19,7 +20,8 @@ import javax.inject.Inject
 data class OrderCardUi(
     val id: Long,
     val name: String,
-    val dateLabel: String,
+    /** "jueves 5 de noviembre de 2026" or "del sábado 14 al viernes 20 de noviembre de 2026" (R-8.2). */
+    val dateLabel: UiText,
     val pending: Int,
     val total: Int,
     val status: OrderDisplayStatus,
@@ -63,7 +65,7 @@ class HomeViewModel @Inject constructor(
     private fun toCard(summary: OrderSummary) = OrderCardUi(
         id = summary.order.id,
         name = summary.order.name,
-        dateLabel = summary.order.date.format(DateFormats.LONG_DATE),
+        dateLabel = SpanLabels.long(summary.span),
         pending = summary.pending,
         total = summary.total,
         status = summary.displayStatus,

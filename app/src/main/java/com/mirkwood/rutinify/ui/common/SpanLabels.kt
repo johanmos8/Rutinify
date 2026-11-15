@@ -6,7 +6,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-/** Labels for the days an order covers: conflict dialog (R-6.7) and Review summary (R-4.14). */
+/** Labels for the days an order covers: conflict dialog (R-6.7), Review (R-4.13, R-4.14), Home and detail (R-8.2). */
 internal object SpanLabels {
     private val SPANISH: Locale = Locale.forLanguageTag("es-ES")
     private val DAY: DateTimeFormatter = DateTimeFormatter.ofPattern("d", SPANISH)
@@ -41,8 +41,26 @@ internal object SpanLabels {
         else -> range(first.format(WEEKDAY_DAY), last.format(WEEKDAY_DAY_MONTH))
     }
 
-    /** "lunes 16 de noviembre", for the day headers of Review (R-4.13). */
+    /**
+     * Home and order detail (R-8.2): "sábado 14 de noviembre de 2026" for a single-day routine, otherwise
+     * "del sábado 14 al viernes 20 de noviembre de 2026", the year at the end and on both ends only when it changes.
+     */
+    fun long(span: RoutineSpan): UiText {
+        val (start, end) = span
+        return when {
+            !span.isMultiDay -> UiText.Plain(start.format(WEEKDAY_DAY_MONTH_YEAR))
+            start.year != end.year -> range(start.format(WEEKDAY_DAY_MONTH_YEAR), end.format(WEEKDAY_DAY_MONTH_YEAR))
+            start.month != end.month -> range(start.format(WEEKDAY_DAY_MONTH), end.format(WEEKDAY_DAY_MONTH_YEAR))
+            else -> range(start.format(WEEKDAY_DAY), end.format(WEEKDAY_DAY_MONTH_YEAR))
+        }
+    }
+
+    /** "lunes 16 de noviembre", for the day headers of Review and order detail (R-4.13, R-9.6). */
     fun weekdayDate(date: LocalDate): String = date.format(WEEKDAY_DAY_MONTH)
+
+    /** "Día 3 · lunes 16 de noviembre" (R-4.13, R-9.6). */
+    fun dayHeader(dayOffset: Int, date: LocalDate): UiText =
+        UiText.Res(R.string.review_day_header, listOf(dayOffset + 1, weekdayDate(date)))
 
     private fun range(from: String, to: String) = UiText.Res(R.string.date_range, listOf(from, to))
 }

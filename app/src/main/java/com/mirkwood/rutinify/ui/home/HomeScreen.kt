@@ -36,6 +36,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mirkwood.rutinify.R
 import com.mirkwood.rutinify.ui.common.OrderStatusLabel
+import com.mirkwood.rutinify.ui.common.asString
 import com.mirkwood.rutinify.ui.preview.PreviewData
 import com.mirkwood.rutinify.ui.preview.ThemePreviews
 import com.mirkwood.rutinify.ui.theme.RutinifyTheme
@@ -145,7 +146,7 @@ private fun OrderCard(card: OrderCardUi, onClick: () -> Unit, modifier: Modifier
                 )
                 OrderStatusLabel(card.status)
             }
-            Text(card.dateLabel, style = MaterialTheme.typography.bodyMedium)
+            Text(card.dateLabel.asString(), style = MaterialTheme.typography.bodyMedium)
             Text(
                 text = stringResource(R.string.home_order_pending, card.pending, card.total),
                 style = MaterialTheme.typography.bodySmall,

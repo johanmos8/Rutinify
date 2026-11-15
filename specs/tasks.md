@@ -182,9 +182,10 @@
   - `ReviewScreen`: cabeceras "Día {k} · {fecha}" en el `LazyColumn` (keys estables), resumen nuevo, previews claro/oscuro con `PreviewData` de varios días.
   - Rutinas de 0–1 días sin cambios visibles (tests de regresión del VM).
   - _Hecho:_ `SchedulePreview` añade `days` e `isMultiDay`, y `ScheduleSummary` añade `dayCount` (D-59). Revisión muestra "Día {k} · {fecha}" con keys estables, horas sin sufijo y el resumen "{n} alarmas en {d} días, del … al …" (o "el …" si queda un día). Al cambiar la fecha se desplaza todo. Las rutinas de 0–1 días no cambian. Previews claro/oscuro de varios días. 15 tests nuevos (542 en verde).
-- [ ] **T-36 · Inicio y detalle de varios días** — (R-8.2, R-9.6, R-10.7)
+- [x] **T-36 · Inicio y detalle de varios días** — (R-8.2, R-9.6, R-10.7)
   - `observeSummaries` devuelve el mayor `dayOffset`; Inicio muestra el rango; detalle agrupa por día; duplicar conserva los `dayOffset` (test del use case).
   - Previews nuevos y tests de VM.
+  - _Hecho:_ `observeSummaries` devuelve `max_day_offset` (sin migración) y `OrderSummary`/`OrderDetail` exponen su `span`. Inicio y la cabecera del detalle muestran "del sábado 14 al viernes 20 de noviembre de 2026" en órdenes de varios días (D-60). El detalle pone "Día {k} · {fecha}" sobre la primera alarma de cada día, sin "+1 día". Test de duplicar con `dayOffset` 0–6. Previews claro/oscuro de Inicio y detalle. 9 tests nuevos (551 en verde).
 - [ ] **T-37 · Verificación v1.1** — (R-13.5)
   - `koverVerify` ≥ 80 %; añadir a `specs/manual-test.md` los pasos del tratamiento de 7 días (importar, conflicto con la rutina del día, reinicio a mitad, duplicar) y ejecutarlos en el emulador.
   - README: quitar "una rutina cubre un solo día" de los límites, documentar `repeatDays` en el contrato y añadir el ejemplo de medicación de varios días.

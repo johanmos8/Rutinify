@@ -116,7 +116,7 @@ class OrderDetailViewModelTest {
 
         assertThat(state.isLoading).isFalse()
         assertThat(state.name).isEqualTo("Cachorro")
-        assertThat(state.dateLabel).isEqualTo("jueves 5 de noviembre de 2026")
+        assertThat(state.dateLabel).isEqualTo(UiText.Plain("jueves 5 de noviembre de 2026"))
         assertThat(state.status).isEqualTo(OrderDisplayStatus.ACTIVE)
         assertThat(state.pending).isEqualTo(2)
         assertThat(state.total).isEqualTo(3)
@@ -137,6 +137,36 @@ class OrderDetailViewModelTest {
         assertThat(timeline[0].description).isEqualTo("En su cama")
         assertThat(timeline[0].category).isEqualTo("siesta")
         assertThat(timeline[1].description).isNull()
+    }
+
+    /** Antibiotic at 08:00 and 20:00 for 3 days from Thursday 5 November. */
+    private val treatmentAlarms = (0..2).flatMap { day ->
+        listOf(8, 20).mapIndexed { i, hour -> testAlarm(id = 100L + day * 2 + i, time = LocalTime.of(hour, 0), dayOffset = day, title = "Dosis") }
+    }.toTypedArray()
+
+    @Test
+    fun `una orden de un dia no tiene cabeceras de dia`() = runTest { // R-9.6
+        setOrder(OrderStatus.ACTIVE, *defaultAlarms)
+
+        assertThat(subscribed(viewModel()).uiState.value.timeline.map { it.dayTitle }).containsExactly(null, null, null)
+    }
+
+    @Test
+    fun `una orden de varios dias agrupa por dia y muestra su rango`() = runTest { // R-9.6, R-8.2
+        setOrder(OrderStatus.ACTIVE, *treatmentAlarms)
+
+        val state = subscribed(viewModel()).uiState.value
+
+        assertThat(state.dateLabel).isEqualTo(UiText.Res(R.string.date_range, listOf("jueves 5", "sábado 7 de noviembre de 2026")))
+        assertThat(state.timeline.map { it.dayTitle }).containsExactly(
+            UiText.Res(R.string.review_day_header, listOf(1, "jueves 5 de noviembre")),
+            null,
+            UiText.Res(R.string.review_day_header, listOf(2, "viernes 6 de noviembre")),
+            null,
+            UiText.Res(R.string.review_day_header, listOf(3, "sábado 7 de noviembre")),
+            null,
+        ).inOrder()
+        assertThat(state.timeline.none { it.nextDay }).isTrue()
     }
 
     @Test

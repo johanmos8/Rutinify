@@ -6,7 +6,7 @@ import com.mirkwood.rutinify.domain.model.RoutineSpan
 import org.junit.Test
 import java.time.LocalDate
 
-/** T-34, T-35: days of an order in the conflict dialog (R-6.7) and the Review summary (R-4.14). */
+/** T-34, T-35: days of an order in the conflict dialog (R-6.7) the Review summary (R-4.14) and Home (R-8.2). */
 class SpanLabelsTest {
 
     private val nov14 = LocalDate.of(2026, 11, 14)
@@ -54,5 +54,18 @@ class SpanLabelsTest {
     fun `un solo dia se nombra con el`() { // R-4.14, D-59
         assertThat(SpanLabels.withWeekdays(nov14, nov14))
             .isEqualTo(UiText.Res(R.string.date_single, listOf("sábado 14 de noviembre")))
+    }
+
+    // ---- Home (T-36) ----
+
+    @Test
+    fun `en Inicio una rutina de un dia muestra la fecha larga`() { // R-8.2
+        assertThat(SpanLabels.long(RoutineSpan.of(nov14, 1))).isEqualTo(UiText.Plain("sábado 14 de noviembre de 2026"))
+    }
+
+    @Test
+    fun `en Inicio el rango lleva el ano al final`() { // R-8.2
+        assertThat(SpanLabels.long(RoutineSpan.of(nov14, 6)))
+            .isEqualTo(UiText.Res(R.string.date_range, listOf("sábado 14", "viernes 20 de noviembre de 2026")))
     }
 }

@@ -5,11 +5,12 @@ import androidx.room.Embedded
 import androidx.room.Relation
 import java.time.LocalDate
 
-/** Row of [OrderDao.observeSummaries]: order + alarm counts (R-8.2). */
+/** Row of [OrderDao.observeSummaries]: order + alarm counts + largest `day_offset` for its span (R-8.2). */
 data class OrderSummaryRow(
     @Embedded val order: RoutineOrderEntity,
     val pending: Int,
     val total: Int,
+    @ColumnInfo(name = "max_day_offset") val maxDayOffset: Int,
 )
 
 /** Order in conflict with its largest `day_offset` (0 without alarms), to rebuild its span (R-6.7). */

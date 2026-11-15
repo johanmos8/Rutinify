@@ -272,7 +272,7 @@ class ReviewViewModel @Inject constructor(
                 preview.days.map { day ->
                     ReviewDayUi(
                         dayOffset = day.dayOffset,
-                        title = UiText.Res(R.string.review_day_header, listOf(day.dayOffset + 1, SpanLabels.weekdayDate(day.date))),
+                        title = SpanLabels.dayHeader(day.dayOffset, day.date),
                         items = day.items.map { itemUi(it, multiDay = true) },
                     )
                 }

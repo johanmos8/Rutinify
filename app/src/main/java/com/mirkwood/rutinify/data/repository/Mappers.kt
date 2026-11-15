@@ -64,7 +64,7 @@ internal fun AlarmItem.toEntity() = AlarmItemEntity(
     statusChangedAt = statusChangedAt,
 )
 
-internal fun OrderSummaryRow.toDomain() = OrderSummary(order = order.toDomain(), pending = pending, total = total)
+internal fun OrderSummaryRow.toDomain() = OrderSummary(order = order.toDomain(), pending = pending, total = total, maxDayOffset = maxDayOffset)
 
 internal fun OrderWithAlarmsRow.toDomain() = OrderWithAlarms(
     order = order.toDomain(),

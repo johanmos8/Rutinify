@@ -16,7 +16,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 
-/** T-28: "Duplicar para otra fecha" (R-10.7). */
+/** T-28, T-36: "Duplicar para otra fecha" (R-10.7). */
 class DuplicateOrderUseCaseTest {
 
     private val orders = FakeOrderRepository()
@@ -104,5 +104,18 @@ class DuplicateOrderUseCaseTest {
 
         assertThat(duplicate(1, newDate)).isNull()
         assertThat(duplicate(2, newDate)).isNull()
+    }
+
+    @Test
+    fun `una orden de varios dias conserva sus dayOffset y la fecha elegida es el dia 1`() = runTest { // R-10.7
+        orders.detail(1).value = OrderWithAlarms(
+            testOrder(id = 1, name = "Antibiótico"),
+            (0..6).map { day -> testAlarm(id = 10L + day, time = LocalTime.of(8, 0), dayOffset = day, title = "Dosis") },
+        )
+
+        val draft = requireNotNull(drafts.get(requireNotNull(duplicate(1, newDate)))).draft
+
+        assertThat(draft.date).isEqualTo(newDate)
+        assertThat(draft.items.map { it.dayOffset }).containsExactly(0, 1, 2, 3, 4, 5, 6).inOrder()
     }
 }

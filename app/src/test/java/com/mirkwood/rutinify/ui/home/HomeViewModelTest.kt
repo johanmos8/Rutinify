@@ -10,6 +10,8 @@ import com.mirkwood.rutinify.testutil.FakeOrderRepository
 import com.mirkwood.rutinify.testutil.FakePermissionChecker
 import com.mirkwood.rutinify.testutil.MainDispatcherRule
 import com.mirkwood.rutinify.testutil.testOrder
+import com.mirkwood.rutinify.R
+import com.mirkwood.rutinify.ui.common.UiText
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -19,7 +21,7 @@ import org.junit.Rule
 import org.junit.Test
 import java.time.LocalDate
 
-/** T-23: Home screen logic (R-8.1–R-8.3, R-8.5, R-8.6). */
+/** T-23, T-36: Home screen logic (R-8.1–R-8.3, R-8.5, R-8.6). */
 @OptIn(ExperimentalCoroutinesApi::class) // UnconfinedTestDispatcher
 class HomeViewModelTest {
 
@@ -44,7 +46,8 @@ class HomeViewModelTest {
         status: OrderStatus = OrderStatus.ACTIVE,
         name: String = "Rutina $id",
         date: LocalDate = LocalDate.of(2026, 11, 5),
-    ) = OrderSummary(testOrder(id = id, name = name, date = date, status = status), pending, total)
+        maxDayOffset: Int = 0,
+    ) = OrderSummary(testOrder(id = id, name = name, date = date, status = status), pending, total, maxDayOffset)
 
     @Test
     fun `mientras carga no muestra el estado vacio`() { // R-8.5: no empty-state flash before Room answers
@@ -73,7 +76,7 @@ class HomeViewModelTest {
             OrderCardUi(
                 id = 7,
                 name = "Cachorro",
-                dateLabel = "jueves 5 de noviembre de 2026",
+                dateLabel = UiText.Plain("jueves 5 de noviembre de 2026"),
                 pending = 3,
                 total = 5,
                 status = OrderDisplayStatus.ACTIVE,
@@ -151,5 +154,28 @@ class HomeViewModelTest {
         vm.onAction(HomeAction.Resumed)
 
         assertThat(vm.uiState.value.missingPermissions).isFalse()
+    }
+
+    @Test
+    fun `una orden de un dia con madrugada muestra solo su fecha`() = runTest { // R-8.2
+        orders.summaries.value = listOf(summary(1, maxDayOffset = 1))
+
+        assertThat(subscribed(viewModel()).uiState.value.orders.single().dateLabel)
+            .isEqualTo(UiText.Plain("jueves 5 de noviembre de 2026"))
+    }
+
+    @Test
+    fun `una orden de varios dias muestra su rango con el ano al final`() = runTest { // R-8.2
+        orders.summaries.value = listOf(
+            summary(1, date = LocalDate.of(2026, 11, 14), maxDayOffset = 6),
+            summary(2, date = LocalDate.of(2026, 11, 28), maxDayOffset = 6),
+            summary(3, date = LocalDate.of(2026, 12, 29), maxDayOffset = 5),
+        )
+
+        assertThat(subscribed(viewModel()).uiState.value.orders.map { it.dateLabel }).containsExactly(
+            UiText.Res(R.string.date_range, listOf("sábado 14", "viernes 20 de noviembre de 2026")),
+            UiText.Res(R.string.date_range, listOf("sábado 28 de noviembre", "viernes 4 de diciembre de 2026")),
+            UiText.Res(R.string.date_range, listOf("martes 29 de diciembre de 2026", "domingo 3 de enero de 2027")),
+        ).inOrder()
     }
 }

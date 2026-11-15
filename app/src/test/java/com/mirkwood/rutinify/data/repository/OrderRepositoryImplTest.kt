@@ -191,6 +191,13 @@ class OrderRepositoryImplTest {
     }
 
     @Test
+    fun `observeSummaries lleva el rango de la orden`() = runTest { // R-8.2, T-36
+        repository.createOrder(newOrder(), listOf(newAlarm(0), newAlarm(1, dayOffset = 6))).getOrThrow()
+
+        assertThat(repository.observeSummaries().first().single().span).isEqualTo(RoutineSpan.of(date, 6))
+    }
+
+    @Test
     fun `findOpenOverlapping mapea a dominio con el rango de la orden`() = runTest { // R-6.6, R-6.7
         val created = repository.createOrder(newOrder(), listOf(newAlarm(0), newAlarm(1, dayOffset = 6))).getOrThrow()
 

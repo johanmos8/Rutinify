@@ -60,6 +60,7 @@ import com.mirkwood.rutinify.domain.model.AlarmStatus
 import com.mirkwood.rutinify.ui.common.BackTopAppBar
 import com.mirkwood.rutinify.ui.common.RoutineDatePickerDialog
 import com.mirkwood.rutinify.ui.common.OrderStatusLabel
+import com.mirkwood.rutinify.ui.common.UiText
 import com.mirkwood.rutinify.domain.model.OrderDisplayStatus
 import com.mirkwood.rutinify.ui.preview.PreviewData
 import com.mirkwood.rutinify.ui.preview.ThemePreviews
@@ -231,12 +232,15 @@ private fun Timeline(state: OrderDetailUiState, onAction: (OrderDetailAction) ->
             item(key = "windowed") { WindowedWarning() }
         }
         items(state.timeline, key = { it.id }) { item ->
-            TimelineCard(
-                item = item,
-                onMarkDone = { onAction(OrderDetailAction.MarkDone(item.id)) },
-                onDelete = { onAction(OrderDetailAction.Delete(item.id)) },
-                modifier = Modifier.animateItem(),
-            )
+            // The day header (R-9.6) shares its alarm's list item, so scrollToIndex keeps pointing at alarms
+            Column(modifier = Modifier.animateItem(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                item.dayTitle?.let { DayHeader(it) }
+                TimelineCard(
+                    item = item,
+                    onMarkDone = { onAction(OrderDetailAction.MarkDone(item.id)) },
+                    onDelete = { onAction(OrderDetailAction.Delete(item.id)) },
+                )
+            }
         }
     }
 }
@@ -245,7 +249,7 @@ private fun Timeline(state: OrderDetailUiState, onAction: (OrderDetailAction) ->
 private fun Header(state: OrderDetailUiState, onAction: (OrderDetailAction) -> Unit, modifier: Modifier = Modifier) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(state.dateLabel, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            Text(state.dateLabel.asString(), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
             OrderStatusLabel(state.status)
         }
         Text(
@@ -293,6 +297,16 @@ private fun WindowedWarning(modifier: Modifier = Modifier) {
             modifier = Modifier.padding(12.dp),
         )
     }
+}
+
+@Composable
+private fun DayHeader(title: UiText, modifier: Modifier = Modifier) {
+    Text(
+        text = title.asString(),
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = modifier.fillMaxWidth().padding(top = 8.dp),
+    )
 }
 
 @Composable
@@ -387,6 +401,12 @@ private fun OrderDetailScreenPausedPreview() {
         timeline = PreviewData.orderDetailState.timeline.map { it.copy(isNext = false) },
     )
     RutinifyTheme { OrderDetailScreen(state = state, onAction = {}, onBack = {}) }
+}
+
+@ThemePreviews
+@Composable
+private fun OrderDetailScreenMultiDayPreview() {
+    RutinifyTheme { OrderDetailScreen(state = PreviewData.orderDetailStateMultiDay, onAction = {}, onBack = {}) }
 }
 
 @ThemePreviews

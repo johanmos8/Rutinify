@@ -20,7 +20,8 @@ interface OrderDao {
         """
         SELECT o.*,
                COALESCE(SUM(CASE WHEN a.status = 'PENDING' THEN 1 ELSE 0 END), 0) AS pending,
-               COUNT(a.id) AS total
+               COUNT(a.id) AS total,
+               COALESCE(MAX(a.day_offset), 0) AS max_day_offset
         FROM routine_order o
         LEFT JOIN alarm_item a ON a.order_id = o.id
         GROUP BY o.id

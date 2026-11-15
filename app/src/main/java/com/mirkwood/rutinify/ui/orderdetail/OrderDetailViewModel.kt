@@ -22,6 +22,7 @@ import com.mirkwood.rutinify.domain.usecase.PauseOrderUseCase
 import com.mirkwood.rutinify.domain.usecase.RestoreAlarmUseCase
 import com.mirkwood.rutinify.domain.usecase.ResumeOrderUseCase
 import com.mirkwood.rutinify.ui.common.DateFormats
+import com.mirkwood.rutinify.ui.common.SpanLabels
 import com.mirkwood.rutinify.ui.common.UiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -35,7 +36,9 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Clock
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneOffset
+import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
 /** One alarm on the timeline (R-9.1). */
@@ -43,7 +46,7 @@ data class TimelineItemUi(
     val id: Long,
     /** Effective local time, "06:45" (a snoozed alarm shows its new time). */
     val time: String,
-    /** Rings the day after the order date: shown as "(+1 día)". */
+    /** Rings the day after the order date: shown as "(+1 día)"; never in a multi-day order (R-9.6). */
     val nextDay: Boolean,
     val title: String,
     val description: String?,
@@ -55,6 +58,8 @@ data class TimelineItemUi(
     val isHighlighted: Boolean,
     /** "Marcar como hecha" is offered for PENDING and FIRED alarms (R-9.5). */
     val canMarkDone: Boolean = status == AlarmStatus.PENDING || status == AlarmStatus.FIRED,
+    /** "Día 3 · lunes 16 de noviembre" above the first alarm of each day of a multi-day order (R-9.6). */
+    val dayTitle: UiText? = null,
 )
 
 data class OrderDetailUiState(
@@ -62,7 +67,8 @@ data class OrderDetailUiState(
     /** The order was deleted (or a stale notification pointed to it). */
     val notFound: Boolean = false,
     val name: String = "",
-    val dateLabel: String = "",
+    /** Date, or the range of a multi-day order (R-8.2). */
+    val dateLabel: UiText = UiText.Plain(""),
     val notes: String? = null,
     val status: OrderDisplayStatus = OrderDisplayStatus.ACTIVE,
     val pending: Int = 0,
@@ -282,12 +288,23 @@ class OrderDetailViewModel @Inject constructor(
 
     private fun toUiState(detail: OrderDetail, exactAllowed: Boolean): OrderDetailUiState {
         val highlighted = highlightAlarmId?.takeIf { id -> detail.timeline.any { it.alarm.id == id } }
-        val timeline = detail.timeline.map { toItem(it, detail, highlighted) }
+        val multiDay = detail.span.isMultiDay
+        var lastDay: LocalDate? = null
+        val timeline = detail.timeline.map { entry ->
+            val day = entry.triggerAt.atZone(zoneProvider.zone()).toLocalDate()
+            val title = if (multiDay && day != lastDay) {
+                SpanLabels.dayHeader(ChronoUnit.DAYS.between(detail.order.date, day).toInt(), day)
+            } else {
+                null
+            }
+            lastDay = day
+            toItem(entry, detail, highlighted, multiDay, title)
+        }
         val scrollTarget = highlighted ?: detail.nextAlarmId
         return OrderDetailUiState(
             isLoading = false,
             name = detail.order.name,
-            dateLabel = detail.order.date.format(DateFormats.LONG_DATE),
+            dateLabel = SpanLabels.long(detail.span),
             notes = detail.order.notes,
             status = detail.displayStatus,
             pending = detail.pending,
@@ -306,19 +323,26 @@ class OrderDetailViewModel @Inject constructor(
         )
     }
 
-    private fun toItem(entry: TimelineEntry, detail: OrderDetail, highlighted: Long?): TimelineItemUi {
+    private fun toItem(
+        entry: TimelineEntry,
+        detail: OrderDetail,
+        highlighted: Long?,
+        multiDay: Boolean,
+        dayTitle: UiText?,
+    ): TimelineItemUi {
         val local = entry.triggerAt.atZone(zoneProvider.zone())
         val alarm = entry.alarm
         return TimelineItemUi(
             id = alarm.id,
             time = local.format(DateFormats.TIME),
-            nextDay = local.toLocalDate().isAfter(detail.order.date),
+            nextDay = !multiDay && local.toLocalDate().isAfter(detail.order.date),
             title = alarm.title,
             description = alarm.description,
             category = alarm.category,
             status = alarm.status,
             isNext = alarm.id == detail.nextAlarmId,
             isHighlighted = alarm.id == highlighted,
+            dayTitle = dayTitle,
         )
     }
 

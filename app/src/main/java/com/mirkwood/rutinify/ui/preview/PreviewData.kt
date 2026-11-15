@@ -101,17 +101,25 @@ internal object PreviewData {
     val homeState = HomeUiState(
         isLoading = false,
         orders = listOf(
-            OrderCardUi(3, "Cachorro", "viernes 13 de noviembre de 2026", 5, 8, OrderDisplayStatus.ACTIVE),
-            OrderCardUi(2, "Rutina de estudio para el examen final de matemáticas", "jueves 12 de noviembre de 2026", 4, 6, OrderDisplayStatus.PAUSED),
-            OrderCardUi(1, "Mudanza", "miércoles 11 de noviembre de 2026", 0, 3, OrderDisplayStatus.FINISHED),
-            OrderCardUi(4, "Viaje", "martes 10 de noviembre de 2026", 0, 2, OrderDisplayStatus.CANCELLED),
+            OrderCardUi(
+                5,
+                "Antibiótico de Luna",
+                UiText.Res(R.string.date_range, listOf("sábado 14", "viernes 20 de noviembre de 2026")),
+                18,
+                21,
+                OrderDisplayStatus.ACTIVE,
+            ),
+            OrderCardUi(3, "Cachorro", UiText.Plain("viernes 13 de noviembre de 2026"), 5, 8, OrderDisplayStatus.ACTIVE),
+            OrderCardUi(2, "Rutina de estudio para el examen final de matemáticas", UiText.Plain("jueves 12 de noviembre de 2026"), 4, 6, OrderDisplayStatus.PAUSED),
+            OrderCardUi(1, "Mudanza", UiText.Plain("miércoles 11 de noviembre de 2026"), 0, 3, OrderDisplayStatus.FINISHED),
+            OrderCardUi(4, "Viaje", UiText.Plain("martes 10 de noviembre de 2026"), 0, 2, OrderDisplayStatus.CANCELLED),
         ),
     )
 
     val orderDetailState = OrderDetailUiState(
         isLoading = false,
         name = "Cachorro",
-        dateLabel = "viernes 13 de noviembre de 2026",
+        dateLabel = UiText.Plain("viernes 13 de noviembre de 2026"),
         notes = "Llevar bolsas y agua",
         status = OrderDisplayStatus.ACTIVE,
         pending = 2,
@@ -129,4 +137,36 @@ internal object PreviewData {
         pauseAction = PauseAction.PAUSE,
         canDuplicate = true,
     )
+
+    /** Antibiotic at 08:00 and 20:00 for 3 days, grouped by day (R-9.6). */
+    val orderDetailStateMultiDay: OrderDetailUiState = run {
+        val dates = listOf("sábado 14 de noviembre", "domingo 15 de noviembre", "lunes 16 de noviembre")
+        val timeline = dates.flatMapIndexed { day, date ->
+            listOf("08:00", "20:00").mapIndexed { i, time ->
+                val id = day * 2L + i + 1
+                TimelineItemUi(
+                    id = id,
+                    time = time,
+                    nextDay = false,
+                    title = "Antibiótico",
+                    description = "Con comida",
+                    category = "salud",
+                    status = if (id <= 2) AlarmStatus.DONE else AlarmStatus.PENDING,
+                    isNext = id == 3L,
+                    isHighlighted = false,
+                    dayTitle = if (i == 0) UiText.Res(R.string.review_day_header, listOf(day + 1, date)) else null,
+                )
+            }
+        }
+        orderDetailState.copy(
+            name = "Antibiótico de Luna",
+            dateLabel = UiText.Res(R.string.date_range, listOf("sábado 14", "lunes 16 de noviembre de 2026")),
+            notes = null,
+            pending = 4,
+            total = 6,
+            timeline = timeline,
+            scrollToIndex = 2,
+            windowedWarning = false,
+        )
+    }
 }

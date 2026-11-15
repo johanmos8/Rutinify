@@ -56,6 +56,17 @@ class OrderDaoTest {
     }
 
     @Test
+    fun `el resumen da el mayor dayOffset de cada orden`() = runTest { // R-8.2, T-36
+        val id = orderDao.insert(order())
+        listOf(0, 6, 3).forEachIndexed { i, offset -> alarmDao.insert(alarm(id, i, dayOffset = offset)) }
+        orderDao.insert(order())
+
+        orderDao.observeSummaries().test {
+            assertThat(awaitItem().map { it.maxDayOffset }).containsExactly(0, 6)
+        }
+    }
+
+    @Test
     fun `el resumen incluye ordenes sin alarmas con cero y cero`() = runTest {
         orderDao.insert(order())
 
