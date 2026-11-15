@@ -115,7 +115,7 @@
 - **R-6.3** WHEN el usuario elige "Mantener ambas", THE SYSTEM SHALL programar la nueva orden sin modificar las existentes.
 - **R-6.4** WHEN el usuario elige "Cancelar", THE SYSTEM SHALL volver a la revisión sin cambios.
 - **R-6.5** IF hay varias órdenes en conflicto, THEN THE SYSTEM SHALL listarlas por nombre en el diálogo, y "Reemplazar" SHALL aplicarse a todas.
-- **R-6.6** *(v1.1, sustituye "misma fecha" en R-6.1)* THE SYSTEM SHALL considerar en conflicto toda orden *Activa* o *Pausada* cuyo rango comparta al menos un día con el rango de la nueva orden. *(D-56)*
+- **R-6.6** *(v1.1, sustituye "misma fecha" en R-6.1)* THE SYSTEM SHALL considerar en conflicto toda orden *Activa* o *Pausada* cuyo rango comparta al menos un día con el rango de la nueva orden. Para esta comparación, una rutina que no es de varios días solo ocupa su fecha (su madrugada no cuenta), así dos rutinas diarias seguidas nunca chocan. *(D-56, D-58)*
 - **R-6.7** WHERE alguna orden en conflicto o la nueva es de varios días, THE SYSTEM SHALL mostrar junto a cada nombre su rango ("del 14 al 20 de noviembre") y avisar en el diálogo que "Reemplazar la anterior" cancela la rutina **completa**, no solo los días que coinciden.
 
 ## R-7 Notificación de la alarma

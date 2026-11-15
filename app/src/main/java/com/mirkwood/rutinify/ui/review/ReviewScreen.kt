@@ -343,8 +343,20 @@ private fun FormField(value: String, onValueChange: (String) -> Unit, label: Int
 private fun ConflictDialog(dialog: ReviewDialog.Conflict, onAction: (ReviewAction) -> Unit) {
     AlertDialog(
         onDismissRequest = { onAction(ReviewAction.DismissDialog) },
-        title = { Text(stringResource(R.string.review_conflict_title)) },
-        text = { Text(stringResource(R.string.review_conflict_body, dialog.orderNames.joinToString(", "))) },
+        title = {
+            Text(stringResource(if (dialog.showsRanges) R.string.review_conflict_title_range else R.string.review_conflict_title))
+        },
+        text = {
+            if (dialog.showsRanges) {
+                val orders = dialog.orders.map { stringResource(R.string.review_conflict_order_range, it.name, it.range.asString()) }
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.review_conflict_body_range, orders.joinToString(", ")))
+                    Text(stringResource(R.string.review_conflict_replace_whole))
+                }
+            } else {
+                Text(stringResource(R.string.review_conflict_body, dialog.orders.joinToString(", ") { it.name }))
+            }
+        },
         confirmButton = {
             Column(horizontalAlignment = Alignment.End) {
                 TextButton(onClick = { onAction(ReviewAction.ConflictReplace) }) { Text(stringResource(R.string.action_replace)) }
@@ -441,7 +453,19 @@ private fun ReviewScreenNothingToSchedulePreview() {
 private fun ReviewScreenConflictPreview() {
     RutinifyTheme {
         ReviewScreen(
-            state = PreviewData.reviewState.copy(dialog = ReviewDialog.Conflict(listOf("Gato", "Perro"))),
+            state = PreviewData.reviewState.copy(dialog = PreviewData.conflictDialog),
+            onAction = {},
+            onBack = {},
+        )
+    }
+}
+
+@ThemePreviews
+@Composable
+private fun ReviewScreenConflictRangesPreview() {
+    RutinifyTheme {
+        ReviewScreen(
+            state = PreviewData.reviewState.copy(dialog = PreviewData.conflictDialogWithRanges),
             onAction = {},
             onBack = {},
         )

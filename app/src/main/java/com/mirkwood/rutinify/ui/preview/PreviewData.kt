@@ -13,6 +13,8 @@ import com.mirkwood.rutinify.ui.home.OrderCardUi
 import com.mirkwood.rutinify.ui.orderdetail.OrderDetailUiState
 import com.mirkwood.rutinify.ui.orderdetail.PauseAction
 import com.mirkwood.rutinify.ui.orderdetail.TimelineItemUi
+import com.mirkwood.rutinify.ui.review.ConflictOrderUi
+import com.mirkwood.rutinify.ui.review.ReviewDialog
 import com.mirkwood.rutinify.ui.review.ReviewItemUi
 import com.mirkwood.rutinify.ui.review.ReviewUiState
 
@@ -29,6 +31,20 @@ internal object PreviewData {
             ValidationIssue(itemIndex = 1, itemTime = "25:00", field = "time", kind = IssueKind.INVALID_TIME, received = "25:00"),
             ValidationIssue(itemIndex = 1, itemTime = "25:00", field = "title", kind = IssueKind.MISSING_FIELD),
         ),
+    )
+
+    /** Two single-day routines on the same date (R-6.1). */
+    val conflictDialog = ReviewDialog.Conflict(
+        listOf(ConflictOrderUi("Gato", UiText.Plain("5 de noviembre")), ConflictOrderUi("Perro", UiText.Plain("5 de noviembre"))),
+    )
+
+    /** A treatment that is still running: names show their days and the replace warning appears (R-6.7). */
+    val conflictDialogWithRanges = ReviewDialog.Conflict(
+        orders = listOf(
+            ConflictOrderUi("Antibiótico de Luna", UiText.Res(R.string.date_range, listOf("14", "20 de noviembre"))),
+            ConflictOrderUi("Cachorro", UiText.Plain("16 de noviembre")),
+        ),
+        showsRanges = true,
     )
 
     val reviewState = ReviewUiState(

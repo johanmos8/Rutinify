@@ -34,9 +34,25 @@ interface OrderDao {
     @Query("SELECT * FROM routine_order WHERE id = :id")
     fun observeWithAlarms(id: Long): Flow<OrderWithAlarmsRow?>
 
-    /** ACTIVE or PAUSED orders on that date: conflict candidates (R-6.1, R-6.5). */
-    @Query("SELECT * FROM routine_order WHERE date = :date AND status IN ('ACTIVE', 'PAUSED') ORDER BY created_at")
-    suspend fun findOpenByDate(date: LocalDate): List<RoutineOrderEntity>
+    /**
+     * ACTIVE or PAUSED orders whose conflict days touch [start]..[end] (R-6.1, R-6.5, R-6.6, D-56, D-58), with
+     * their largest `day_offset`. Like `RoutineSpan.forConflicts`, a stored order only counts beyond its date
+     * when that offset is 2 (`MULTI_DAY_MIN_OFFSET`) or more. Dates are ISO text, so SQLite's `date()` and
+     * string comparison work without a schema change.
+     */
+    @Query(
+        """
+        SELECT * FROM (
+            SELECT o.*,
+                   IFNULL((SELECT MAX(a.day_offset) FROM alarm_item a WHERE a.order_id = o.id), 0) AS max_day_offset
+            FROM routine_order o
+            WHERE o.status IN ('ACTIVE', 'PAUSED') AND o.date <= :end
+        )
+        WHERE date(date, '+' || (CASE WHEN max_day_offset >= 2 THEN max_day_offset ELSE 0 END) || ' days') >= :start
+        ORDER BY created_at, id
+        """,
+    )
+    suspend fun findOpenOverlapping(start: LocalDate, end: LocalDate): List<ConflictingOrderRow>
 
     @Insert
     suspend fun insert(order: RoutineOrderEntity): Long

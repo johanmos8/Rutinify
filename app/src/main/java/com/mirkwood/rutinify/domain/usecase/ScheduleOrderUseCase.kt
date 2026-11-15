@@ -4,6 +4,7 @@ import com.mirkwood.rutinify.domain.model.AlarmStatus
 import com.mirkwood.rutinify.domain.model.NewAlarm
 import com.mirkwood.rutinify.domain.model.NewOrder
 import com.mirkwood.rutinify.domain.model.RoutineDraft
+import com.mirkwood.rutinify.domain.model.spanOn
 import com.mirkwood.rutinify.domain.repository.AlarmRepository
 import com.mirkwood.rutinify.domain.repository.OrderRepository
 import com.mirkwood.rutinify.domain.scheduler.AlarmScheduler
@@ -63,7 +64,11 @@ class ScheduleOrderUseCase @Inject constructor(
         val requested = preview.items.count { it.isIncluded }
         if (requested == 0) return@withLock ScheduleOrderResult.NothingToSchedule
 
-        val replaceIds = if (policy == ConflictPolicy.REPLACE) orders.findOpenByDate(date).map { it.id } else emptyList()
+        val replaceIds = if (policy == ConflictPolicy.REPLACE) {
+            orders.findOpenOverlapping(draft.spanOn(date).forConflicts()).map { it.order.id }
+        } else {
+            emptyList()
+        }
         // Only ACTIVE orders have alarms in AlarmManager; the ones being replaced will be cancelled (R-5.10)
         val alreadyScheduled = alarms.getPendingForActiveOrders().count { it.alarm.orderId !in replaceIds }
         if (alreadyScheduled + requested > MAX_PENDING_ALARMS) {

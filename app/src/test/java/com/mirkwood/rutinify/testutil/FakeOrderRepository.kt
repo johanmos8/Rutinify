@@ -2,6 +2,7 @@ package com.mirkwood.rutinify.testutil
 
 import com.mirkwood.rutinify.domain.model.AlarmItem
 import com.mirkwood.rutinify.domain.model.AlarmStatus
+import com.mirkwood.rutinify.domain.model.ConflictingOrder
 import com.mirkwood.rutinify.domain.model.CreatedOrder
 import com.mirkwood.rutinify.domain.model.NewAlarm
 import com.mirkwood.rutinify.domain.model.NewOrder
@@ -9,6 +10,7 @@ import com.mirkwood.rutinify.domain.model.OrderStatus
 import com.mirkwood.rutinify.domain.model.OrderSummary
 import com.mirkwood.rutinify.domain.model.OrderWithAlarms
 import com.mirkwood.rutinify.domain.model.RoutineOrder
+import com.mirkwood.rutinify.domain.model.RoutineSpan
 import com.mirkwood.rutinify.domain.repository.OrderRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,8 +43,15 @@ class FakeOrderRepository(
 
     override suspend fun getOrder(orderId: Long): RoutineOrder? = orders[orderId]
 
-    override suspend fun findOpenByDate(date: LocalDate): List<RoutineOrder> =
-        orders.values.filter { it.date == date && it.status != OrderStatus.CANCELLED }
+    /** Same rule as the DAO: spans come from the linked alarms' largest `dayOffset` (D-58). */
+    override suspend fun findOpenOverlapping(span: RoutineSpan): List<ConflictingOrder> =
+        orders.values
+            .filter { it.status != OrderStatus.CANCELLED }
+            .map { order ->
+                val maxOffset = alarmRepository?.alarms?.values?.filter { it.orderId == order.id }?.maxOfOrNull { it.dayOffset }
+                ConflictingOrder(order, RoutineSpan.of(order.date, maxOffset ?: 0))
+            }
+            .filter { it.span.forConflicts().overlaps(span) }
 
     override suspend fun updateStatus(orderId: Long, status: OrderStatus) {
         orders[orderId]?.let { orders[orderId] = it.copy(status = status) }

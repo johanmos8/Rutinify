@@ -7,6 +7,7 @@ import com.mirkwood.rutinify.data.local.AlarmItemDao
 import com.mirkwood.rutinify.data.local.OrderDao
 import com.mirkwood.rutinify.data.local.RutinifyDatabase
 import com.mirkwood.rutinify.domain.model.AlarmStatus
+import com.mirkwood.rutinify.domain.model.ConflictingOrder
 import com.mirkwood.rutinify.domain.model.CreatedOrder
 import com.mirkwood.rutinify.domain.model.NewAlarm
 import com.mirkwood.rutinify.domain.model.NewOrder
@@ -14,12 +15,12 @@ import com.mirkwood.rutinify.domain.model.OrderStatus
 import com.mirkwood.rutinify.domain.model.OrderSummary
 import com.mirkwood.rutinify.domain.model.OrderWithAlarms
 import com.mirkwood.rutinify.domain.model.RoutineOrder
+import com.mirkwood.rutinify.domain.model.RoutineSpan
 import com.mirkwood.rutinify.domain.repository.OrderRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.Clock
 import java.time.Instant
-import java.time.LocalDate
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -38,8 +39,10 @@ class OrderRepositoryImpl @Inject constructor(
 
     override suspend fun getOrder(orderId: Long): RoutineOrder? = orderDao.getById(orderId)?.toDomain()
 
-    override suspend fun findOpenByDate(date: LocalDate): List<RoutineOrder> =
-        orderDao.findOpenByDate(date).map { it.toDomain() }
+    override suspend fun findOpenOverlapping(span: RoutineSpan): List<ConflictingOrder> =
+        orderDao.findOpenOverlapping(span.start, span.end).map { row ->
+            ConflictingOrder(row.order.toDomain(), RoutineSpan.of(row.order.date, row.maxDayOffset))
+        }
 
     override suspend fun createOrder(
         order: NewOrder,

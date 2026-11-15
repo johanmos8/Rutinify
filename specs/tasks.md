@@ -172,10 +172,11 @@
   - `prompt_template.txt`: "cada 8 h" se convierte en horas fijas; si todos los días son iguales, un solo día + `repeatDays`; si no, cada día con `dayOffset` 0, 1, 2… (máximo 30 días y 200 actividades en total). El ejemplo canónico sigue igual a `valid_v1.json`.
   - Test de dominio: `TriggerTimeCalculator` con `dayOffset` 6 cruzando un cambio de horario (Europe/Madrid) mantiene la hora de pared.
   - _Hecho:_ el parser lee `routine.repeatDays` (1–30) y expande las actividades al importar; `dayOffset` admite 0–30, y con repetición solo 0–1. El límite de 200 se aplica tras expandir. Los errores siguen numerados sobre el JSON original. Tres `IssueKind` nuevos con sus textos, constantes en `DraftItemRules` y plantilla del prompt con las dos formas de escribir varios días. 22 tests nuevos (17 del parser, 3 de mensajes, 2 de horas) y fixtures `valid_repeat.json` / `valid_multiday.json`: 505 en verde, `koverVerify` pasa (D-57).
-- [ ] **T-34 · Rango de la orden y conflictos** — (R-6.6, R-6.7)
+- [x] **T-34 · Rango de la orden y conflictos** — (R-6.6, R-6.7)
   - `RoutineSpan(start, end)` en dominio, calculado desde fecha + mayor `dayOffset` (borrador y orden); helper `isMultiDay`.
   - `OrderDao.findOpenOverlapping(start, end)` (D-56) con tests Robolectric: solape parcial, contenido, adyacente sin solape, orden sin alarmas, canceladas excluidas. Sustituye a `findOpenByDate` en `ScheduleOrderUseCase`.
   - Diálogo de conflicto con rangos y el aviso de "Reemplazar" cuando hay varios días; tests de VM.
+  - _Hecho:_ `RoutineSpan` y `ConflictingOrder` en el dominio. `findOpenOverlapping` en DAO y repositorio sustituye a `findOpenByDate`, sin migración. La usan la búsqueda de conflictos y "Reemplazar". Las rutinas de un día solo comparan su fecha (D-58). El diálogo muestra el rango de cada orden y avisa que reemplazar cancela rutinas completas; previews claro/oscuro con y sin rangos. 22 tests nuevos o reescritos (527 en verde).
 - [ ] **T-35 · Revisión de varios días** — (R-4.13, R-4.14, R-4.15)
   - `BuildSchedulePreviewUseCase` agrupa por día y el resumen informa el número de días con alarmas; tests (TDD).
   - `ReviewScreen`: cabeceras "Día {k} · {fecha}" en el `LazyColumn` (keys estables), resumen nuevo, previews claro/oscuro con `PreviewData` de varios días.

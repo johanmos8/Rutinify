@@ -193,6 +193,17 @@ class ScheduleOrderUseCaseTest {
     }
 
     @Test
+    fun `con REPLACE se cancela un tratamiento que empezo antes y sigue en esa fecha`() = runTest { // R-6.6, D-56
+        orders.add(testOrder(id = 1L, date = date.minusDays(2)))
+        alarms.add(testAlarm(id = 10L, orderId = 1L, dayOffset = 5, time = LocalTime.of(15, 0)))
+
+        schedule(policy = ConflictPolicy.REPLACE)
+
+        assertThat(orders.orders.getValue(1L).status).isEqualTo(OrderStatus.CANCELLED)
+        assertThat(alarms.alarms.getValue(10L).status).isEqualTo(AlarmStatus.CANCELLED)
+    }
+
+    @Test
     fun `KEEP_BOTH no toca las ordenes existentes`() = runTest { // R-6.3
         orders.add(testOrder(id = 1L, date = date))
         alarms.add(testAlarm(id = 10L, orderId = 1L, time = LocalTime.of(15, 0)))

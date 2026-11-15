@@ -8,19 +8,21 @@ import com.mirkwood.rutinify.domain.importer.DraftItemRules
 import com.mirkwood.rutinify.domain.importer.ValidationIssue
 import com.mirkwood.rutinify.domain.model.DraftItem
 import com.mirkwood.rutinify.domain.model.RoutineDraft
+import com.mirkwood.rutinify.domain.model.spanOn
 import com.mirkwood.rutinify.domain.repository.DraftStore
 import com.mirkwood.rutinify.domain.time.DefaultDatePolicy
 import com.mirkwood.rutinify.domain.time.ZoneProvider
 import com.mirkwood.rutinify.domain.usecase.BuildSchedulePreviewUseCase
 import com.mirkwood.rutinify.domain.usecase.ConflictPolicy
 import com.mirkwood.rutinify.domain.usecase.FindConflictingOrdersUseCase
-import com.mirkwood.rutinify.domain.usecase.ScheduleOrderResult
 import com.mirkwood.rutinify.domain.usecase.RescheduleAllUseCase
+import com.mirkwood.rutinify.domain.usecase.ScheduleOrderResult
 import com.mirkwood.rutinify.domain.usecase.ScheduleOrderUseCase
-import com.mirkwood.rutinify.domain.usecase.SchedulingPermissionsUseCase
 import com.mirkwood.rutinify.domain.usecase.ScheduleSummary
+import com.mirkwood.rutinify.domain.usecase.SchedulingPermissionsUseCase
 import com.mirkwood.rutinify.ui.common.DateFormats
 import com.mirkwood.rutinify.ui.common.ErrorMessages
+import com.mirkwood.rutinify.ui.common.SpanLabels
 import com.mirkwood.rutinify.ui.common.UiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -66,6 +68,9 @@ data class EditItemUi(
     val categoryError: UiText? = null,
 )
 
+/** An order in the conflict dialog: [range] is "14 de noviembre" or "del 14 al 20 de noviembre" (R-6.7). */
+data class ConflictOrderUi(val name: String, val range: UiText)
+
 sealed interface ReviewDialog {
     /** Why notifications are needed, before Android's own permission dialog (R-11.1). */
     data object NotificationsRationale : ReviewDialog
@@ -73,8 +78,12 @@ sealed interface ReviewDialog {
     /** Why exact alarms matter: "Abrir ajustes" or "Continuar sin exactas" (R-11.2). */
     data object ExactAlarms : ReviewDialog
 
-    /** "Reemplazar la anterior / Mantener ambas / Cancelar" listing the orders by name (R-6.1, R-6.5). */
-    data class Conflict(val orderNames: List<String>) : ReviewDialog
+    /**
+     * "Reemplazar la anterior / Mantener ambas / Cancelar" listing the orders by name (R-6.1, R-6.5). With a
+     * multi-day routine on either side, each name shows its days and the dialog warns that replacing cancels
+     * whole routines (R-6.7).
+     */
+    data class Conflict(val orders: List<ConflictOrderUi>, val showsRanges: Boolean = false) : ReviewDialog
 }
 
 data class ReviewUiState(
@@ -408,11 +417,15 @@ class ReviewViewModel @Inject constructor(
         if (m.draft == null || m.isScheduling) return
         viewModelScope.launch {
             model.update { it.copy(isScheduling = true) }
-            val conflicts = findConflicts(m.date)
+            val conflicts = findConflicts(m.draft, m.date)
             if (conflicts.isEmpty()) {
                 runSchedule(ConflictPolicy.KEEP_BOTH)
             } else {
-                model.update { it.copy(isScheduling = false, dialog = ReviewDialog.Conflict(conflicts.map { o -> o.name })) }
+                val dialog = ReviewDialog.Conflict(
+                    orders = conflicts.map { ConflictOrderUi(it.order.name, SpanLabels.short(it.span)) },
+                    showsRanges = m.draft.spanOn(m.date).isMultiDay || conflicts.any { it.span.isMultiDay },
+                )
+                model.update { it.copy(isScheduling = false, dialog = dialog) }
             }
         }
     }

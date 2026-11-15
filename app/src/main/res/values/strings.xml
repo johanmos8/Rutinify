@@ -140,6 +140,11 @@
     <string name="review_title_truncated" tools:ignore="PluralsCandidate">El título se recortó a %1$d caracteres</string>
     <string name="review_conflict_title">Ya hay rutinas ese día</string>
     <string name="review_conflict_body">Para esa fecha ya tienes: %1$s. ¿Qué quieres hacer?</string>
+    <string name="review_conflict_title_range">Ya hay rutinas en esas fechas</string>
+    <string name="review_conflict_body_range">Coinciden con: %1$s. ¿Qué quieres hacer?</string>
+    <string name="review_conflict_order_range">%1$s (%2$s)</string>
+    <string name="review_conflict_replace_whole">"Reemplazar la anterior" cancela cada rutina completa, no solo los días que coinciden.</string>
+    <string name="date_range">del %1$s al %2$s</string>
     <string name="action_replace">Reemplazar la anterior</string>
     <string name="action_keep_both">Mantener ambas</string>
     <plurals name="review_too_many_alarms">

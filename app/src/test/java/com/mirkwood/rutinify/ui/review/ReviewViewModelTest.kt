@@ -398,6 +398,38 @@ class ReviewViewModelTest {
         assertThat(saved.filter { it.status == AlarmStatus.PENDING }.map { it.position }).containsExactly(1, 3)
     }
 
+    /** A single-day order on [today] as the conflict dialog shows it. */
+    private fun sameDay(name: String) = ConflictOrderUi(name, UiText.Plain("5 de noviembre"))
+
+    @Test
+    fun `un tratamiento que sigue en esa fecha muestra su rango y el aviso de reemplazo`() = runTest { // R-6.6, R-6.7
+        orders.add(testOrder(id = 1L, name = "Antibiótico", date = today.minusDays(2)))
+        alarms.add(testAlarm(id = 10L, orderId = 1L, dayOffset = 6))
+        val vm = subscribed(viewModel())
+
+        vm.onAction(ReviewAction.ScheduleClicked)
+
+        assertThat(vm.state.dialog).isEqualTo(
+            ReviewDialog.Conflict(
+                listOf(ConflictOrderUi("Antibiótico", UiText.Res(R.string.date_range, listOf("3", "9 de noviembre")))),
+                showsRanges = true,
+            ),
+        )
+    }
+
+    @Test
+    fun `un borrador de varios dias muestra rangos aunque la otra orden sea de un dia`() = runTest { // R-6.7
+        orders.add(testOrder(id = 1L, name = "Gato", date = today.plusDays(3)))
+        val treatment = draft.copy(items = draft.items + draft.items.first().copy(key = 9, dayOffset = 6))
+        val vm = subscribed(viewModel(treatment))
+
+        vm.onAction(ReviewAction.ScheduleClicked)
+
+        assertThat(vm.state.dialog).isEqualTo(
+            ReviewDialog.Conflict(listOf(ConflictOrderUi("Gato", UiText.Plain("8 de noviembre"))), showsRanges = true),
+        )
+    }
+
     @Test
     fun `con una orden el mismo dia pregunta antes de programar`() = runTest { // R-6.1, R-6.5
         orders.add(testOrder(id = 1L, name = "Gato", date = today), testOrder(id = 2L, name = "Perro", date = today, status = OrderStatus.PAUSED))
@@ -405,7 +437,7 @@ class ReviewViewModelTest {
 
         vm.onAction(ReviewAction.ScheduleClicked)
 
-        assertThat(vm.state.dialog).isEqualTo(ReviewDialog.Conflict(listOf("Gato", "Perro")))
+        assertThat(vm.state.dialog).isEqualTo(ReviewDialog.Conflict(listOf(sameDay("Gato"), sameDay("Perro"))))
         assertThat(orders.createCalls).isEqualTo(0)
     }
 
@@ -631,7 +663,7 @@ class ReviewViewModelTest {
         assertThat(vm.state.dialog).isEqualTo(ReviewDialog.ExactAlarms)
 
         vm.onAction(ReviewAction.ExactAlarmsContinueWithout)
-        assertThat(vm.state.dialog).isEqualTo(ReviewDialog.Conflict(listOf("Cachorro")))
+        assertThat(vm.state.dialog).isEqualTo(ReviewDialog.Conflict(listOf(sameDay("Cachorro"))))
 
         vm.effects.test {
             vm.onAction(ReviewAction.ConflictKeepBoth)

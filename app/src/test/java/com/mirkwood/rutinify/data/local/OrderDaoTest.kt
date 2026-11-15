@@ -14,6 +14,7 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.time.LocalDate
 
 @RunWith(AndroidJUnit4::class)
 class OrderDaoTest {
@@ -139,14 +140,70 @@ class OrderDaoTest {
     }
 
     @Test
-    fun `findOpenByDate devuelve activas y pausadas de esa fecha pero no canceladas`() = runTest { // R-6.1, R-6.5
+    fun `findOpenOverlapping devuelve activas y pausadas de esa fecha pero no canceladas`() = runTest { // R-6.1, R-6.5
         val active = orderDao.insert(order("Activa", status = OrderStatus.ACTIVE))
         val paused = orderDao.insert(order("Pausada", status = OrderStatus.PAUSED))
         orderDao.insert(order("Cancelada", status = OrderStatus.CANCELLED))
         orderDao.insert(order("Otra fecha", date = DATE.plusDays(1)))
 
-        val open = orderDao.findOpenByDate(DATE)
+        val open = orderDao.findOpenOverlapping(DATE, DATE)
 
-        assertThat(open.map { it.id }).containsExactly(active, paused)
+        assertThat(open.map { it.order.id }).containsExactly(active, paused).inOrder()
+        assertThat(open.map { it.maxDayOffset }).containsExactly(0, 0)
+    }
+
+    /** Inserts an order on [date] with one alarm per day offset; returns its id. */
+    private suspend fun orderWithOffsets(name: String, date: LocalDate, vararg offsets: Int): Long {
+        val id = orderDao.insert(order(name, date = date))
+        offsets.forEachIndexed { i, offset -> alarmDao.insert(alarm(id, i, dayOffset = offset)) }
+        return id
+    }
+
+    @Test
+    fun `un tratamiento que empezo antes y sigue hoy esta en conflicto`() = runTest { // R-6.6, D-56
+        val treatment = orderWithOffsets("Antibiótico", DATE.minusDays(3), 0, 3, 6)
+
+        val open = orderDao.findOpenOverlapping(DATE, DATE)
+
+        assertThat(open.map { it.order.id }).containsExactly(treatment)
+        assertThat(open.single().maxDayOffset).isEqualTo(6)
+    }
+
+    @Test
+    fun `un tratamiento que termino el dia anterior no esta en conflicto`() = runTest { // R-6.6
+        orderWithOffsets("Antibiótico", DATE.minusDays(7), 0, 6)
+
+        assertThat(orderDao.findOpenOverlapping(DATE, DATE)).isEmpty()
+    }
+
+    @Test
+    fun `un rango nuevo que contiene una orden de un dia la encuentra`() = runTest { // R-6.6
+        val single = orderWithOffsets("Cachorro", DATE.plusDays(4), 0)
+
+        assertThat(orderDao.findOpenOverlapping(DATE, DATE.plusDays(6)).map { it.order.id }).containsExactly(single)
+        assertThat(orderDao.findOpenOverlapping(DATE, DATE.plusDays(3))).isEmpty()
+    }
+
+    @Test
+    fun `la madrugada de una rutina de un dia no choca con el dia siguiente`() = runTest { // D-58
+        orderWithOffsets("Cachorro", DATE.minusDays(1), 0, 1)
+
+        assertThat(orderDao.findOpenOverlapping(DATE, DATE)).isEmpty()
+    }
+
+    @Test
+    fun `una orden sin alarmas solo ocupa su fecha`() = runTest { // R-6.6
+        val empty = orderDao.insert(order("Vacía", date = DATE))
+
+        assertThat(orderDao.findOpenOverlapping(DATE, DATE).map { it.order.id }).containsExactly(empty)
+        assertThat(orderDao.findOpenOverlapping(DATE.plusDays(1), DATE.plusDays(2))).isEmpty()
+    }
+
+    @Test
+    fun `un tratamiento cancelado no esta en conflicto`() = runTest { // R-6.1
+        val id = orderWithOffsets("Antibiótico", DATE.minusDays(2), 0, 6)
+        orderDao.updateStatus(id, OrderStatus.CANCELLED, NOW)
+
+        assertThat(orderDao.findOpenOverlapping(DATE, DATE)).isEmpty()
     }
 }

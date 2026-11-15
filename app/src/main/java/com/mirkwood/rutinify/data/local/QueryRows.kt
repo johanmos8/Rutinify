@@ -12,6 +12,12 @@ data class OrderSummaryRow(
     val total: Int,
 )
 
+/** Order in conflict with its largest `day_offset` (0 without alarms), to rebuild its span (R-6.7). */
+data class ConflictingOrderRow(
+    @Embedded val order: RoutineOrderEntity,
+    @ColumnInfo(name = "max_day_offset") val maxDayOffset: Int,
+)
+
 /** Order with its alarms. The order of [alarms] is not guaranteed: the repository sorts them (D-27). */
 data class OrderWithAlarmsRow(
     @Embedded val order: RoutineOrderEntity,

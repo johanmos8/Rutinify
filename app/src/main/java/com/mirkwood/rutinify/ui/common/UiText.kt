@@ -15,10 +15,14 @@ sealed interface UiText {
 
     data class Res(@param:StringRes val id: Int, val args: List<Any> = emptyList()) : UiText
 
+    /** Text already formatted for display (a date, a name), shown as is. */
+    data class Plain(val value: String) : UiText
+
     data class Plural(@param:PluralsRes val id: Int, val quantity: Int, val args: List<Any> = emptyList()) : UiText
 
     fun resolve(resources: Resources): String = when (this) {
         is Res -> resources.getString(id, *resolveArgs(args, resources))
+        is Plain -> value
         is Plural -> resources.getQuantityString(id, quantity, *resolveArgs(args, resources))
     }
 

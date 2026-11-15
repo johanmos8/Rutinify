@@ -9,10 +9,12 @@ import com.mirkwood.rutinify.data.local.AlarmItemEntity
 import com.mirkwood.rutinify.data.local.DbTestData
 import com.mirkwood.rutinify.data.local.RutinifyDatabase
 import com.mirkwood.rutinify.domain.model.AlarmStatus
+import com.mirkwood.rutinify.domain.model.ConflictingOrder
 import com.mirkwood.rutinify.domain.model.NewAlarm
 import com.mirkwood.rutinify.domain.model.NewOrder
 import com.mirkwood.rutinify.domain.model.OrderDisplayStatus
 import com.mirkwood.rutinify.domain.model.OrderStatus
+import com.mirkwood.rutinify.domain.model.RoutineSpan
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -189,11 +191,12 @@ class OrderRepositoryImplTest {
     }
 
     @Test
-    fun `findOpenByDate mapea a dominio`() = runTest { // R-6.1
-        val created = repository.createOrder(newOrder(), listOf(newAlarm(0))).getOrThrow()
+    fun `findOpenOverlapping mapea a dominio con el rango de la orden`() = runTest { // R-6.6, R-6.7
+        val created = repository.createOrder(newOrder(), listOf(newAlarm(0), newAlarm(1, dayOffset = 6))).getOrThrow()
 
-        assertThat(repository.findOpenByDate(date)).containsExactly(created.order)
-        assertThat(repository.findOpenByDate(date.plusDays(1))).isEmpty()
+        assertThat(repository.findOpenOverlapping(RoutineSpan(date.plusDays(3), date.plusDays(3))))
+            .containsExactly(ConflictingOrder(created.order, RoutineSpan.of(date, 6)))
+        assertThat(repository.findOpenOverlapping(RoutineSpan(date.plusDays(7), date.plusDays(9)))).isEmpty()
     }
 
     @Test
