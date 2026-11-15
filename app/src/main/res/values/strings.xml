@@ -116,6 +116,18 @@
         <item quantity="one">%1$d alarma, a las %2$s</item>
         <item quantity="other">%1$d alarmas, de %2$s a %3$s</item>
     </plurals>
+    <!-- "21 alarmas en 7 días, del sábado 14 al viernes 20 de noviembre" (R-4.14) -->
+    <string name="review_summary_days">%1$s en %2$s, %3$s</string>
+    <plurals name="review_alarm_count">
+        <item quantity="one">%1$d alarma</item>
+        <item quantity="other">%1$d alarmas</item>
+    </plurals>
+    <plurals name="review_day_count">
+        <item quantity="one">%1$d día</item>
+        <item quantity="other">%1$d días</item>
+    </plurals>
+    <!-- "Día 3 · lunes 16 de noviembre" (R-4.13) -->
+    <string name="review_day_header">Día %1$d · %2$s</string>
     <string name="review_nothing_to_schedule">No hay actividades futuras para programar</string>
     <string name="review_suggest_tomorrow">La fecha elegida ya pasó y todas las actividades también.</string>
     <string name="action_use_tomorrow">Cambiar a mañana</string>
@@ -145,6 +157,7 @@
     <string name="review_conflict_order_range">%1$s (%2$s)</string>
     <string name="review_conflict_replace_whole">"Reemplazar la anterior" cancela cada rutina completa, no solo los días que coinciden.</string>
     <string name="date_range">del %1$s al %2$s</string>
+    <string name="date_single">el %1$s</string>
     <string name="action_replace">Reemplazar la anterior</string>
     <string name="action_keep_both">Mantener ambas</string>
     <plurals name="review_too_many_alarms">

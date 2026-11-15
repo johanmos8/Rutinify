@@ -186,6 +186,96 @@ class ReviewViewModelTest {
         assertThat(vm.state.canSchedule).isTrue()
     }
 
+    // --- Multi-day routines (T-35) ----------------------------------------------------------------
+
+    /** Antibiotic 06:00 / 14:00 / 22:00 for 3 days from [today] (Thursday). Keys 0..8; 06:00 of day 1 is past. */
+    private val treatment = draft.copy(
+        name = "Antibiótico",
+        notes = null,
+        items = (0..2).flatMap { day -> listOf("06:00", "14:00", "22:00").map { day to it } }.mapIndexed { i, (day, t) ->
+            DraftItem(i, LocalTime.parse(t), day, "Dosis", null, null, "salud", null)
+        },
+    )
+
+    private fun dayHeader(day: Int, date: String) = UiText.Res(R.string.review_day_header, listOf(day, date))
+
+    private fun multiDaySummary(alarms: Int, days: Int, range: UiText) = UiText.Res(
+        R.string.review_summary_days,
+        listOf(UiText.Plural(R.plurals.review_alarm_count, alarms, listOf(alarms)), UiText.Plural(R.plurals.review_day_count, days, listOf(days)), range),
+    )
+
+    @Test
+    fun `una rutina de un dia no tiene cabeceras y conserva el sufijo del dia siguiente`() = runTest { // R-4.13
+        val vm = subscribed(viewModel())
+
+        assertThat(vm.state.days).isEmpty()
+        assertThat(vm.state.items.map { it.nextDay }).containsExactly(false, false, false, false, true).inOrder()
+    }
+
+    @Test
+    fun `una rutina de varios dias agrupa por dia sin sufijo en las horas`() = runTest { // R-4.13
+        val vm = subscribed(viewModel(treatment))
+
+        assertThat(vm.state.days.map { it.title }).containsExactly(
+            dayHeader(1, "jueves 5 de noviembre"),
+            dayHeader(2, "viernes 6 de noviembre"),
+            dayHeader(3, "sábado 7 de noviembre"),
+        ).inOrder()
+        assertThat(vm.state.days.map { day -> day.items.map { it.key } })
+            .containsExactly(listOf(0, 1, 2), listOf(3, 4, 5), listOf(6, 7, 8)).inOrder()
+        assertThat(vm.state.days.flatMap { it.items }.none { it.nextDay }).isTrue()
+        assertThat(vm.state.days.first().items.first().isPast).isTrue()
+    }
+
+    @Test
+    fun `el resumen de varios dias da alarmas dias y rango con dia de la semana`() = runTest { // R-4.14
+        val vm = subscribed(viewModel(treatment))
+
+        assertThat(vm.state.summary).isEqualTo(
+            multiDaySummary(8, 3, UiText.Res(R.string.date_range, listOf("jueves 5", "sábado 7 de noviembre"))),
+        )
+    }
+
+    @Test
+    fun `si solo queda un dia con alarmas el resumen nombra ese dia`() = runTest { // R-4.14, D-59
+        val vm = subscribed(viewModel(treatment))
+
+        listOf(1, 2, 3, 4, 5).forEach { vm.onAction(ReviewAction.ToggleIncluded(it)) }
+
+        assertThat(vm.state.summary).isEqualTo(
+            multiDaySummary(3, 1, UiText.Res(R.string.date_single, listOf("sábado 7 de noviembre"))),
+        )
+    }
+
+    @Test
+    fun `cambiar la fecha desplaza las cabeceras y el resumen`() = runTest { // R-4.15
+        val vm = subscribed(viewModel(treatment))
+
+        vm.onAction(ReviewAction.DateSelected(utcMillis(LocalDate.of(2026, 11, 30))))
+
+        assertThat(vm.state.days.map { it.title }).containsExactly(
+            dayHeader(1, "lunes 30 de noviembre"),
+            dayHeader(2, "martes 1 de diciembre"),
+            dayHeader(3, "miércoles 2 de diciembre"),
+        ).inOrder()
+        assertThat(vm.state.summary).isEqualTo(
+            multiDaySummary(9, 3, UiText.Res(R.string.date_range, listOf("lunes 30 de noviembre", "miércoles 2 de diciembre"))),
+        )
+    }
+
+    @Test
+    fun `quitar o excluir la toma de un dia no cambia las de otros dias`() = runTest { // R-4.16
+        val vm = subscribed(viewModel(treatment))
+
+        vm.onAction(ReviewAction.RemoveItem(4))
+        vm.onAction(ReviewAction.ToggleIncluded(7))
+
+        assertThat(vm.state.days.map { day -> day.items.map { it.key } })
+            .containsExactly(listOf(0, 1, 2), listOf(3, 5), listOf(6, 7, 8)).inOrder()
+        assertThat(vm.state.days[2].items.map { it.isIncluded }).containsExactly(true, false, true).inOrder()
+        assertThat(vm.state.days[1].items.all { it.isIncluded }).isTrue()
+    }
+
     @Test
     fun `excluir una actividad la deja en la lista y actualiza el resumen`() = runTest { // R-4.8
         val vm = subscribed(viewModel())

@@ -177,10 +177,11 @@
   - `OrderDao.findOpenOverlapping(start, end)` (D-56) con tests Robolectric: solape parcial, contenido, adyacente sin solape, orden sin alarmas, canceladas excluidas. Sustituye a `findOpenByDate` en `ScheduleOrderUseCase`.
   - Diálogo de conflicto con rangos y el aviso de "Reemplazar" cuando hay varios días; tests de VM.
   - _Hecho:_ `RoutineSpan` y `ConflictingOrder` en el dominio. `findOpenOverlapping` en DAO y repositorio sustituye a `findOpenByDate`, sin migración. La usan la búsqueda de conflictos y "Reemplazar". Las rutinas de un día solo comparan su fecha (D-58). El diálogo muestra el rango de cada orden y avisa que reemplazar cancela rutinas completas; previews claro/oscuro con y sin rangos. 22 tests nuevos o reescritos (527 en verde).
-- [ ] **T-35 · Revisión de varios días** — (R-4.13, R-4.14, R-4.15)
+- [x] **T-35 · Revisión de varios días** — (R-4.13, R-4.14, R-4.15)
   - `BuildSchedulePreviewUseCase` agrupa por día y el resumen informa el número de días con alarmas; tests (TDD).
   - `ReviewScreen`: cabeceras "Día {k} · {fecha}" en el `LazyColumn` (keys estables), resumen nuevo, previews claro/oscuro con `PreviewData` de varios días.
   - Rutinas de 0–1 días sin cambios visibles (tests de regresión del VM).
+  - _Hecho:_ `SchedulePreview` añade `days` e `isMultiDay`, y `ScheduleSummary` añade `dayCount` (D-59). Revisión muestra "Día {k} · {fecha}" con keys estables, horas sin sufijo y el resumen "{n} alarmas en {d} días, del … al …" (o "el …" si queda un día). Al cambiar la fecha se desplaza todo. Las rutinas de 0–1 días no cambian. Previews claro/oscuro de varios días. 15 tests nuevos (542 en verde).
 - [ ] **T-36 · Inicio y detalle de varios días** — (R-8.2, R-9.6, R-10.7)
   - `observeSummaries` devuelve el mayor `dayOffset`; Inicio muestra el rango; detalle agrupa por día; duplicar conserva los `dayOffset` (test del use case).
   - Previews nuevos y tests de VM.

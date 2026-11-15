@@ -14,6 +14,7 @@ import com.mirkwood.rutinify.ui.orderdetail.OrderDetailUiState
 import com.mirkwood.rutinify.ui.orderdetail.PauseAction
 import com.mirkwood.rutinify.ui.orderdetail.TimelineItemUi
 import com.mirkwood.rutinify.ui.review.ConflictOrderUi
+import com.mirkwood.rutinify.ui.review.ReviewDayUi
 import com.mirkwood.rutinify.ui.review.ReviewDialog
 import com.mirkwood.rutinify.ui.review.ReviewItemUi
 import com.mirkwood.rutinify.ui.review.ReviewUiState
@@ -65,6 +66,37 @@ internal object PreviewData {
         ),
         canSchedule = true,
     )
+
+    /** Antibiotic every 8 hours for 3 days, grouped by day (R-4.13, R-4.14). */
+    val reviewStateMultiDay: ReviewUiState = run {
+        val dates = listOf("sábado 14 de noviembre", "domingo 15 de noviembre", "lunes 16 de noviembre")
+        val days = dates.mapIndexed { day, date ->
+            ReviewDayUi(
+                dayOffset = day,
+                title = UiText.Res(R.string.review_day_header, listOf(day + 1, date)),
+                items = listOf("06:00", "14:00", "22:00").mapIndexed { i, time ->
+                    val past = day == 0 && i == 0
+                    ReviewItemUi(day * 3 + i, time, false, "Antibiótico", "salud", "Con comida", isPast = past, isIncluded = !past)
+                },
+            )
+        }
+        ReviewUiState(
+            name = "Antibiótico de Luna",
+            dateLabel = "sábado 14 de noviembre de 2026",
+            dateMillisUtc = 1_763_078_400_000,
+            items = days.flatMap { it.items },
+            days = days,
+            summary = UiText.Res(
+                R.string.review_summary_days,
+                listOf(
+                    UiText.Plural(R.plurals.review_alarm_count, 8, listOf(8)),
+                    UiText.Plural(R.plurals.review_day_count, 3, listOf(3)),
+                    UiText.Res(R.string.date_range, listOf("sábado 14", "lunes 16 de noviembre")),
+                ),
+            ),
+            canSchedule = true,
+        )
+    }
 
     val homeState = HomeUiState(
         isLoading = false,

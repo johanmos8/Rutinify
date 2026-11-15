@@ -2,6 +2,7 @@ package com.mirkwood.rutinify.domain.usecase
 
 import com.mirkwood.rutinify.domain.model.DraftItem
 import com.mirkwood.rutinify.domain.model.RoutineDraft
+import com.mirkwood.rutinify.domain.model.spanOn
 import com.mirkwood.rutinify.domain.time.TriggerTimeCalculator
 import java.time.Instant
 import java.time.LocalDate
@@ -19,9 +20,13 @@ data class PreviewItem(
     val isIncluded: Boolean,
 )
 
+/** Activities of one day of a multi-day routine: "Día {dayOffset + 1} · {date}" (R-4.13). */
+data class PreviewDay(val dayOffset: Int, val date: LocalDate, val items: List<PreviewItem>)
+
 /**
  * "28 alarmas, de 06:45 a 02:00 (+1 día)" (R-4.9): first and last included activity by trigger time,
- * with their day offset relative to the chosen date so the UI can add "(+1 día)".
+ * with their day offset relative to the chosen date so the UI can add "(+1 día)". A multi-day routine
+ * shows "21 alarmas en 7 días, del … al …" instead (R-4.14).
  */
 data class ScheduleSummary(
     val count: Int,
@@ -29,11 +34,17 @@ data class ScheduleSummary(
     val firstDayOffset: Int,
     val last: LocalTime,
     val lastDayOffset: Int,
+    /** Days with at least one included activity (R-4.14). */
+    val dayCount: Int,
 )
 
 data class SchedulePreview(
     /** Same order as the draft: `dayOffset`, then `time` (R-4.1). */
     val items: List<PreviewItem>,
+    /** [items] by `dayOffset`; only days with activities (R-4.13). */
+    val days: List<PreviewDay>,
+    /** Largest `dayOffset` of 2 or more: the UI groups by day (R-4.13, R-4.14). */
+    val isMultiDay: Boolean,
     /** null when nothing is included. */
     val summary: ScheduleSummary?,
     /** false → "Programar alarmas" disabled with "No hay actividades futuras para programar" (R-4.10). */
@@ -64,6 +75,10 @@ class BuildSchedulePreviewUseCase @Inject constructor(
         val today = now.atZone(zone).toLocalDate()
         return SchedulePreview(
             items = items,
+            days = items.groupBy { it.item.dayOffset }.toSortedMap().map { (offset, rows) ->
+                PreviewDay(offset, date.plusDays(offset.toLong()), rows)
+            },
+            isMultiDay = draft.spanOn(date).isMultiDay,
             summary = summary,
             canSchedule = summary != null,
             suggestTomorrow = date.isBefore(today) && items.all { it.isPast },
@@ -79,6 +94,7 @@ class BuildSchedulePreviewUseCase @Inject constructor(
             firstDayOffset = first.item.dayOffset,
             last = last.item.time,
             lastDayOffset = last.item.dayOffset,
+            dayCount = included.map { it.item.dayOffset }.distinct().size,
         )
     }
 }

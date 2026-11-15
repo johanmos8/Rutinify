@@ -15,6 +15,7 @@ import com.mirkwood.rutinify.domain.time.ZoneProvider
 import com.mirkwood.rutinify.domain.usecase.BuildSchedulePreviewUseCase
 import com.mirkwood.rutinify.domain.usecase.ConflictPolicy
 import com.mirkwood.rutinify.domain.usecase.FindConflictingOrdersUseCase
+import com.mirkwood.rutinify.domain.usecase.PreviewItem
 import com.mirkwood.rutinify.domain.usecase.RescheduleAllUseCase
 import com.mirkwood.rutinify.domain.usecase.ScheduleOrderResult
 import com.mirkwood.rutinify.domain.usecase.ScheduleOrderUseCase
@@ -47,7 +48,7 @@ data class ReviewItemUi(
     val key: Int,
     /** "06:45" */
     val time: String,
-    /** Shown as "(+1 día)". */
+    /** Shown as "(+1 día)"; never in a multi-day routine, whose rows sit under their day (R-4.13). */
     val nextDay: Boolean,
     val title: String,
     val category: String,
@@ -56,6 +57,9 @@ data class ReviewItemUi(
     val isPast: Boolean,
     val isIncluded: Boolean,
 )
+
+/** "Día 3 · lunes 16 de noviembre" and its activities (R-4.13); [dayOffset] is the stable list key. */
+data class ReviewDayUi(val dayOffset: Int, val title: UiText, val items: List<ReviewItemUi>)
 
 /** Edit form of one activity (R-4.2); errors use the import rules. */
 data class EditItemUi(
@@ -97,6 +101,8 @@ data class ReviewUiState(
     /** "No venía fecha; elegí {fecha}" while the app-chosen date is kept (R-4.5). */
     val dateNotice: UiText? = null,
     val items: List<ReviewItemUi> = emptyList(),
+    /** Same rows grouped by day when the routine is multi-day; empty otherwise (R-4.13). */
+    val days: List<ReviewDayUi> = emptyList(),
     /** null → "No hay actividades futuras para programar" (R-4.10). */
     val summary: UiText? = null,
     val warnings: List<UiText> = emptyList(),
@@ -261,19 +267,19 @@ class ReviewViewModel @Inject constructor(
             dateLabel = dateLabel,
             dateMillisUtc = m.date.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
             dateNotice = if (m.dateChosenByApp) UiText.Res(R.string.review_date_defaulted, listOf(dateLabel)) else null,
-            items = preview.items.map { row ->
-                ReviewItemUi(
-                    key = row.item.key,
-                    time = row.item.time.format(TIME_FORMAT),
-                    nextDay = row.item.dayOffset > 0,
-                    title = row.item.title,
-                    category = row.item.category,
-                    description = row.item.description,
-                    isPast = row.isPast,
-                    isIncluded = row.isIncluded,
-                )
+            items = preview.items.map { itemUi(it, preview.isMultiDay) },
+            days = if (preview.isMultiDay) {
+                preview.days.map { day ->
+                    ReviewDayUi(
+                        dayOffset = day.dayOffset,
+                        title = UiText.Res(R.string.review_day_header, listOf(day.dayOffset + 1, SpanLabels.weekdayDate(day.date))),
+                        items = day.items.map { itemUi(it, multiDay = true) },
+                    )
+                }
+            } else {
+                emptyList()
             },
-            summary = preview.summary?.let(::summaryText),
+            summary = preview.summary?.let { if (preview.isMultiDay) multiDaySummaryText(it, m.date) else summaryText(it) },
             warnings = ErrorMessages.list(m.warnings),
             canSchedule = preview.canSchedule && !m.isScheduling,
             suggestTomorrow = preview.suggestTomorrow,
@@ -285,6 +291,30 @@ class ReviewViewModel @Inject constructor(
 
     private fun preview(m: Model, draft: RoutineDraft) =
         buildPreview(draft, m.date, m.excluded, clock.instant(), zoneProvider.zone())
+
+    private fun itemUi(row: PreviewItem, multiDay: Boolean) = ReviewItemUi(
+        key = row.item.key,
+        time = row.item.time.format(TIME_FORMAT),
+        nextDay = !multiDay && row.item.dayOffset > 0,
+        title = row.item.title,
+        category = row.item.category,
+        description = row.item.description,
+        isPast = row.isPast,
+        isIncluded = row.isIncluded,
+    )
+
+    /** "21 alarmas en 7 días, del sábado 14 al viernes 20 de noviembre" (R-4.14, D-59). */
+    private fun multiDaySummaryText(summary: ScheduleSummary, date: LocalDate): UiText = UiText.Res(
+        R.string.review_summary_days,
+        listOf(
+            UiText.Plural(R.plurals.review_alarm_count, summary.count, listOf(summary.count)),
+            UiText.Plural(R.plurals.review_day_count, summary.dayCount, listOf(summary.dayCount)),
+            SpanLabels.withWeekdays(
+                date.plusDays(summary.firstDayOffset.toLong()),
+                date.plusDays(summary.lastDayOffset.toLong()),
+            ),
+        ),
+    )
 
     /** "4 alarmas, de 13:00 a 02:00 (+1 día)" (R-4.9). */
     private fun summaryText(summary: ScheduleSummary): UiText = UiText.Plural(

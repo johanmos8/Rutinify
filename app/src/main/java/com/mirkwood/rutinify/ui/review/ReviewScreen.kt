@@ -131,7 +131,7 @@ fun ReviewRoute(
     )
 }
 
-/** Stateless Review screen (R-4.1–R-4.12, R-6.1). */
+/** Stateless Review screen (R-4.1–R-4.14, R-6.1). */
 @Composable
 fun ReviewScreen(
     state: ReviewUiState,
@@ -159,8 +159,18 @@ fun ReviewScreen(
             item(key = "header") {
                 Header(state, onChangeDate = { showDatePicker = true }, onUseTomorrow = { onAction(ReviewAction.UseTomorrow) })
             }
-            items(state.items, key = { it.key }) { item ->
-                ReviewItemRow(item = item, onAction = onAction)
+            if (state.days.isEmpty()) {
+                items(state.items, key = { it.key }) { item ->
+                    ReviewItemRow(item = item, onAction = onAction)
+                }
+            } else {
+                // R-4.13: one header per day with activities
+                state.days.forEach { day ->
+                    item(key = "day-${day.dayOffset}") { DayHeader(day.title) }
+                    items(day.items, key = { it.key }) { item ->
+                        ReviewItemRow(item = item, onAction = onAction)
+                    }
+                }
             }
         }
     }
@@ -211,6 +221,16 @@ private fun Header(state: ReviewUiState, onChangeDate: () -> Unit, onUseTomorrow
             InfoCard(title = stringResource(R.string.review_warnings_title), lines = state.warnings.map { it.asString() })
         }
     }
+}
+
+@Composable
+private fun DayHeader(title: UiText, modifier: Modifier = Modifier) {
+    Text(
+        text = title.asString(),
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp),
+    )
 }
 
 @Composable
@@ -414,6 +434,12 @@ private fun Modifier.semanticsLabel(label: String): Modifier =
 @Composable
 private fun ReviewScreenPreview() {
     RutinifyTheme { ReviewScreen(state = PreviewData.reviewState, onAction = {}, onBack = {}) }
+}
+
+@ThemePreviews
+@Composable
+private fun ReviewScreenMultiDayPreview() {
+    RutinifyTheme { ReviewScreen(state = PreviewData.reviewStateMultiDay, onAction = {}, onBack = {}) }
 }
 
 @ThemePreviews

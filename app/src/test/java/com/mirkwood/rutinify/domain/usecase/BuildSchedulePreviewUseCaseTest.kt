@@ -11,7 +11,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 
-/** T-14: Review preview — trigger times, past and excluded items, summary (R-4.1, R-4.6–R-4.11). */
+/** T-14, T-35: Review preview — trigger times, past and excluded items, summary, days (R-4.1, R-4.6–R-4.11, R-4.13–R-4.15). */
 class BuildSchedulePreviewUseCaseTest {
 
     private val bogota = ZoneId.of("America/Bogota")
@@ -101,6 +101,7 @@ class BuildSchedulePreviewUseCaseTest {
                 firstDayOffset = 0,
                 last = LocalTime.of(2, 0),
                 lastDayOffset = 1,
+                dayCount = 2,
             ),
         )
     }
@@ -109,7 +110,7 @@ class BuildSchedulePreviewUseCaseTest {
     fun `el resumen empieza en la primera actividad incluida`() { // R-4.9
         val summary = preview(excluded = setOf(4), now = nowAt(12)).summary
 
-        assertThat(summary).isEqualTo(ScheduleSummary(2, LocalTime.of(13, 0), 0, LocalTime.of(22, 30), 0))
+        assertThat(summary).isEqualTo(ScheduleSummary(2, LocalTime.of(13, 0), 0, LocalTime.of(22, 30), 0, dayCount = 1))
     }
 
     @Test
@@ -158,5 +159,67 @@ class BuildSchedulePreviewUseCaseTest {
 
         assertThat(result.canSchedule).isFalse()
         assertThat(result.suggestTomorrow).isFalse()
+    }
+
+    // ---- Multi-day routines (T-35) ----
+
+    /** Antibiotic every 8 hours for 3 days, 06:00 / 14:00 / 22:00. Keys 0..8. */
+    private val treatment = draft.copy(
+        name = "Antibiótico",
+        items = (0..2).flatMap { day -> listOf("06:00", "14:00", "22:00").map { day to it } }.mapIndexed { i, (day, t) ->
+            DraftItem(i, LocalTime.parse(t), day, "Dosis", null, null, "salud", null)
+        },
+    )
+
+    @Test
+    fun `una rutina de un dia con madrugada no es de varios dias`() { // R-4.13
+        assertThat(preview().isMultiDay).isFalse()
+    }
+
+    @Test
+    fun `agrupa las actividades por dia con la fecha de cada dia`() { // R-4.13
+        val result = buildPreview(treatment, today, emptySet(), nowAt(5), bogota)
+
+        assertThat(result.isMultiDay).isTrue()
+        assertThat(result.days.map { it.dayOffset to it.date })
+            .containsExactly(0 to today, 1 to today.plusDays(1), 2 to today.plusDays(2)).inOrder()
+        assertThat(result.days.map { day -> day.items.map { it.item.key } })
+            .containsExactly(listOf(0, 1, 2), listOf(3, 4, 5), listOf(6, 7, 8)).inOrder()
+    }
+
+    @Test
+    fun `un dia sin actividades no tiene grupo`() { // R-4.13
+        val gap = treatment.copy(items = treatment.items.filter { it.dayOffset != 1 })
+
+        assertThat(buildPreview(gap, today, emptySet(), nowAt(5), bogota).days.map { it.dayOffset }).containsExactly(0, 2)
+    }
+
+    @Test
+    fun `el resumen cuenta solo los dias con alguna alarma incluida`() { // R-4.14
+        // At 23:00 every dose of day 1 already passed
+        val summary = buildPreview(treatment, today, setOf(3, 4, 5), nowAt(23), bogota).summary
+
+        assertThat(summary?.count).isEqualTo(3)
+        assertThat(summary?.dayCount).isEqualTo(1)
+        assertThat(summary?.firstDayOffset).isEqualTo(2)
+        assertThat(summary?.lastDayOffset).isEqualTo(2)
+    }
+
+    @Test
+    fun `un dia excluido entero en medio cuenta como dia sin alarmas`() { // R-4.14
+        val summary = buildPreview(treatment, today, setOf(3, 4, 5), nowAt(5), bogota).summary
+
+        assertThat(summary?.dayCount).isEqualTo(2)
+        assertThat(summary?.firstDayOffset).isEqualTo(0)
+        assertThat(summary?.lastDayOffset).isEqualTo(2)
+    }
+
+    @Test
+    fun `cambiar la fecha desplaza todo el rango`() { // R-4.15
+        val later = today.plusDays(10)
+        val result = buildPreview(treatment, later, emptySet(), nowAt(5), bogota)
+
+        assertThat(result.days.map { it.date }).containsExactly(later, later.plusDays(1), later.plusDays(2)).inOrder()
+        assertThat(result.days.map { it.dayOffset }).containsExactly(0, 1, 2).inOrder()
     }
 }
