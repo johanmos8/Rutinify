@@ -155,7 +155,7 @@
     <string name="review_conflict_title_range">Ya hay rutinas en esas fechas</string>
     <string name="review_conflict_body_range">Coinciden con: %1$s. ¿Qué quieres hacer?</string>
     <string name="review_conflict_order_range">%1$s (%2$s)</string>
-    <string name="review_conflict_replace_whole">"Reemplazar la anterior" cancela cada rutina completa, no solo los días que coinciden.</string>
+    <string name="review_conflict_replace_whole">«Reemplazar la anterior» cancela cada rutina completa, no solo los días que coinciden.</string>
     <string name="date_range">del %1$s al %2$s</string>
     <string name="date_single">el %1$s</string>
     <string name="action_replace">Reemplazar la anterior</string>

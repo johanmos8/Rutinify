@@ -33,6 +33,8 @@ one exact alarm per activity. No backend, no account and no network access: ever
 
 - Tolerant JSON extraction and validation with clear, typed error messages and warnings.
 - Review screen: date picker, include/exclude, edit, remove with undo, "use tomorrow" suggestion.
+- Multi-day routines (up to 31 days) with `repeatDays` or per-item `dayOffset`: day headers in Review and in the order
+  detail, date ranges in Home, and conflict detection by overlapping days.
 - Exact alarms with `AlarmManager.setExactAndAllowWhileIdle`; falls back to a 10-minute window when the exact-alarm
   permission is denied.
 - Order detail timeline: next alarm, status of each alarm, mark as done, delete with undo.
@@ -45,25 +47,25 @@ one exact alarm per activity. No backend, no account and no network access: ever
 ## Use cases
 
 Rutinify is not tied to any topic: it only sees times, titles and categories. Anything that can be expressed as
-**"one day with activities at specific times"** works; the scenario lives in what you ask the AI.
+**"activities at specific times over one or more days"** works; the scenario lives in what you ask the AI.
 
 | Scenario | What you might tell the AI | What helps |
 |---|---|---|
 | New puppy or pet | "3-month-old puppy: potty every 2 h, 4 meals, long naps" | Categories, after-midnight alarms, an assignee per task |
 | Reading or study plan | "Read *Dune* in 10 days: 40 min in the morning, 30 at night" | Duplicate for another date, notes with today's chapter |
 | Focused work | "Pomodoro blocks from 9 to 13, check email at 12" | Many alarms in one day, +5 min when you need to finish |
-| Medication or care | "Antibiotic every 8 h, a pill with breakfast, cream at 22:00" | Exact timing, *Hecho* as a record of what was taken |
+| Medication or care | "Antibiotic every 8 h for 7 days, a pill with breakfast" | `repeatDays`, exact timing, *Hecho* as a record of what was taken |
 | Baby care | "Feed every 3 h, bath at 19:30, nap at 13:00" | Night alarms, several caregivers |
 | Fitness or diet | "Training day: water every hour, post-gym meal at 14:00" | One category per kind of task |
 | Events or moving day | "Truck at 8, keys at 12, internet install at 16" | Replace the plan if it changes, cancel all in one tap |
 | Family mornings | "Wake up 6:30, breakfast 7:00, leave for school 7:40" | Pause on weekends or holidays |
 | Step-by-step cooking | "Bread: knead at 9, first rise 1 h, oven at 13:00" | Close alarms with instructions in the description |
 
-Current limits: each routine covers a single day (plus the early hours of the next one), there is no automatic
+Current limits: a routine covers up to 31 days (`dayOffset` 0–30, or `repeatDays` up to 30), there is no open-ended
 repetition ("every Monday"), relative intervals must become fixed times, and routines are not shared between phones.
-Recurring routines and scenario-specific prompt templates are the natural next steps.
+Open-ended recurring routines and scenario-specific prompt templates are the natural next steps.
 
-## JSON contract (v1)
+## JSON contract (schema 1)
 
 ```json
 {
@@ -79,8 +81,29 @@ Recurring routines and scenario-specific prompt templates are the natural next s
 ```
 
 - `date` may be `null`: the app picks today (or tomorrow if nothing is left today) and says so.
-- `dayOffset: 1` means "after midnight of the routine's day".
-- Limits: 1–200 items, title ≤ 80 characters, ≤ 10 distinct categories, ≤ 500 pending alarms in the app.
+- `dayOffset` (0–30) is the day of the activity counted from the routine's date; `dayOffset: 1` is also how an
+  activity "after midnight" is written.
+- `routine.repeatDays` (1–30, v1.1) repeats every item that many days. With it, `dayOffset` may only be 0 or 1. The
+  200-item limit counts the copies.
+
+A 7-day antibiotic, three doses a day:
+
+```json
+{
+  "schemaVersion": 1,
+  "routine": { "name": "Antibiótico de Luna", "date": "2026-11-16", "repeatDays": 7 },
+  "items": [
+    { "time": "06:00", "title": "Antibiótico", "description": "Con un poco de comida", "category": "medicación" },
+    { "time": "14:00", "title": "Antibiótico", "description": "Con un poco de comida", "category": "medicación" },
+    { "time": "22:00", "title": "Antibiótico", "description": "Con un poco de comida", "category": "medicación" }
+  ]
+}
+```
+
+Review then groups the 21 alarms by day ("Día 1 · lunes 16 de noviembre"), Home shows the range, and a routine that
+overlaps those days asks whether to replace it or keep both. When each day is different (a tapering dose), write
+every item with its own `dayOffset` instead.
+- Limits: 1–200 items (after `repeatDays`), title ≤ 80 characters, ≤ 10 distinct categories, ≤ 500 pending alarms in the app.
 
 The full contract is in [`specs/design.md`](specs/design.md) §4 and the prompt template in
 [`app/src/main/res/raw/prompt_template.txt`](app/src/main/res/raw/prompt_template.txt).
@@ -129,11 +152,11 @@ Requires Android Studio (or JDK 17+ and the Android SDK 36). On Windows use `gra
 
 ## Status
 
-The MVP is complete: all 32 tasks in [`specs/tasks.md`](specs/tasks.md) are done, 483 unit tests pass, lint has no
-project warnings, coverage of the domain and importer is 99.2 %, and the manual checklist in
+Version 1.1 (multi-day routines) is complete: all 37 tasks in [`specs/tasks.md`](specs/tasks.md) are done, 551 unit
+tests pass, lint has no project warnings, coverage of the domain and importer is 99.2 %, and the manual checklist in
 [`specs/manual-test.md`](specs/manual-test.md) passes on an Android 16 emulator.
 
-Not in the MVP (see `specs/design.md` §15): recurring routines, a home-screen widget, calling an AI API directly,
+Not included (see `specs/design.md` §15): open-ended recurring routines, a home-screen widget, calling an AI API directly,
 `.ics` export, and other UI languages.
 
 ## How this project is developed

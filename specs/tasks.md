@@ -186,9 +186,10 @@
   - `observeSummaries` devuelve el mayor `dayOffset`; Inicio muestra el rango; detalle agrupa por día; duplicar conserva los `dayOffset` (test del use case).
   - Previews nuevos y tests de VM.
   - _Hecho:_ `observeSummaries` devuelve `max_day_offset` (sin migración) y `OrderSummary`/`OrderDetail` exponen su `span`. Inicio y la cabecera del detalle muestran "del sábado 14 al viernes 20 de noviembre de 2026" en órdenes de varios días (D-60). El detalle pone "Día {k} · {fecha}" sobre la primera alarma de cada día, sin "+1 día". Test de duplicar con `dayOffset` 0–6. Previews claro/oscuro de Inicio y detalle. 9 tests nuevos (551 en verde).
-- [ ] **T-37 · Verificación v1.1** — (R-13.5)
+- [x] **T-37 · Verificación v1.1** — (R-13.5)
   - `koverVerify` ≥ 80 %; añadir a `specs/manual-test.md` los pasos del tratamiento de 7 días (importar, conflicto con la rutina del día, reinicio a mitad, duplicar) y ejecutarlos en el emulador.
   - README: quitar "una rutina cubre un solo día" de los límites, documentar `repeatDays` en el contrato y añadir el ejemplo de medicación de varios días.
+  - _Hecho:_ Kover 99,2 % (782 de 788 líneas). Pasos 12–18 de `manual-test.md` ejecutados en el emulador: importar, conflicto con rango, Inicio y detalle, reinicio el día 4 (11 tomas exactas restauradas) y duplicar. Se corrigió el aviso de reemplazo, cuyas comillas quitaba Android («»). README actualizado. Queda una propuesta pendiente sobre la fecha por defecto de rutinas de varios días (nota en `manual-test.md`).
 
 ## Trazabilidad rápida
 
