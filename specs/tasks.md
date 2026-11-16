@@ -197,7 +197,7 @@
 
 ## Fase 11 · Usable para otros (v1.2)
 
-> Foco en planes de cuidado (D-62). Mismo DoD por tarea. Antes de T-43 deben estar cerradas D-66 (modelo e interfaz de las categorías críticas) y D-69 (política de alarmas exactas); antes de T-47, D-68.
+> Foco en planes de cuidado (D-62). Mismo DoD por tarea. Antes de T-43 deben estar cerradas D-66 (modelo e interfaz de las categorías críticas) (D-69, opción C, se aprobó el 2026-11-16); antes de T-47, D-68.
 
 - [ ] **T-39 · "Plan" en la interfaz** — (R-13.7)
   - Reescribir en `strings.xml` las cadenas visibles con "orden" ("Eliminar plan", "Plan no encontrado"…); sin tocar nombres internos, rutas ni deep links (D-63).
@@ -236,9 +236,10 @@
   - `USE_FULL_SCREEN_INTENT`; `canUseFullScreenIntent()` en cada disparo; fila en *Permisos* con `ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT` (D-68).
   - Tests de `PermissionChecker` y del publicador con y sin permiso.
   - ✅ Sin permiso, la alarma suena como notificación emergente.
-- [ ] **T-48 · Aplicar la decisión de alarmas exactas** — (R-11.2, R-15.5; D-69)
-  - Según la opción elegida en D-69: petición guiada (A/C) o `USE_EXACT_ALARM` con `SCHEDULE_EXACT_ALARM` hasta `maxSdkVersion 32` (B).
-  - ✅ Manifiesto y *Permisos* coherentes con D-69; tests de VM de la petición.
+- [ ] **T-48 · Petición guiada de alarmas exactas** — (R-11.2, R-15.5; D-69 opción C)
+  - Pedir el permiso al marcar la primera categoría crítica (R-15.5) y mostrar una tarjeta en Inicio tras programar el primer plan si falta el permiso; ambas abren `ACTION_REQUEST_SCHEDULE_EXACT_ALARM`.
+  - Sin `USE_EXACT_ALARM` en el manifiesto de v1.2.
+  - ✅ Tests de VM de la petición y de la tarjeta; previews claro/oscuro; manifiesto sin `USE_EXACT_ALARM`.
 - [ ] **T-49 · Interfaz en inglés** — (R-13.3)
   - `values-en/`, `raw-en/` (cinco plantillas), patrones de fecha en recursos (D-71); lint `MissingTranslation` como error.
   - Tests de `SpanLabels`/`DateFormats` con locale `en`; los existentes en `es` siguen en verde.
@@ -266,7 +267,8 @@
 - [ ] **T-54 · Prueba cerrada** — (sin requisito de producto)
   - Pista cerrada con al menos 12 testers aceptados durante 14 días seguidos (cuenta personal posterior al 13-11-2023), con margen de testers.
   - Métrica: porcentaje de testers que programan un segundo plan; recoger diagnósticos exportados voluntarios.
-  - ✅ Resultado y aprendizajes anotados en `specs/` antes de empezar la Fase 13.
+  - D-69 (opción C): subir a la pista cerrada una versión con `USE_EXACT_ALARM` (`SCHEDULE_EXACT_ALARM` hasta `maxSdkVersion 32`) y su declaración en Play Console; anotar el resultado de la revisión y decidir con Johan si va a producción o se queda la petición guiada.
+  - ✅ Resultado, aprendizajes y decisión final de D-69 anotados en `specs/` antes de empezar la Fase 13.
 
 ## Fase 13 · Nicho de cuidados (v1.4)
 
