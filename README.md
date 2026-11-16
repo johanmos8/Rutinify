@@ -108,8 +108,8 @@ overlaps those days asks whether to replace it or keep both. When each day is di
 every item with its own `dayOffset` instead.
 - Limits: 1–200 items (after `repeatDays`), title ≤ 80 characters, ≤ 10 distinct categories, ≤ 500 pending alarms in the app.
 
-The full contract is in [`specs/design.md`](specs/design.md) §4 and the prompt template in
-the five scenario templates in [`app/src/main/res/raw/`](app/src/main/res/raw/) (`prompt_template_<scenario>.txt`).
+The full contract is in [`specs/design.md`](specs/design.md) §4, and the five scenario prompt templates are in
+[`app/src/main/res/raw/`](app/src/main/res/raw/) (`prompt_template_<scenario>.txt`).
 
 ## Permissions
 
