@@ -224,7 +224,7 @@
 
 **Historia:** Como cuidador, quiero que las actividades importantes (una toma, sacar al cachorro de madrugada) suenen como un despertador aunque el teléfono esté bloqueado o en "No molestar", y que el resto siga siendo un aviso discreto.
 
-- **R-15.1** THE SYSTEM SHALL permitir marcar o desmarcar cada categoría como "crítica" en *Ajustes* › "Alarmas críticas", que lista las categorías de los planes guardados. La marca es global: vale para todos los planes que usan esa categoría. *(D-66, abierta)*
+- **R-15.1** THE SYSTEM SHALL permitir marcar o desmarcar cada categoría como "crítica" en *Ajustes* › "Alarmas críticas", que lista las categorías de los planes guardados. La marca es global: vale para todos los planes que usan esa categoría. *(D-66)*
 - **R-15.2** WHEN el usuario marca o desmarca una categoría, THE SYSTEM SHALL reprogramar con el modo nuevo las alarmas *Pendientes* de esa categoría en planes *Activos*.
 - **R-15.3** WHERE la categoría de una alarma es crítica AND la app tiene permiso de alarmas exactas, THE SYSTEM SHALL programarla con `setAlarmClock` en vez de `setExactAndAllowWhileIdle`.
 - **R-15.4** IF la categoría es crítica AND falta el permiso de alarmas exactas, THEN THE SYSTEM SHALL programarla en modo ventana (R-5.4) y mostrar en *Ajustes* y en el detalle del plan "Las alarmas críticas necesitan el permiso de alarmas exactas para sonar a su hora".
@@ -341,7 +341,7 @@
 - **R-23.11** WHILE un plan recurrente sin `until` está *Activo*, THE SYSTEM SHALL no considerarlo *Terminado* (R-8.3).
 - **R-23.12** WHILE un plan recurrente está *Pausado*, THE SYSTEM SHALL no crear alarmas nuevas; WHEN se reanuda, THE SYSTEM SHALL crear las de la ventana a partir de ese momento, sin crear las de los días en pausa.
 - **R-23.13** WHEN el usuario duplica un plan recurrente (R-10.7), THE SYSTEM SHALL conservar la recurrencia con la fecha elegida como inicio.
-- **R-23.14** THE SYSTEM SHALL mostrar en *Revisión* de un plan recurrente cómo queda una semana (*abierta, D-81*).
+- **R-23.14** THE SYSTEM SHALL mostrar en *Revisión* de un plan recurrente las actividades de un día tipo, la recurrencia en la cabecera (R-23.10) y el resumen "{n} alarmas por semana". *(D-81)*
 
 ## R-24 Wear OS *(v2.0)*
 

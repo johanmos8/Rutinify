@@ -197,7 +197,7 @@
 
 ## Fase 11 · Usable para otros (v1.2)
 
-> Foco en planes de cuidado (D-62). Mismo DoD por tarea. Antes de T-43 deben estar cerradas D-66 (modelo e interfaz de las categorías críticas) (D-69, opción C, se aprobó el 2026-11-16); antes de T-47, D-68.
+> Foco en planes de cuidado (D-62). Mismo DoD por tarea. D-64, D-66, D-67, D-68 y D-69 (opción C) aprobadas el 2026-11-16: la fase no tiene decisiones abiertas.
 
 - [ ] **T-39 · "Plan" en la interfaz** — (R-13.7)
   - Reescribir en `strings.xml` las cadenas visibles con "orden" ("Eliminar plan", "Plan no encontrado"…); sin tocar nombres internos, rutas ni deep links (D-63).
@@ -272,7 +272,7 @@
 
 ## Fase 13 · Nicho de cuidados (v1.4)
 
-> Antes de T-59/T-60 debe estar aprobada la dependencia de D-75; antes de T-63, la de D-79.
+> Dependencias de D-75 (ZXing `core`, Google code scanner) y D-79 (Glance) aprobadas el 2026-11-16; D-73 y D-76 también.
 
 - [ ] **T-55 · Mover alarmas en bloque (dominio)** — (R-18.3–R-18.8)
   - `ShiftOrderAlarmsUseCase` (TDD, D-73): cruzar medianoche hacia delante y hacia atrás, pospuestas, pasado, fuera de 0..30, plan pausado, estados que no cambian, idempotencia de la reprogramación.
@@ -310,7 +310,7 @@
 
 ## Fase 14 · Diferenciación (v2.0)
 
-> T-65 decide si R-22 sigue adelante tal como está (D-80). R-23 cambia el contrato: la plantilla y el README se actualizan en la misma tarea que el validador.
+> T-65 decide si R-22 sigue adelante tal como está (D-80, única decisión abierta del roadmap). D-81 aprobada el 2026-11-16. R-23 cambia el contrato: la plantilla y el README se actualizan en la misma tarea que el validador.
 
 - [ ] **T-65 · Spike de Gemini Nano** — (R-22.7)
   - Rama de prueba con `genai-prompt`: revisar el manifiesto fusionado (`INTERNET` y otros permisos), tamaño del APK y comportamiento en un dispositivo compatible y en uno no compatible.
@@ -324,7 +324,7 @@
   - Plantillas con un ejemplo v2 opcional; README del contrato.
   - ✅ Fixtures v2 válidos e inválidos.
 - [ ] **T-68 · Planes recurrentes y ventana de programación** — (R-23.7, R-23.10–R-23.14)
-  - Room v5 (D-81, D-83); `MaterializeRecurringUseCase` (TDD: idempotente, ventana de 7 días, pausa y reanudación, `until`); alarma diaria `MATERIALIZE`; textos de recurrencia; *Revisión* según la decisión de R-23.14.
+  - Room v5 (D-81, D-83); `MaterializeRecurringUseCase` (TDD: idempotente, ventana de 7 días, pausa y reanudación, `until`); alarma diaria `MATERIALIZE`; textos de recurrencia; *Revisión* con el día tipo y "{n} alarmas por semana" (R-23.14).
   - ✅ Reiniciar o cambiar de zona no duplica alarmas.
 - [ ] **T-69 · Conflictos y límite con recurrencia** — (R-23.8, R-23.9)
   - `RoutineSpan` con fin abierto; conflictos por día de la semana; límite de 500 solo con la ventana.
