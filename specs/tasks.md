@@ -204,10 +204,11 @@
   - Test que lee el `strings.xml` español y falla si un texto visible contiene "orden".
   - ✅ Ningún texto visible dice "orden"; tests de VM que comparan textos actualizados; capturas del README sin cambios de flujo.
   - _Hecho:_ cuatro textos cambiados ("Detalle del plan", "Eliminar plan", "¿Eliminar el plan?" y "el plan quedará cancelado" en los tres mensajes de "Eliminar todas las alarmas"); las citas de KDoc también dicen "Eliminar plan". `VisibleTextsTest` lee `strings.xml` (textos y plurales, sin comentarios) y falla si aparece "orden". Los tests de VM comparan ids de recursos, así que no cambian. 2 tests nuevos (556 en verde).
-- [ ] **T-40 · Recibir texto compartido** — (R-14.1–R-14.5)
+- [x] **T-40 · Recibir texto compartido** — (R-14.1–R-14.5)
   - `intent-filter` `SEND` + `text/plain`, `MainActivity` `singleTop` con `onNewIntent`; `NewRoutineDestination(sharedText)` con `popUpTo(Home)` (D-64).
   - Tests de VM: texto válido → *Revisión*; texto con errores → errores y texto en el campo; vacío → "No llegó ningún texto para importar"; borrador anterior borrado de `DraftStore`. Test Robolectric del intent.
   - ✅ Compartir desde otra app abre *Revisión* sin más pasos cuando el JSON es válido.
+  - _Hecho:_ `MainActivity` pasa a `singleTask` con el `intent-filter` de envío; `IncomingIntents` reconoce el envío y el texto espera en `SharedTextInbox` hasta que *Nueva rutina* (`fromShare = true`) lo toma, vacía `DraftStore` y valida. Tocar una notificación con la app abierta llega por `onNewIntent` y sigue abriendo el plan (D-64 actualizada). 10 tests nuevos (566 en verde). En el emulador, con `am start … SEND`: app cerrada → *Revisión* del tratamiento; app en *Revisión* + texto sin JSON → *Nueva rutina* con el error y "atrás" vuelve a Inicio; envío vacío → *Nueva rutina*; deep link de notificación con la app abierta → detalle del plan. Falta compartir desde ChatGPT y Gemini reales (pasos 25–26, T-50).
 - [ ] **T-41 · "Abrir en IA"** — (R-14.6–R-14.8)
   - Botón junto a "Copiar plantilla"; chooser "Enviar la plantilla a…"; `<queries>`; fallback al portapapeles (D-65).
   - Tests de VM del efecto y del fallback.

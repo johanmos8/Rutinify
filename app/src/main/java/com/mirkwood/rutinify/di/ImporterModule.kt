@@ -2,11 +2,13 @@ package com.mirkwood.rutinify.di
 
 import com.mirkwood.rutinify.data.draft.InMemoryDraftStore
 import com.mirkwood.rutinify.data.importer.RawPromptTemplateSource
+import com.mirkwood.rutinify.data.share.InMemorySharedTextInbox
 import com.mirkwood.rutinify.data.importer.RoutineJsonImporter
 import com.mirkwood.rutinify.data.system.AndroidClipboard
 import com.mirkwood.rutinify.domain.importer.PromptTemplateSource
 import com.mirkwood.rutinify.domain.importer.RoutineImporter
 import com.mirkwood.rutinify.domain.repository.DraftStore
+import com.mirkwood.rutinify.domain.repository.SharedTextInbox
 import com.mirkwood.rutinify.domain.system.Clipboard
 import dagger.Binds
 import dagger.Module
@@ -28,4 +30,7 @@ abstract class ImporterModule {
 
     @Binds
     abstract fun bindClipboard(impl: AndroidClipboard): Clipboard
+
+    @Binds
+    abstract fun bindSharedTextInbox(impl: InMemorySharedTextInbox): SharedTextInbox
 }

@@ -15,4 +15,7 @@ interface DraftStore {
     fun get(draftId: String): DraftEntry?
 
     fun remove(draftId: String)
+
+    /** Drops every draft: a shared text replaces the one being reviewed (R-14.5). */
+    fun clear()
 }

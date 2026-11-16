@@ -21,4 +21,8 @@ class InMemoryDraftStore @Inject constructor() : DraftStore {
     override fun remove(draftId: String) {
         drafts.remove(draftId)
     }
+
+    override fun clear() {
+        drafts.clear()
+    }
 }

@@ -9,6 +9,7 @@ import com.mirkwood.rutinify.domain.importer.PromptTemplateSource
 import com.mirkwood.rutinify.domain.importer.RoutineImporter
 import com.mirkwood.rutinify.domain.repository.DraftEntry
 import com.mirkwood.rutinify.domain.repository.DraftStore
+import com.mirkwood.rutinify.domain.repository.SharedTextInbox
 import com.mirkwood.rutinify.domain.system.Clipboard
 import com.mirkwood.rutinify.ui.common.ErrorMessages
 import com.mirkwood.rutinify.ui.common.UiText
@@ -59,6 +60,7 @@ class NewRoutineViewModel @Inject constructor(
     private val templateSource: PromptTemplateSource,
     private val clipboard: Clipboard,
     private val draftStore: DraftStore,
+    private val sharedTextInbox: SharedTextInbox,
 ) : ViewModel() {
 
     /** Everything except the text, which lives in [savedStateHandle] (R-2.5). */
@@ -72,6 +74,7 @@ class NewRoutineViewModel @Inject constructor(
 
     init {
         viewModelScope.launch { local.update { it.copy(template = templateSource.load()) } }
+        receiveSharedText()
     }
 
     fun onAction(action: NewRoutineAction) {
@@ -82,6 +85,24 @@ class NewRoutineViewModel @Inject constructor(
             NewRoutineAction.ToggleTemplate -> local.update { it.copy(templateExpanded = !it.templateExpanded) }
             NewRoutineAction.ValidateClicked -> validate()
         }
+    }
+
+    /**
+     * Opened by a share (`NewRoutineDestination.fromShare`): the text replaces the field and is validated at once,
+     * as if pasted and validated (R-14.2, D-64). Only once: a recreated screen keeps the text but does not import again.
+     */
+    private fun receiveSharedText() {
+        if (savedStateHandle.get<Boolean>(KEY_FROM_SHARE) != true || savedStateHandle.get<Boolean>(KEY_SHARE_HANDLED) == true) return
+        savedStateHandle[KEY_SHARE_HANDLED] = true
+        // The draft under review, if any, is replaced by this one (R-14.5)
+        draftStore.clear()
+        val text = sharedTextInbox.take()
+        if (text.isNullOrBlank()) {
+            effectChannel.trySend(NewRoutineEffect.ShowMessage(UiText.Res(R.string.new_routine_shared_empty)))
+            return
+        }
+        setText(text)
+        validate()
     }
 
     private fun currentText(): String = savedStateHandle[KEY_TEXT] ?: ""
@@ -128,5 +149,9 @@ class NewRoutineViewModel @Inject constructor(
 
     companion object {
         const val KEY_TEXT = "text"
+
+        /** Property name of `NewRoutineDestination.fromShare` (type-safe navigation stores it under that key). */
+        const val KEY_FROM_SHARE = "fromShare"
+        private const val KEY_SHARE_HANDLED = "shareHandled"
     }
 }

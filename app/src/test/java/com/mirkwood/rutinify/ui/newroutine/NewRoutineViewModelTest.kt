@@ -5,6 +5,7 @@ import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import com.mirkwood.rutinify.R
 import com.mirkwood.rutinify.data.draft.InMemoryDraftStore
+import com.mirkwood.rutinify.data.share.InMemorySharedTextInbox
 import com.mirkwood.rutinify.domain.importer.ImportResult
 import com.mirkwood.rutinify.domain.importer.IssueKind
 import com.mirkwood.rutinify.domain.importer.Severity
@@ -26,7 +27,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
 
-/** T-21: New routine screen logic (R-1.1, R-1.2, R-1.4, R-2.1–R-2.5, R-3.19). */
+/** T-21, T-40: New routine screen logic (R-1.1, R-1.2, R-1.4, R-2.1–R-2.5, R-3.19, R-14.2–R-14.5). */
 @OptIn(ExperimentalCoroutinesApi::class) // UnconfinedTestDispatcher
 class NewRoutineViewModelTest {
 
@@ -41,9 +42,13 @@ class NewRoutineViewModelTest {
     private val importer = FakeRoutineImporter(ImportResult.Success(draft, listOf(warning)))
     private val draftStore = InMemoryDraftStore()
     private val savedState = SavedStateHandle()
+    private val inbox = InMemorySharedTextInbox()
 
     private fun viewModel(handle: SavedStateHandle = savedState) =
-        NewRoutineViewModel(handle, importer, { template }, clipboard, draftStore)
+        NewRoutineViewModel(handle, importer, { template }, clipboard, draftStore, inbox)
+
+    /** Arguments of `NewRoutineDestination(fromShare = true)`. */
+    private fun sharedHandle() = SavedStateHandle(mapOf("fromShare" to true))
 
     /** Keeps `uiState` subscribed (WhileSubscribed) for the whole test. */
     private fun TestScope.subscribed(vm: NewRoutineViewModel) = vm.also {
@@ -189,5 +194,78 @@ class NewRoutineViewModelTest {
         vm.onAction(NewRoutineAction.TextChanged("hola!"))
 
         assertThat(vm.uiState.value.issues).isEmpty()
+    }
+
+    // ---- Shared text (T-40) ----
+
+    @Test
+    fun `un texto compartido valido se pega y abre la revision`() = runTest { // R-14.2, R-14.3
+        inbox.put("Aquí tienes: {\"schemaVersion\": 1}")
+        val vm = viewModel(sharedHandle())
+
+        vm.effects.test {
+            assertThat(awaitItem()).isEqualTo(NewRoutineEffect.NavigateToReview("draft-1"))
+        }
+        assertThat(subscribed(vm).uiState.value.text).isEqualTo("Aquí tienes: {\"schemaVersion\": 1}")
+        assertThat(importer.received).containsExactly("Aquí tienes: {\"schemaVersion\": 1}")
+        assertThat(draftStore.get("draft-1")).isNotNull()
+    }
+
+    @Test
+    fun `un texto compartido con errores los muestra con el texto en el campo`() = runTest { // R-14.3
+        val issue = ValidationIssue(kind = IssueKind.NO_JSON_FOUND)
+        importer.result = ImportResult.Failure(listOf(issue))
+        inbox.put("hola")
+
+        val vm = subscribed(viewModel(sharedHandle()))
+
+        assertThat(vm.uiState.value.text).isEqualTo("hola")
+        assertThat(vm.uiState.value.issues).isEqualTo(ErrorMessages.list(listOf(issue)))
+    }
+
+    @Test
+    fun `un envio sin texto avisa y no cambia el campo`() = runTest { // R-14.4
+        val handle = sharedHandle().apply { set(NewRoutineViewModel.KEY_TEXT, "lo que había") }
+        inbox.put("   ")
+        val vm = viewModel(handle)
+
+        vm.effects.test {
+            assertThat(awaitItem()).isEqualTo(NewRoutineEffect.ShowMessage(UiText.Res(R.string.new_routine_shared_empty)))
+        }
+        assertThat(subscribed(vm).uiState.value.text).isEqualTo("lo que había")
+        assertThat(importer.received).isEmpty()
+    }
+
+    @Test
+    fun `un texto compartido descarta el borrador que estaba en revision`() = runTest { // R-14.5
+        draftStore.put(DraftEntry(draft.copy(id = "old"), emptyList()))
+        inbox.put("{}")
+
+        subscribed(viewModel(sharedHandle()))
+
+        assertThat(draftStore.get("old")).isNull()
+    }
+
+    @Test
+    fun `al recrear la pantalla no vuelve a importar el texto compartido`() = runTest { // R-14.2
+        inbox.put("{}")
+        val handle = sharedHandle()
+        subscribed(viewModel(handle))
+        importer.received.clear()
+
+        inbox.put("{}")
+        subscribed(viewModel(handle))
+
+        assertThat(importer.received).isEmpty()
+    }
+
+    @Test
+    fun `sin venir de compartir no lee el buzon`() = runTest { // R-14.2
+        inbox.put("{}")
+
+        val vm = subscribed(viewModel())
+
+        assertThat(vm.uiState.value.text).isEmpty()
+        assertThat(inbox.take()).isEqualTo("{}")
     }
 }

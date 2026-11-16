@@ -40,7 +40,7 @@ fun RutinifyNavHost(
     ) {
         composable<HomeDestination> {
             homeContent(
-                { navController.navigate(NewRoutineDestination) },
+                { navController.navigate(NewRoutineDestination()) },
                 { orderId -> navController.navigate(OrderDetailDestination(orderId)) },
                 { navController.navigate(PermissionsDestination) },
             )

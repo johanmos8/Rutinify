@@ -102,6 +102,7 @@
     <string name="new_routine_issue_bullet">• %1$s</string>
     <string name="new_routine_template_copied">Plantilla copiada</string>
     <string name="new_routine_clipboard_empty">El portapapeles está vacío</string>
+    <string name="new_routine_shared_empty">No llegó ningún texto para importar</string>
     <string name="clipboard_label_template">Plantilla de Rutinify</string>
 
     <!-- Review screen (T-22, R-4, R-5.6, R-5.7, R-5.10, R-6) -->

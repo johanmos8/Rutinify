@@ -7,8 +7,9 @@ import kotlinx.serialization.Serializable
 @Serializable
 data object HomeDestination
 
+/** [fromShare]: opened by text shared from another app, waiting in `SharedTextInbox` (R-14, D-64). */
 @Serializable
-data object NewRoutineDestination
+data class NewRoutineDestination(val fromShare: Boolean = false)
 
 @Serializable
 data class ReviewDestination(val draftId: String)
