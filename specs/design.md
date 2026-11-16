@@ -1,4 +1,4 @@
-# Diseño técnico — Rutinify (MVP)
+# Diseño técnico — Rutinify (MVP, v1.1 y roadmap v1.2–v2.0)
 
 > Referencia: `requirements.md` (ids `R-x.y`). Las decisiones menores tomadas sin consultar están en §14 *Registro de decisiones*.
 
@@ -456,6 +456,15 @@ Cobertura: Kover con regla `minBound(80)` sobre `com.mirkwood.rutinify.domain.*`
 | Compose ui-test-junit4 (también en `testImplementation`) | Tests de navegación/Compose en JVM con Robolectric, sin emulador. Ya estaba en el catálogo para `androidTest`. |
 | Kover | Medir y forzar la cobertura ≥ 80 % (más simple de configurar que JaCoCo con AGP 9). |
 
+**Propuestas para v1.4–v2.0, pendientes de aprobación** (`CLAUDE.md` §9; ninguna se añade hasta que Johan la apruebe):
+
+| Dependencia | Para qué | Por qué no basta lo existente |
+|---|---|---|
+| ZXing `core` | Generar el QR del plan (R-19.4, D-75) | Android no trae generador de QR; `core` es Java puro, sin permisos |
+| `play-services-code-scanner` (Google code scanner) | Leer el QR (R-19.6, D-75) | Escanea sin permiso `CAMERA` ni pantalla propia de cámara; la alternativa (CameraX + ML Kit) pide `CAMERA` y mucho más código |
+| `androidx.glance:glance-appwidget` | Widget "Lo siguiente" (R-21, D-79) | Escribir el widget con `RemoteViews` a mano duplica el trabajo de Compose |
+| `com.google.mlkit:genai-prompt` | IA en el dispositivo (R-22, D-80) | No hay otra vía para Gemini Nano; condicionada a la verificación de `INTERNET` |
+
 ## 14. Registro de decisiones
 
 | Id | Decisión | Motivo | ¿Validar con Johan? |
@@ -521,15 +530,38 @@ Cobertura: Kover con regla `minBound(80)` sobre `com.mirkwood.rutinify.domain.*`
 | D-59 | Revisión de varios días (T-35): `SchedulePreview` agrupa siempre por `dayOffset` (`days`, solo días con actividades) y dice si es de varios días con `RoutineDraft.spanOn(date).isMultiDay`; la UI solo usa los grupos en ese caso. Una actividad de madrugada va en el grupo de su `dayOffset`, que es su día de calendario. `ScheduleSummary.dayCount` cuenta los `dayOffset` distintos de las incluidas; el rango va del día de la primera incluida al de la última, aunque haya días sin alarmas en medio. El resumen se compone con plurales separados ("21 alarmas" + "7 días") y `SpanLabels.withWeekdays` ("del sábado 14 al viernes 20 de noviembre", con las reglas de mes y año de D-58); si solo queda un día con alarmas dice "3 alarmas en 1 día, el sábado 7 de noviembre". Las cabeceras no llevan año. En el `LazyColumn` la cabecera usa la key `"day-{dayOffset}"` y las filas su `key` de actividad | "del sábado 7 al sábado 7" no se lee bien; los días de la semana ayudan a ubicar un tratamiento; las keys de cabecera y fila no pueden chocar | No |
 | D-60 | Inicio y detalle de varios días (T-36): `observeSummaries` añade `COALESCE(MAX(a.day_offset), 0) AS max_day_offset` y `OrderSummary` gana `maxDayOffset` (por defecto 0) y `span`; `OrderDetail` deriva su `span` de la línea de tiempo. `SpanLabels.long` da "jueves 5 de noviembre de 2026" o "del sábado 14 al viernes 20 de noviembre de 2026" (año solo al final, y en los dos extremos si cambia) y se usa en Inicio **y en la cabecera del detalle**, por coherencia. En el detalle, la cabecera "Día {k} · {fecha}" va dentro del elemento de la primera alarma de cada día (`TimelineItemUi.dayTitle`), así `scrollToIndex` sigue apuntando a alarmas; el día es la fecha local del disparo efectivo, de modo que una alarma pospuesta pasada la medianoche aparece en el día siguiente. Duplicar ya conservaba los `dayOffset`; se añade el test | Mismo rango en las dos pantallas que muestran la orden; no rehacer el desplazamiento a la próxima alarma | No |
 | D-61 | Fecha por defecto de rutinas de varios días (T-38, aprobada por Johan el 2026-11-15): sin `date`, `DefaultDatePolicy` mira solo las actividades con `dayOffset` 0 cuando la rutina es de varios días (`RoutineDraft.spanOn(today).isMultiDay`). La madrugada del Día 1 no cuenta: tras expandir `repeatDays` tiene `dayOffset` 1, igual que todo el Día 2, y no se puede distinguir (con `dayOffset` ≤ 1 un tratamiento importado a las 23:00 seguiría empezando hoy por las 06:00 del Día 2). Las de un día no cambian. Se detectó en la prueba manual de T-37: importado a las 23:04, el tratamiento de 7 días empezaba hoy con el Día 1 ya pasado ("18 alarmas en 6 días") | Un tratamiento importado por la noche debe empezar mañana completo; el usuario puede elegir hoy con "Cambiar fecha" | ✅ |
+| D-62 | Foco de producto desde v1.2: **planes de cuidado con horas fijas y duración limitada** (cachorro, bebé, medicación, posoperatorio). La productividad general no es objetivo | Revisión de producto del 2026-11-16: Tiimo, Structured, ChatGPT Scheduled Tasks y Gemini ya cubren la productividad; el hueco defendible es el cuidado con horas exactas | No (registro) |
+| D-63 | "Plan" en la interfaz (strings `es` y `en`); `RoutineOrder`, `OrderDetail*`, `OrderDao`, `routine_order`, rutas `OrderDetailDestination` y el deep link `rutinify://order/…` no cambian. Los requisitos anteriores conservan "orden" | "Orden" no se entiende en la interfaz; renombrar el código sería un refactor grande sin valor para el usuario | No (pedido) |
+| D-64 | Texto compartido (R-14): `MainActivity` declara el `intent-filter` `SEND` + `text/plain` y es `singleTop`; `onCreate`/`onNewIntent` leen `EXTRA_TEXT` y navegan a `NewRoutineDestination(sharedText)` con `popUpTo(Home)`, lo que descarta un borrador abierto en *Revisión* (se borra de `DraftStore`). El texto reemplaza el del campo y se valida en el acto: el texto compartido se trata como si el usuario hubiera pegado y pulsado "Validar" | El objetivo es quitar pasos; una respuesta compartida es una intención clara de importar. Conservar un borrador a medias junto a uno nuevo complicaría la navegación | **Sí** (propuesta) |
+| D-65 | "Abrir en IA" (R-14.7): `Intent.createChooser(ACTION_SEND text/plain, "Enviar la plantilla a…")`. Si `resolveActivity` no encuentra destino, se copia al portapapeles (R-14.8). Requiere `<queries>` con `SEND text/plain` para que la comprobación funcione con la visibilidad de paquetes de Android 11+ | ChatGPT, Gemini y Claude aceptan texto compartido en su caja de mensaje; el chooser deja elegir cualquiera sin acoplarse a ninguna | No |
+| D-66 | Categorías críticas (R-15.1): tabla Room `category_setting(name TEXT PK, critical INTEGER NOT NULL)`, base de datos 1 → 2 con `Migration(1, 2)` manual. La marca es global por nombre normalizado de categoría. Se edita en una pantalla nueva *Ajustes* (icono de engranaje en la barra de Inicio), sección "Alarmas críticas", con un interruptor por cada categoría que aparece en algún plan guardado | Una categoría ("medicación") significa lo mismo en todos los planes; una tabla aparte no toca `alarm_item`. Falta confirmar el modelo (global frente a por plan) y dónde se marca | **Sí (abierta)** |
+| D-67 | Mecanismo de la alarma crítica (R-15.6–R-15.10): `setAlarmClock(AlarmClockInfo(t, showIntent = detalle del plan), firePi)`; al disparar, notificación en el canal único `alarm_critical` ("Alarmas críticas", `IMPORTANCE_HIGH`, sonido = tono de alarma del sistema con `AudioAttributes.USAGE_ALARM`), `CATEGORY_ALARM`, `FLAG_INSISTENT` (repite el sonido) y `fullScreenIntent` a `AlarmActivity`. "Silenciar" y el corte a los 10 minutos republican la notificación con el mismo id en el canal `alarm_critical_silent` (sin sonido); el corte se programa con una alarma `…action.SILENCE` (requestCode = id, data `rutinify://alarm/{id}/silence`). Sin servicio en primer plano. Excepción a `CLAUDE.md` §10 ("canal de su categoría"): el sonido de un canal no se puede cambiar después de crearlo, así que las críticas no pueden usar `cat_<categoria>`; §10 se actualiza en T-45 | `CATEGORY_ALARM` con `USAGE_ALARM` pasa "No molestar" cuando este deja pasar alarmas, sin pedir acceso a la política de "No molestar"; `FLAG_INSISTENT` evita un servicio en primer plano y su declaración de tipo en Play. 10 minutos es el corte habitual de los despertadores | **Sí** (propuesta: 10 min y excepción a §10) |
+| D-68 | Pantalla completa (R-15.7, R-15.11): se declara `USE_FULL_SCREEN_INTENT`. En Android 14+ se comprueba `NotificationManager.canUseFullScreenIntent()` en cada disparo y en *Permisos*; si es falso, la notificación sale emergente (heads-up) con el mismo canal y botones, y *Permisos* ofrece `Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT`. En Android 13 o menos el permiso se concede al instalar. Exige la declaración de Play Console: desde el 22-01-2025 Play solo lo concede por defecto a apps cuya función principal es llamadas o alarmas; en el resto lo revoca al instalar y hay que pedirlo al usuario | Con el foco de D-62 las alarmas críticas son función principal, pero Play puede no aceptarlo; el fallback mantiene el sonido aunque no haya pantalla completa | **Sí (abierta)**: qué se declara en Play |
+| D-69 | Revisión de D-09 (`USE_EXACT_ALARM`). En Android 14+ `SCHEDULE_EXACT_ALARM` está denegado por defecto en instalaciones nuevas, y `setAlarmClock` también lo necesita. Opciones: **A)** mantener D-09 y mejorar la petición (pedir el permiso al marcar la primera categoría crítica, R-15.5, y una tarjeta en Inicio tras el primer plan); **B)** declarar `USE_EXACT_ALARM` (concedido al instalar, el usuario no lo puede quitar) con `SCHEDULE_EXACT_ALARM` limitado a `maxSdkVersion 32`, más la declaración de Play como app de alarmas; **C)** A en v1.2 y probar B en la pista cerrada de v1.3, viendo si Play lo aprueba antes de producción. Pros de B: casi todos los usuarios tendrían alarmas exactas sin pasos. Contras de B: Play lo restringe a despertadores y calendarios, con revisión y riesgo de rechazo o retirada; un recordatorio de cuidados puede no encajar. Recomendación: **C** | Es un cambio de la política de permisos: se pregunta antes de cerrar | **Sí (abierta)** |
+| D-70 | Plantillas (R-16): `res/raw/prompt_template_generic.txt`, `…_puppy.txt`, `…_medication.txt`, `…_baby.txt`, `…_study.txt`; la actual `prompt_template.txt` pasa a ser `…_generic`. Enum `TemplateScenario` en `domain/model`; `TemplateRepository` lee el recurso según el escenario y el idioma (`raw-en/`). La última elección se guarda en `SharedPreferences` (sin dependencia nueva). Cada ejemplo embebido tiene un test que lo parsea | Recursos separados para que cada escenario se ajuste sin tocar código; DataStore no aporta nada para un solo valor | No |
+| D-71 | Inglés (R-13.3): `values-en/strings.xml` y `raw-en/` con las plantillas; `values/` sigue en español (idioma por defecto). `DateFormats` y `SpanLabels` dejan el `Locale` fijo `es-ES`: los patrones con palabras ("d 'de' MMMM") pasan a recursos (`date_pattern_*`) y se formatea con el `Locale` de la configuración actual. Los nombres de los tests siguen en español | Los patrones en español no se traducen con `ofLocalizedDate`, que no da "del … al …"; con recursos cada idioma tiene su orden | No |
+| D-72 | Diagnóstico (R-17): tabla `diagnostic_counter(key TEXT PK, count INTEGER NOT NULL)`, base de datos 2 → 3. Claves estables: `issue.<IssueKind>`, `step.new_routine`, `step.validate`, `step.review`, `step.schedule_tap`, `step.scheduled`, `plans.created`. Interfaz `DiagnosticsRecorder` en `domain`; los VM y `ScheduleOrderUseCase` la llaman; no hace nada si el interruptor está apagado. Interruptor en `SharedPreferences`, apagado por defecto | Opt-in y sin red: no cambia la ficha de seguridad de datos de Play ni R-13.6 | **Sí** (propuesta: apagado por defecto) |
+| D-73 | "Voy tarde" (R-18): `ShiftOrderAlarmsUseCase(orderId, minutes)` reescribe `time` y `day_offset` (hora de pared) de cada *Pendiente* y suma los minutos a `snoozed_until` si existe; todo en una transacción y bajo `AlarmMutationLock`, luego `schedule()` de cada una si la orden está `ACTIVE`. Rechaza el cambio entero si alguna queda ≤ ahora (al adelantar) o con `day_offset` fuera de 0..30. Diálogo con dos botones de sentido y un campo numérico de minutos (1–720). No vuelve a comprobar conflictos | Guardar la hora de pared mantiene la semántica de D-02 (cambio de zona) en vez de pasar a instantes absolutos; un cambio parcial confundiría | **Sí** (propuesta: límites y diálogo) |
+| D-74 | Editar una alarma (R-18.9): solo *Pendientes*; mismo formulario y reglas que Revisión (`DraftItemRules`); `UpdateAlarmUseCase` crea el canal si la categoría es nueva y reprograma | Reutiliza R-4.2 sin reglas nuevas | No |
+| D-75 | Compartir (R-19): `ExportPlanUseCase` construye el JSON del contrato desde la orden (como `DuplicateOrderUseCase`). Enlace: `rutinify://import?v=1&d=<base64url(deflate(JSON minificado))>`; el QR contiene ese enlace y se genera en el teléfono. Límite: 2.331 bytes, capacidad en bytes de un QR versión 40 con corrección M. `MainActivity` declara un `intent-filter` `VIEW` para `rutinify://import`. Lectura con *Google code scanner* (`play-services-code-scanner`: el escaneo lo hacen los servicios de Google Play, sin permiso `CAMERA` ni `INTERNET` en la app) y generación con ZXing `core`. **Las dos dependencias necesitan aprobación** (§13) | Comprimir hace que un plan típico (10–30 actividades) quepa de sobra; un esquema propio funciona sin dominio ni servidor. La cámara del sistema no siempre abre esquemas propios, por eso hay escáner dentro de la app | **Sí (abierta)**: dependencias |
+| D-76 | Filtro por responsable (R-19.9): quita del borrador las actividades de otros responsables (no las marca como excluidas, para que no aparezcan como *Omitidas* en el plan del otro cuidador) y conserva las que no tienen `assignee`, que se entienden como de todos | "Solo mis tareas" no debe llenar el detalle de alarmas ajenas | **Sí** (propuesta) |
+| D-77 | Historial (R-20): tabla `alarm_event(id PK, alarm_id, order_id, type DONE/SKIPPED/SNOOZED, at)` con FK a `routine_order` en cascada, base de datos 3 → 4. La migración crea un evento `DONE` por cada alarma con `done_at` y `SKIPPED` por cada *Omitida* (con `status_changed_at`); las posposiciones previas a v1.4 no se conocen y cuentan 0. Los eventos se escriben en la misma transacción que el cambio de estado | Los estados actuales no guardan cuántas veces se pospuso; una tabla de eventos permite el resumen y la exportación sin tocar `alarm_item` | No |
+| D-78 | PDF (R-20.5) con `android.graphics.pdf.PdfDocument` del framework (sin dependencia), escrito en `cache/exports/` y compartido con `FileProvider`; se borra la exportación anterior al crear una nueva | Basta con texto y tablas simples; una librería de PDF no se justifica | No |
+| D-79 | Widget (R-21) con Jetpack Glance (`glance-appwidget`, **dependencia a aprobar**). `AlarmItemDao.observeNextPending()`; interfaz `WidgetUpdater` en `domain` que llaman los use cases que cambian alarmas u órdenes (R-21.4); el botón "Hecho" usa un `ActionCallback` que llama a `MarkAlarmDoneUseCase` | Glance es la vía recomendada con Compose; la interfaz mantiene el dominio sin Android | **Sí (abierta)**: dependencia |
+| D-80 | IA en el dispositivo (R-22): ML Kit GenAI Prompt API (`com.google.mlkit:genai-prompt`, 1.0.0-beta4 a 2026-11-16, **dependencia a aprobar**); requiere API 26 (el proyecto es 28) y no funciona con el bootloader desbloqueado. Solo se ofrece con `FeatureStatus.AVAILABLE`; con `DOWNLOADABLE` no se ofrece descargar en la primera versión. `OnDeviceRoutineImporter` implementa `RoutineImporter` y devuelve el mismo `ImportResult`. **`INTERNET` sin verificar**: la documentación oficial no dice si la app debe declararlo ni si la librería lo añade al manifiesto; el modelo lo gestiona AICore, un servicio del sistema. T-65 lo verifica con el manifiesto fusionado. Si aparece `INTERNET`: o se quita con `tools:node="remove"` (riesgo: que falle la descarga del modelo) o se acepta y se cambia R-13.6. Decisión abierta | No se puede afirmar que cumple R-13.6 sin comprobar el APK | **Sí (abierta)** |
+| D-81 | Schema v2 (R-23): `recurrence` propio (`weekdays` + `until`), no RRULE completo, que las IAs escriben mal y no hace falta para "todos los lunes". Modelo: tabla `routine_activity` (las actividades del día tipo) y columnas `recurrence_weekdays INTEGER NULL` (máscara de bits) y `recurrence_until TEXT NULL` en `routine_order`, base de datos 4 → 5. `alarm_item` sigue siendo una alarma concreta; `MaterializeRecurringUseCase` crea las de la ventana de 7 días (idempotente: no duplica una actividad y fecha ya creada) y la llaman `RescheduleAllUseCase` y una alarma diaria inexacta (`…action.MATERIALIZE`, `setAndAllowWhileIdle`, sin WorkManager). La regla de `requestCode` = id no cambia. Falta decidir cómo se ve un plan recurrente en *Revisión* (R-23.14): propuesta, el día tipo con la recurrencia en la cabecera y el resumen "{n} alarmas por semana" | Programar sin fin rompería el límite de 500 de Android; una ventana fija mantiene acotadas las pendientes | **Sí (abierta)**: Revisión |
+| D-82 | Wear OS (R-24): primera iteración solo con notificaciones puenteadas: las notificaciones no son `setLocalOnly`, y las acciones "Hecho", "+5 min" y "Silenciar" son `PendingIntent` de broadcast que el reloj ejecuta en el teléfono. La pantalla completa no se muestra en el reloj; el reloj vibra con la notificación | Cubre el caso de uso sin módulo `:wear` ni Data Layer | No |
+| D-83 | Versiones de Room: v2 en v1.2 (`category_setting`), v3 en v1.3 (`diagnostic_counter`), v4 en v1.4 (`alarm_event`), v5 en v2.0 (`routine_activity` y columnas de recurrencia). Migraciones manuales, sin `fallbackToDestructiveMigration`, con test `MigrationTestHelper` por paso y de 1 a la última | Los planes en curso de los usuarios no se pueden perder al actualizar | No |
 | D-01..D-04 | Aprobadas por Johan el 2026-11-04 | | ✅ |
 
 ## 15. Preparación para v2
 
+Desde v1.2 el roadmap de §17 cubre la recurrencia sin fin (R-23), el widget (R-21), compartir sin servidor (R-19) y la conversión en el dispositivo (R-22). Queda preparado para después:
+
 - **Alarmas relativas ("me desperté")**: añadir a `AlarmItem` un `anchor` opcional (`ABSOLUTE` | `RELATIVE_TO_EVENT`) y `offsetMin`; `TriggerTimeCalculator` ya es el único punto que calcula horas.
-- **Rutinas recurrentes**: los tratamientos con fin ya se cubren con rutinas de varios días (D-55). Para la recurrencia sin fin, `routine_order` puede ganar `recurrence_rule`; `DuplicateOrderUseCase` ya genera borradores a partir de una orden.
-- **Widget "lo siguiente"**: `AlarmItemDao` expondrá `observeNextPending()`; Glance consumirá un use case.
-- **API de Claude**: `RoutineImporter` es una interfaz; un `ClaudeRoutineImporter` produciría el mismo `ImportResult`.
-- **Exportar .ics / compartir**: `raw_json` y `schema_version` se guardan desde v1; `schemaVersion` del contrato permite evolucionar.
+- **API de una IA en la nube**: `RoutineImporter` es una interfaz; un importador en la nube produciría el mismo `ImportResult`, igual que `OnDeviceRoutineImporter` en v2.0. Choca con R-13.6, así que sigue fuera de alcance.
+- **Exportar .ics**: `ExportPlanUseCase` (v1.4) y el historial de eventos (D-77) dan los datos; falta el formato.
+- **App propia de Wear OS**: las acciones ya pasan por use cases; un módulo `:wear` usaría la Data Layer API.
 - Esquemas de Room exportados para migraciones.
 
 ## 16. Riesgos
@@ -541,3 +573,117 @@ Cobertura: Kover con regla `minBound(80)` sobre `com.mirkwood.rutinify.domain.*`
 | K-3 | ~30 alarmas/día exactas → impacto en batería | Aceptable: `setExactAndAllowWhileIdle` es el mecanismo previsto; cada disparo hace trabajo mínimo. |
 | K-4 | El usuario fuerza la detención → Android borra las alarmas sin aviso | Reconciliación en `RutinifyApp.onCreate` (§7.2). |
 | K-5 | Texto pegado malicioso o accidentalmente enorme (no se puede saber quién generó el JSON) | No se confía en el origen sino en la validación: límites de D-32, Revisión obligatoria antes de programar (R-4), sin permiso `INTERNET` (R-13.6), Room con parámetros enlazados, texto plano en UI y notificaciones. |
+| K-6 | Play no concede `USE_FULL_SCREEN_INTENT` por defecto (solo a apps de llamadas o alarmas, desde el 22-01-2025) o rechaza la declaración | Fallback a notificación emergente con el mismo sonido (R-15.11) y fila en *Permisos*; declarar las alarmas críticas como función principal (D-68) |
+| K-7 | Sin `SCHEDULE_EXACT_ALARM` (denegado por defecto en Android 14+), las alarmas críticas tampoco son exactas: `setAlarmClock` lo necesita | Petición guiada (R-15.5) y la estrategia C de D-69; aviso visible (R-15.4) |
+| K-8 | `setAlarmClock` muestra el icono de alarma en la barra de estado y aparece como "próxima alarma" en el reloj del sistema y en algunos widgets | Es el comportamiento esperado de una alarma real; se documenta en *Ajustes* junto al interruptor |
+| K-9 | El comportamiento de "No molestar" con `CATEGORY_ALARM` varía entre fabricantes | Casos manuales en dispositivo real (manual-test, pasos 20–23); si falla en alguno, documentarlo como limitación conocida |
+| K-10 | Gemini Nano solo existe en algunos teléfonos (Pixel 9+, Galaxy S25+…), la API está en beta y puede cambiar, y la dependencia podría exigir `INTERNET` | Opción oculta si no hay modelo (R-22.4); verificación previa (T-65, D-80); el flujo de copiar y pegar nunca se quita |
+| K-11 | Un plan grande no cabe en un QR (2.331 bytes con corrección M) | Compresión deflate (D-75) y "Compartir como texto" cuando no cabe (R-19.5) |
+| K-12 | Algunas apps de IA comparten texto con formato o recortado, o no aceptan `ACTION_SEND` de entrada | La extracción tolerante (R-3.1) ya acepta texto alrededor; casos manuales con ChatGPT y Gemini (manual-test, pasos 25–28); "Copiar plantilla" sigue disponible |
+
+## 17. Evolución v1.2–v2.0
+
+> Roadmap posterior a v1.1. Nada de esta sección está implementado. Cada apartado dice cómo encaja en la arquitectura de §1–§11; las decisiones abiertas están marcadas en §14.
+
+### 17.1 v1.2 · Usable para otros
+
+**Entrada compartida (R-14, D-64, D-65).**
+- Manifiesto: `MainActivity` con `android:launchMode="singleTop"` y un `intent-filter` para `SEND` + `text/plain`; `<queries>` para `SEND text/plain`.
+- `NewRoutineDestination` gana `sharedText: String? = null`.
+- `NewRoutineViewModel` lo coloca en el campo (`SavedStateHandle`) y lanza la misma validación que "Validar".
+- Si el texto falta o está vacío, se emite el efecto con "No llegó ningún texto para importar".
+- "Abrir en IA" es un efecto `NewRoutineEffect.ShareTemplate(text)` que la `Route` convierte en el chooser.
+- No hay use case nuevo: la validación reutiliza `RoutineImporter`.
+
+**Modo alarma real (R-15, D-66–D-69).**
+- Dominio:
+  - `CategorySetting(name, critical)`.
+  - `CategorySettingsRepository` (`observe()`, `setCritical(name, critical)`, `criticalNames()`).
+  - `SetCategoryCriticalUseCase`: guarda la marca y reprograma las pendientes de esa categoría (R-15.2).
+- `AlarmScheduler.schedule(alarmId, triggerAt, critical: Boolean)`. Con `critical` y permiso exacto → `setAlarmClock`; sin permiso → `setWindow` (R-15.4). El `requestCode` y el `PendingIntent` de disparo no cambian (§6.1), así que cancelar sigue igual.
+- `HandleAlarmFiredUseCase` pregunta al repositorio si la categoría es crítica y llama a `NotificationPublisher.publish(notification, critical)`.
+- `AndroidNotificationPublisher` decide la pantalla completa con `canUseFullScreenIntent()`.
+- Datos: Room v2 con `category_setting` (D-66, D-83).
+- `NotificationActionReceiver` gana la acción `…action.SILENCE` y `AlarmReceiver` la del corte a 10 min (D-67).
+- `RescheduleAllUseCase` pasa `critical` en cada `schedule()` (R-15.13).
+- Pantallas nuevas:
+  - `AlarmActivity` (`showWhenLocked`, `turnScreenOn`, sin historial, tema propio): muestra el estado del VM y llama a los mismos use cases que los botones de la notificación.
+  - *Ajustes* (`SettingsDestination`): sección "Alarmas críticas".
+- *Permisos* gana la fila de pantalla completa (Android 14+).
+- Permisos en manifiesto: `USE_FULL_SCREEN_INTENT`. Si se elige la opción B de D-69, también `USE_EXACT_ALARM` (con `SCHEDULE_EXACT_ALARM` hasta `maxSdkVersion 32`).
+
+**Plantillas (R-16, D-70).** `TemplateScenario { GENERIC, PUPPY, MEDICATION, BABY, STUDY }`; `GetTemplateUseCase(scenario)`; el selector vive en `NewRoutineUiState.scenario`. El test de plantilla (§12) pasa a recorrer los cinco recursos en `raw/` y `raw-en/`.
+
+**"Plan" en la interfaz (R-13.7, D-63).** Solo `strings.xml`: se buscan las cadenas con "orden" y se reescriben; un test lee el `strings.xml` español y falla si queda la palabra "orden" en un texto visible.
+
+**Inglés (R-13.3, D-71).** `values-en/`, `raw-en/`, patrones de fecha en recursos. `ErrorMessages` no cambia (ya devuelve ids de recursos). Lint `MissingTranslation` como error.
+
+### 17.2 v1.3 · Validación con usuarios
+
+**Diagnóstico (R-17, D-72).**
+- Room v3 con `diagnostic_counter`.
+- `DiagnosticsRecorder` (dominio) → `RoomDiagnosticsRecorder`.
+- `ExportDiagnosticsUseCase` devuelve el texto.
+- En *Ajustes*: el interruptor, "Exportar diagnóstico" y "Borrar diagnóstico".
+- No añade permisos.
+
+**Publicación (sin código).** La checklist vive en `specs/release-checklist.md` (T-53):
+- ficha de Play;
+- política de privacidad publicada (por ejemplo, en GitHub Pages: la app no la necesita en tiempo de ejecución);
+- formulario de seguridad de datos ("no se recogen datos");
+- declaraciones de `USE_FULL_SCREEN_INTENT` y, si aplica, `USE_EXACT_ALARM`;
+- clasificación de contenido;
+- `targetSdk` vigente.
+
+Prueba cerrada: si la cuenta de desarrollador personal es posterior al 13-11-2023, hacen falta al menos 12 testers con la prueba aceptada de forma continua durante los 14 días anteriores a pedir producción. Conviene reclutar más de 12 como margen. Métrica de éxito: el usuario programa un segundo plan (`plans.created ≥ 2` en el diagnóstico exportado, o preguntándolo).
+
+### 17.3 v1.4 · Nicho de cuidados
+
+**Reprogramar (R-18, D-73, D-74).**
+- `ShiftOrderAlarmsUseCase(orderId, minutes): ShiftResult` con los casos `Shifted(n)`, `WouldBePast(k)` y `OutOfRange`.
+- `UpdateAlarmUseCase(alarmId, time, title, category)`.
+- `AlarmItemDao`: `updateTimeAndOffset(ids…)` y `update(entity)`.
+- Detalle: acción "Voy tarde" en la cabecera y "Editar" en cada tarjeta *Pendiente*.
+- Sin migración.
+
+**Compartir (R-19, D-75, D-76).**
+- Use cases:
+  - `ExportPlanUseCase(orderId): String` (JSON);
+  - `EncodePlanLinkUseCase(json): String?` (null si supera 2.331 bytes);
+  - `DecodePlanLinkUseCase(uri): String?`.
+- `QrEncoder` (interfaz en dominio, ZXing en `data/system`).
+- `CodeScanner` (interfaz; implementación con Google code scanner).
+- `MainActivity`: `intent-filter` `VIEW` para `rutinify://import`, que reutiliza el camino de R-14.
+- *Revisión*: `ReviewAction.FilterAssignee(name?)`.
+- Sin migración.
+
+**Historial (R-20, D-77, D-78).**
+- Room v4 con `alarm_event`.
+- `MarkAlarmDoneUseCase`, `SnoozeAlarmUseCase`, `ResumeOrderUseCase` y `RescheduleAllUseCase` escriben el evento en la misma transacción que el cambio de estado.
+- `BuildHistoryReportUseCase(orderId): HistoryReport` (dominio, testeable).
+- `HistoryTextFormatter` y `PdfHistoryExporter` (en `data`).
+- `FileProvider` con `cache/exports/`.
+
+**Widget (R-21, D-79).**
+- `NextAlarmWidget` (Glance) en `ui/widget/`.
+- `ObserveNextAlarmUseCase`.
+- `WidgetUpdater` en dominio → `GlanceWidgetUpdater`.
+- Receiver del widget declarado en el manifiesto.
+
+### 17.4 v2.0 · Diferenciación
+
+**IA en el dispositivo (R-22, D-80).**
+- `OnDeviceRoutineImporter` (en `data/importer/ondevice`): comprueba `checkStatus()`, genera con el texto de la plantilla y pasa la respuesta por `JsonExtractor` + `RoutineJsonParser`.
+- `NewRoutineUiState.onDeviceAvailable`.
+- Antes de nada, T-65 verifica el manifiesto fusionado (`INTERNET`).
+
+**Schema v2 (R-23, D-81).**
+- Parser: `schemaVersion` 1 o 2 y lectura de `recurrence` con sus errores (R-23.3–R-23.6).
+- `RoutineDraft.recurrence: Recurrence?`.
+- Room v5 con `routine_activity` y columnas de recurrencia.
+- `MaterializeRecurringUseCase` (ventana de 7 días), llamado por `RescheduleAllUseCase` y por `…action.MATERIALIZE`.
+- `RoutineSpan` acepta un fin abierto para los conflictos (R-23.9).
+- `ScheduleOrderUseCase` cuenta para el límite de 500 solo las de la ventana (R-23.8).
+- `OrderSummary` y `SpanLabels` muestran la recurrencia (R-23.10).
+
+**Wear OS (R-24, D-82).** Sin módulo nuevo: se revisa que ninguna notificación sea `setLocalOnly` y se añaden las acciones a `WearableExtender` si hace falta para el orden en el reloj.

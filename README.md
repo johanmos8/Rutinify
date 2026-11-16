@@ -61,9 +61,12 @@ Rutinify is not tied to any topic: it only sees times, titles and categories. An
 | Family mornings | "Wake up 6:30, breakfast 7:00, leave for school 7:40" | Pause on weekends or holidays |
 | Step-by-step cooking | "Bread: knead at 9, first rise 1 h, oven at 13:00" | Close alarms with instructions in the description |
 
-Current limits: a routine covers up to 31 days (`dayOffset` 0–30, or `repeatDays` up to 30), there is no open-ended
-repetition ("every Monday"), relative intervals must become fixed times, and routines are not shared between phones.
-Open-ended recurring routines and scenario-specific prompt templates are the natural next steps.
+Current limits (v1.1): a routine covers up to 31 days (`dayOffset` 0–30, or `repeatDays` up to 30); there is no
+open-ended repetition ("every Monday"); relative intervals must become fixed times; alarms are high-priority
+notifications, so they do not ring like an alarm clock and "Do not disturb" silences them; on Android 14+ the
+exact-alarm permission is off by default, so most users get a 10-minute window until they enable it; creating a plan
+takes several copy-and-paste steps; a scheduled plan cannot be shifted; plans are not shared between phones; and
+`assignee` is stored but has no effect yet. The [roadmap](#roadmap) addresses each of these.
 
 ## JSON contract (schema 1)
 
@@ -156,8 +159,58 @@ Version 1.1 (multi-day routines) is complete: all 37 tasks in [`specs/tasks.md`]
 tests pass, lint has no project warnings, coverage of the domain and importer is 99.2 %, and the manual checklist in
 [`specs/manual-test.md`](specs/manual-test.md) passes on an Android 16 emulator.
 
-Not included (see `specs/design.md` §15): open-ended recurring routines, a home-screen widget, calling an AI API directly,
-`.ics` export, and other UI languages.
+Not included (see `specs/design.md` §15): calling a cloud AI API, `.ics` export, a standalone Wear OS app and
+syncing plans through a server. Recurring routines, the widget, sharing between phones and the English UI are on the
+[roadmap](#roadmap).
+
+## Roadmap
+
+Since v1.2 the product focus is **care plans with fixed times and a limited duration** (puppy, baby, medication,
+post-surgery), not general productivity. The full requirements are in [`specs/requirements.md`](specs/requirements.md)
+(R-14 to R-24) and the work order in [`specs/tasks.md`](specs/tasks.md) (phases 11–14).
+
+### v1.2 · Usable by others
+
+Goal: anyone can create a plan in a few taps, and important activities ring like a real alarm.
+
+| Feature | Status |
+|---|---|
+| Share the AI's answer to Rutinify (`ACTION_SEND`) and send the template to any AI app ("Abrir en IA") | Planned |
+| Real alarm mode for "critical" categories: full-screen alarm over the lock screen, alarm sound, `setAlarmClock` | Planned |
+| Prompt templates per scenario: puppy, medication, baby, study, generic | Planned |
+| "Order" renamed to "Plan" in the UI | Planned |
+| English UI | Planned |
+
+### v1.3 · User validation
+
+Goal: check with real users that the care focus works before adding more features.
+
+| Feature | Status |
+|---|---|
+| Closed test on Google Play (12+ testers for 14 days in a row) and release checklist | Planned |
+| Success metric: the user creates a second plan | Planned |
+| Optional local diagnostics (counters, no network), exported by hand from Settings | Planned |
+
+### v1.4 · Care niche
+
+Goal: cover what caregivers need day to day.
+
+| Feature | Status |
+|---|---|
+| "Voy tarde": shift all pending alarms of a plan; edit a single alarm | Planned |
+| Share a plan with another caregiver by QR code or text, no server; "only my tasks" filter by assignee | Planned |
+| History ("19 of 21 done") exported as text or PDF for the vet or the doctor | Planned |
+| "Up next" home-screen widget with a Done button | Planned |
+
+### v2.0 · Differentiation
+
+Goal: features that general-purpose AI assistants and planners do not offer together.
+
+| Feature | Status |
+|---|---|
+| On-device conversion with Gemini Nano on supported phones (falls back to copy and paste) | Planned, pending a check on the `INTERNET` permission |
+| JSON schema v2 with open-ended repetition (weekdays, optional end date), scheduling 7 days ahead | Planned |
+| Wear OS: Done and +5 min from the watch (bridged notifications) | Planned |
 
 ## How this project is developed
 

@@ -1,4 +1,4 @@
-# Tareas — Rutinify (MVP)
+# Tareas — Rutinify (MVP, v1.1 y roadmap v1.2–v2.0)
 
 > Una tarea a la vez, en orden. Cada tarea deja el proyecto **compilando y con los tests en verde**
 > (`./gradlew assembleDebug testDebugUnitTest lintDebug`). Ver DoD en `CLAUDE.md` §12.
@@ -195,11 +195,150 @@
   - Las rutinas de un día no cambian (tests existentes).
   - _Hecho:_ en rutinas de varios días `DefaultDatePolicy` solo mira `dayOffset` 0 (D-61); la madrugada del Día 1 no cuenta porque tras expandir `repeatDays` no se distingue del Día 2. 3 tests nuevos (554 en verde). En el emulador, el tratamiento importado a las 23:25 elige el lunes 16 y muestra "21 alarmas en 7 días".
 
+## Fase 11 · Usable para otros (v1.2)
+
+> Foco en planes de cuidado (D-62). Mismo DoD por tarea. Antes de T-43 deben estar cerradas D-66 (modelo e interfaz de las categorías críticas) y D-69 (política de alarmas exactas); antes de T-47, D-68.
+
+- [ ] **T-39 · "Plan" en la interfaz** — (R-13.7)
+  - Reescribir en `strings.xml` las cadenas visibles con "orden" ("Eliminar plan", "Plan no encontrado"…); sin tocar nombres internos, rutas ni deep links (D-63).
+  - Test que lee el `strings.xml` español y falla si un texto visible contiene "orden".
+  - ✅ Ningún texto visible dice "orden"; tests de VM que comparan textos actualizados; capturas del README sin cambios de flujo.
+- [ ] **T-40 · Recibir texto compartido** — (R-14.1–R-14.5)
+  - `intent-filter` `SEND` + `text/plain`, `MainActivity` `singleTop` con `onNewIntent`; `NewRoutineDestination(sharedText)` con `popUpTo(Home)` (D-64).
+  - Tests de VM: texto válido → *Revisión*; texto con errores → errores y texto en el campo; vacío → "No llegó ningún texto para importar"; borrador anterior borrado de `DraftStore`. Test Robolectric del intent.
+  - ✅ Compartir desde otra app abre *Revisión* sin más pasos cuando el JSON es válido.
+- [ ] **T-41 · "Abrir en IA"** — (R-14.6–R-14.8)
+  - Botón junto a "Copiar plantilla"; chooser "Enviar la plantilla a…"; `<queries>`; fallback al portapapeles (D-65).
+  - Tests de VM del efecto y del fallback.
+  - ✅ El chooser recibe la plantilla completa del escenario elegido.
+- [ ] **T-42 · Plantillas por escenario** — (R-16.1–R-16.5, R-1.5)
+  - Cinco recursos en `raw/` (D-70); `TemplateScenario`, `GetTemplateUseCase`; selector en *Nueva rutina* que recuerda la elección.
+  - Test por plantilla: el ejemplo embebido parsea sin errores ni avisos; la de medicación contiene la instrucción de R-16.5.
+  - ✅ "Ver", "Copiar" y "Abrir en IA" usan la plantilla elegida; previews claro/oscuro del selector.
+- [ ] **T-43 · Categorías críticas en datos y dominio** — (R-15.1, R-15.2)
+  - Room v2: `category_setting` con `Migration(1, 2)` y test `MigrationTestHelper` (D-66, D-83).
+  - `CategorySettingsRepository`, `SetCategoryCriticalUseCase` (reprograma las pendientes de la categoría); tests con fakes.
+  - ✅ Migración probada con una base v1 real exportada; ningún plan existente cambia.
+- [ ] **T-44 · Pantalla *Ajustes* con "Alarmas críticas"** — (R-15.1, R-15.4, R-15.5)
+  - `SettingsDestination`, entrada desde Inicio; interruptor por categoría; aviso de R-15.4; petición de R-15.5.
+  - Tests de VM; previews claro/oscuro.
+  - ✅ Marcar y desmarcar persiste y reprograma.
+- [ ] **T-45 · Programación y notificación de alarmas críticas** — (R-15.3, R-15.6, R-15.12–R-15.14)
+  - `AlarmScheduler.schedule(…, critical)` con `setAlarmClock`; canal `alarm_critical` (`USAGE_ALARM`, `CATEGORY_ALARM`, `FLAG_INSISTENT`) y `alarm_critical_silent` (D-67); `RescheduleAllUseCase` pasa `critical`.
+  - Actualizar `CLAUDE.md` §10 con la excepción de canal de D-67.
+  - Tests Robolectric: `setAlarmClock` con permiso, `setWindow` sin él, cancelar con el mismo `PendingIntent`; tests de use case.
+  - ✅ Las no críticas siguen exactamente como en v1.1 (tests existentes en verde).
+- [ ] **T-46 · Pantalla de alarma, "Silenciar" y corte a 10 min** — (R-15.7–R-15.10)
+  - `AlarmActivity` (`showWhenLocked`, `turnScreenOn`) con "Hecho", "+5 min" y "Silenciar"; acciones `SILENCE` y corte programado (D-67).
+  - Tests de VM y de receiver; previews claro/oscuro.
+  - ✅ "Silenciar" deja la alarma *Disparada* con notificación muda; a los 10 min se silencia sola.
+- [ ] **T-47 · Permiso de pantalla completa y fallback** — (R-15.11)
+  - `USE_FULL_SCREEN_INTENT`; `canUseFullScreenIntent()` en cada disparo; fila en *Permisos* con `ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT` (D-68).
+  - Tests de `PermissionChecker` y del publicador con y sin permiso.
+  - ✅ Sin permiso, la alarma suena como notificación emergente.
+- [ ] **T-48 · Aplicar la decisión de alarmas exactas** — (R-11.2, R-15.5; D-69)
+  - Según la opción elegida en D-69: petición guiada (A/C) o `USE_EXACT_ALARM` con `SCHEDULE_EXACT_ALARM` hasta `maxSdkVersion 32` (B).
+  - ✅ Manifiesto y *Permisos* coherentes con D-69; tests de VM de la petición.
+- [ ] **T-49 · Interfaz en inglés** — (R-13.3)
+  - `values-en/`, `raw-en/` (cinco plantillas), patrones de fecha en recursos (D-71); lint `MissingTranslation` como error.
+  - Tests de `SpanLabels`/`DateFormats` con locale `en`; los existentes en `es` siguen en verde.
+  - ✅ Con el teléfono en inglés no queda ningún texto en español.
+- [ ] **T-50 · Verificación v1.2** — (R-13.5)
+  - `koverVerify` ≥ 80 %; pasos 19–28 de `manual-test.md` en dispositivo real con Android 14+ (bloqueo, "No molestar", reinicio, sin pantalla completa, ChatGPT y Gemini).
+  - README: Roadmap y capturas actualizados.
+  - ✅ Resultados anotados en `manual-test.md`.
+
+## Fase 12 · Validación con usuarios (v1.3)
+
+> Sin funciones nuevas de producto salvo el diagnóstico opcional. Mide si el foco de D-62 funciona.
+
+- [ ] **T-51 · Contadores de diagnóstico** — (R-17.1–R-17.4, R-17.7)
+  - Room v3: `diagnostic_counter` con migración y test (D-72, D-83); `DiagnosticsRecorder` y su uso en VMs y `ScheduleOrderUseCase`.
+  - Tests: no cuenta con el interruptor apagado; cuenta cada `IssueKind`; desactivar borra.
+  - ✅ El manifiesto sigue sin `INTERNET`.
+- [ ] **T-52 · Exportar y borrar diagnóstico** — (R-17.5, R-17.6)
+  - Sección en *Ajustes*; `ExportDiagnosticsUseCase` con texto legible y versión de la app.
+  - Tests de use case y VM; previews.
+  - ✅ El texto exportado no contiene nombres ni contenido de rutinas.
+- [ ] **T-53 · Checklist de publicación** — (sin requisito de producto; D-68, D-69)
+  - `specs/release-checklist.md`: ficha, política de privacidad, seguridad de datos, declaraciones de permisos, clasificación de contenido, `targetSdk`.
+  - ✅ Checklist completa y revisada por Johan.
+- [ ] **T-54 · Prueba cerrada** — (sin requisito de producto)
+  - Pista cerrada con al menos 12 testers aceptados durante 14 días seguidos (cuenta personal posterior al 13-11-2023), con margen de testers.
+  - Métrica: porcentaje de testers que programan un segundo plan; recoger diagnósticos exportados voluntarios.
+  - ✅ Resultado y aprendizajes anotados en `specs/` antes de empezar la Fase 13.
+
+## Fase 13 · Nicho de cuidados (v1.4)
+
+> Antes de T-59/T-60 debe estar aprobada la dependencia de D-75; antes de T-63, la de D-79.
+
+- [ ] **T-55 · Mover alarmas en bloque (dominio)** — (R-18.3–R-18.8)
+  - `ShiftOrderAlarmsUseCase` (TDD, D-73): cruzar medianoche hacia delante y hacia atrás, pospuestas, pasado, fuera de 0..30, plan pausado, estados que no cambian, idempotencia de la reprogramación.
+  - ✅ Tests en verde con `Clock.fixed` y zona explícita.
+- [ ] **T-56 · "Voy tarde" en el detalle** — (R-18.1, R-18.2)
+  - Diálogo con sentido y minutos, vista previa y mensajes de error; mensaje "{n} alarmas movidas".
+  - Tests de VM; previews claro/oscuro.
+  - ✅ Acción visible solo en planes *Activos* o *Pausados*.
+- [ ] **T-57 · Editar una alarma** — (R-18.9, R-18.10)
+  - `UpdateAlarmUseCase` (D-74); formulario reutilizado de Revisión.
+  - ✅ Solo *Pendientes*; hora pasada rechazada con su mensaje.
+- [ ] **T-58 · Exportar el plan como texto** — (R-19.1–R-19.3)
+  - `ExportPlanUseCase`: el JSON exportado vuelve a importarse igual (test de ida y vuelta, también con `assignee` y varios días).
+  - ✅ "Compartir como texto" abre el selector con el bloque de código.
+- [ ] **T-59 · Enlace y QR** — (R-19.4, R-19.5, R-19.7, R-19.8)
+  - `EncodePlanLinkUseCase`/`DecodePlanLinkUseCase` (TDD: ida y vuelta, límite de 2.331 bytes, enlace dañado); `intent-filter` `rutinify://import`; QR con ZXing (D-75).
+  - ✅ Un plan que no cabe muestra el mensaje de R-19.5.
+- [ ] **T-60 · Escanear QR y filtro por responsable** — (R-19.6, R-19.9, R-19.10)
+  - "Escanear QR" con Google code scanner; filtro "Solo las tareas de…" en *Revisión* (D-76).
+  - Tests de VM del filtro (con y sin `assignee`, "Todas" restaura).
+  - ✅ El manifiesto no gana `CAMERA` ni `INTERNET`.
+- [ ] **T-61 · Eventos del historial** — (R-20.1)
+  - Room v4: `alarm_event` con migración que crea eventos desde `done_at` y *Omitidas* (D-77, D-83); escritura en la misma transacción que el estado.
+  - ✅ Test de migración y de cada use case que escribe eventos.
+- [ ] **T-62 · Resumen y exportación** — (R-20.2–R-20.6)
+  - `BuildHistoryReportUseCase` (TDD); texto; PDF con `PdfDocument` y `FileProvider` (D-78).
+  - ✅ "19 de 21 hechas" correcto con canceladas, omitidas y pospuestas; PDF abre en un visor.
+- [ ] **T-63 · Widget "Lo siguiente"** — (R-21.1–R-21.5)
+  - Glance (D-79), `ObserveNextAlarmUseCase`, `WidgetUpdater`; botón "Hecho".
+  - Tests de use case; prueba manual de actualización.
+  - ✅ El widget cambia al disparar, marcar, posponer y mover.
+- [ ] **T-64 · Verificación v1.4** — (R-13.5)
+  - `koverVerify` ≥ 80 %; pasos 29–31 de `manual-test.md` (QR entre dos teléfonos, plan grande, filtro).
+  - ✅ Resultados anotados.
+
+## Fase 14 · Diferenciación (v2.0)
+
+> T-65 decide si R-22 sigue adelante tal como está (D-80). R-23 cambia el contrato: la plantilla y el README se actualizan en la misma tarea que el validador.
+
+- [ ] **T-65 · Spike de Gemini Nano** — (R-22.7)
+  - Rama de prueba con `genai-prompt`: revisar el manifiesto fusionado (`INTERNET` y otros permisos), tamaño del APK y comportamiento en un dispositivo compatible y en uno no compatible.
+  - ✅ Resultado anotado en D-80 y decisión de Johan registrada; la rama no se fusiona.
+- [ ] **T-66 · Convertir en el teléfono** — (R-22.1–R-22.6)
+  - `OnDeviceRoutineImporter`; opción visible solo con `AVAILABLE`; cancelar; límite de entrada; mensajes de error.
+  - Tests con un fake del modelo; prueba manual en dispositivo compatible.
+  - ✅ Sin modelo, *Nueva rutina* se ve igual que antes.
+- [ ] **T-67 · Validador del schema v2** — (R-23.1–R-23.6)
+  - TDD: v1 sin cambios; v2 con `weekdays` y `until`; cada error de R-23.3–R-23.6; R-3.4 con "1 o 2".
+  - Plantillas con un ejemplo v2 opcional; README del contrato.
+  - ✅ Fixtures v2 válidos e inválidos.
+- [ ] **T-68 · Planes recurrentes y ventana de programación** — (R-23.7, R-23.10–R-23.14)
+  - Room v5 (D-81, D-83); `MaterializeRecurringUseCase` (TDD: idempotente, ventana de 7 días, pausa y reanudación, `until`); alarma diaria `MATERIALIZE`; textos de recurrencia; *Revisión* según la decisión de R-23.14.
+  - ✅ Reiniciar o cambiar de zona no duplica alarmas.
+- [ ] **T-69 · Conflictos y límite con recurrencia** — (R-23.8, R-23.9)
+  - `RoutineSpan` con fin abierto; conflictos por día de la semana; límite de 500 solo con la ventana.
+  - ✅ Tests de conflicto recurrente contra plan de un día, de varios días y otro recurrente.
+- [ ] **T-70 · Wear OS con notificaciones puenteadas** — (R-24.1–R-24.3)
+  - Revisar `setLocalOnly` y acciones (D-82); prueba en emulador de Wear emparejado.
+  - ✅ "Hecho", "+5 min" y "Silenciar" funcionan desde el reloj.
+- [ ] **T-71 · Verificación v2.0** — (R-13.5, R-13.6)
+  - `koverVerify` ≥ 80 %; manifiesto revisado contra R-13.6 y D-80; casos manuales nuevos de recurrencia.
+  - ✅ Resultados anotados.
+
 ## Trazabilidad rápida
 
 | Requisito | Tareas |
 |---|---|
-| R-1 Plantilla | T-11, T-21 |
+| R-1 Plantilla | T-11, T-21, T-42 |
 | R-2 Entrada | T-21 |
 | R-3 Validación | T-08, T-09, T-10, T-11, T-12, T-33 |
 | R-4 Revisión | T-13, T-14, T-22, T-35, T-38 |
@@ -209,6 +348,17 @@
 | R-8 Inicio | T-04, T-06, T-23, T-36 |
 | R-9 Detalle | T-24, T-25, T-36 |
 | R-10 Gestión de orden | T-26, T-27, T-28, T-36 |
-| R-11 Permisos | T-19, T-29, T-30 |
+| R-11 Permisos | T-19, T-29, T-30, T-48 |
 | R-12 Robustez | T-13, T-19 |
-| R-13 No funcionales | T-11, T-12, T-31, T-32 |
+| R-13 No funcionales | T-11, T-12, T-31, T-32, T-37, T-39, T-49, T-50, T-64, T-71 |
+| R-14 Entrada compartida (v1.2) | T-40, T-41 |
+| R-15 Modo alarma real (v1.2) | T-43, T-44, T-45, T-46, T-47, T-48 |
+| R-16 Plantillas por escenario (v1.2) | T-42 |
+| R-17 Diagnóstico local (v1.3) | T-51, T-52 |
+| R-18 Reprogramar en bloque (v1.4) | T-55, T-56, T-57 |
+| R-19 Compartir sin servidor (v1.4) | T-58, T-59, T-60 |
+| R-20 Historial y exportación (v1.4) | T-61, T-62 |
+| R-21 Widget (v1.4) | T-63 |
+| R-22 IA en el dispositivo (v2.0) | T-65, T-66 |
+| R-23 Schema v2 y recurrencia (v2.0) | T-67, T-68, T-69 |
+| R-24 Wear OS (v2.0) | T-70 |

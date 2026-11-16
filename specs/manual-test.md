@@ -47,3 +47,37 @@ Cada paso dice qué hacer y qué se espera. La columna *Resultado* recoge la úl
 **Nota:** sin `date`, la app elegía hoy si quedaba alguna actividad futura en *toda* la rutina. En una rutina de
 varios días importada por la noche eso daba un Día 1 ya pasado. Desde T-38 (D-61) solo cuentan las actividades del
 Día 1, y el paso 13 debe elegir mañana sin tocar la fecha.
+
+## Casos pendientes del roadmap (v1.2–v1.4)
+
+Se ejecutan en las tareas de verificación (T-50, T-64). Requieren un **teléfono real con Android 14 o superior** (el
+comportamiento de pantalla completa y de "No molestar" varía según el fabricante, K-9), las apps de ChatGPT y Gemini
+instaladas y, para el QR, un segundo teléfono.
+
+### Modo alarma real (v1.2, T-50)
+
+| # | Paso | Esperado | Resultado |
+|---|---|---|---|
+| 19 | Marcar "medicación" como crítica en *Ajustes*; programar un plan con una toma de esa categoría a 2 minutos y bloquear el teléfono | A la hora, la pantalla se enciende con la pantalla de alarma ("Hecho", "+5 min", "Silenciar") y suena el tono de alarma repetido (R-15.6, R-15.7); en `dumpsys alarm` la alarma es de tipo alarm clock | Pendiente |
+| 20 | Activar "No molestar" (dejando pasar alarmas, lo predeterminado) con una toma crítica y otra no crítica a la misma hora | La crítica suena; la no crítica no suena (R-15.12) | Pendiente |
+| 21 | Pulsar "Silenciar" en la pantalla de alarma | Se corta el sonido; queda una notificación muda con "Hecho" y "+5 min"; la alarma sigue *Disparada* (R-15.9) | Pendiente |
+| 22 | Dejar sonar una alarma crítica sin tocar nada | A los 10 minutos se silencia sola (R-15.10) | Pendiente |
+| 23 | Con una alarma crítica pendiente, reiniciar el teléfono | Tras desbloquear, sigue registrada como alarm clock y suena a su hora (R-15.13) | Pendiente |
+| 24 | Quitar el permiso de pantalla completa en Ajustes del sistema y repetir el paso 19 | Suena como notificación emergente con los mismos botones; *Permisos* muestra "Alarmas a pantalla completa: desactivado" (R-15.11) | Pendiente |
+
+### Entrada compartida (v1.2, T-50)
+
+| # | Paso | Esperado | Resultado |
+|---|---|---|---|
+| 25 | En ChatGPT, pedir la rutina con la plantilla de "Cachorro" y compartir la respuesta → Rutinify | Se abre *Revisión* directamente con el plan (R-14.2, R-14.3) | Pendiente |
+| 26 | Lo mismo desde Gemini | Igual que el paso 25; si Gemini comparte solo un enlace o texto recortado, anotarlo (K-12) | Pendiente |
+| 27 | En *Nueva rutina*, elegir "Medicación" y pulsar "Abrir en IA" → ChatGPT | ChatGPT abre con la plantilla de medicación completa en la caja de mensaje (R-14.7) | Pendiente |
+| 28 | Compartir a Rutinify un texto sin JSON | *Nueva rutina* con el texto en el campo y el error de R-3.3 | Pendiente |
+
+### Compartir entre dos teléfonos (v1.4, T-64)
+
+| # | Paso | Esperado | Resultado |
+|---|---|---|---|
+| 29 | Teléfono A: "Compartir plan" → "Mostrar QR" en un plan de 7 días con dos responsables. Teléfono B: *Nueva rutina* → "Escanear QR" | B abre *Revisión* con las mismas actividades, días y responsables (R-19.4, R-19.7) | Pendiente |
+| 30 | En A, un plan con 200 actividades → "Mostrar QR" | "Este plan es demasiado grande para un QR; compártelo como texto" y el botón funciona (R-19.5) | Pendiente |
+| 31 | En B, elegir "Solo las tareas de…" con uno de los responsables y programar | El plan de B solo tiene las tareas de ese responsable y las sin responsable (R-19.9) | Pendiente |

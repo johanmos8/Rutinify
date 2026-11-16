@@ -1,4 +1,4 @@
-# Requisitos — Rutinify (MVP)
+# Requisitos — Rutinify (MVP, v1.1 y roadmap v1.2–v2.0)
 
 > Formato EARS: *WHEN* (evento) · *WHILE* (estado) · *IF … THEN* (comportamiento no deseado) · *WHERE* (opcional) · ubicuo (*THE SYSTEM SHALL*).
 > Cada criterio tiene un id `R-x.y` que se referencia en `tasks.md` y en los tests.
@@ -10,12 +10,17 @@
 | **Plantilla** | Texto de prompt que el usuario copia y pega en una IA externa. |
 | **JSON de rutina** | Respuesta de la IA que cumple el contrato v1 (`design.md` §4). |
 | **Borrador** | Rutina validada pero aún no programada (vive en la pantalla de Revisión). |
-| **Orden** | Rutina importada y confirmada; agrupa sus alarmas. Estados: Activa, Pausada, Cancelada (y "Terminada" derivada). |
+| **Orden** | Rutina importada y confirmada; agrupa sus alarmas. Estados: Activa, Pausada, Cancelada (y "Terminada" derivada). En el código es `RoutineOrder`; en la interfaz se llama **Plan** desde v1.2 (R-13.7). |
+| **Plan** *(v1.2)* | Nombre de la orden en la interfaz ("Eliminar plan", "Plan no encontrado"). Los requisitos anteriores a v1.2 dicen "orden"; significan lo mismo. |
 | **Rango de la orden** | Del día `routine.date` al día `routine.date + mayor dayOffset` de sus actividades. Una rutina de un día (con o sin madrugada) tiene `dayOffset` 0 o 1; un tratamiento de 7 días llega hasta `dayOffset` 6. |
 | **Rutina de varios días** | Rutina cuyo mayor `dayOffset` es 2 o más, ya sea porque la IA escribió cada día o porque se expandió `repeatDays` (v1.1). |
 | **`repeatDays`** | Campo opcional de `routine` (v1.1): repite las mismas actividades durante N días seguidos a partir de `routine.date`. |
 | **Alarma** | Una actividad con fecha y hora concretas. Estados: Pendiente, Disparada, Hecha, Omitida, Cancelada. |
 | **Hora de disparo** | `routine.date + dayOffset` a la hora `time`, en la zona horaria actual del teléfono. |
+| **Categoría crítica** *(v1.2)* | Categoría que el usuario marca para que sus alarmas suenen como un despertador (R-15). La marca vale para todos los planes. |
+| **Alarma crítica** *(v1.2)* | Alarma de una categoría crítica: `setAlarmClock`, sonido de alarma y pantalla completa sobre el bloqueo. |
+| **Cuidador** *(v1.4)* | Persona que comparte un plan con otra (R-19); `assignee` dice qué actividades son suyas. |
+| **Ventana de programación** *(v2.0)* | Próximos 7 días: en los planes recurrentes solo se crean y programan las alarmas que caen dentro (R-23.7). |
 
 ---
 
@@ -27,6 +32,7 @@
 - **R-1.2** WHEN el usuario pulsa "Copiar plantilla", THE SYSTEM SHALL copiar al portapapeles el texto completo de la plantilla (instrucciones + esquema de ejemplo v1 + marcador `[PEGA AQUÍ TU RUTINA]`) y mostrar la confirmación "Plantilla copiada".
 - **R-1.3** THE SYSTEM SHALL cargar la plantilla desde un recurso de la app (`res/raw`), no desde texto escrito en la UI.
 - **R-1.4** THE SYSTEM SHALL permitir ver la plantilla completa antes de copiarla (sección desplegable).
+- **R-1.5** *(v1.2)* THE SYSTEM SHALL ofrecer una plantilla por escenario (R-16) y aplicar R-1.2–R-1.4 a la del escenario elegido; además de copiarla, se puede enviar a una IA con "Abrir en IA" (R-14.7).
 
 ## R-2 Entrada del JSON
 
@@ -195,13 +201,160 @@
 
 - **R-13.1** THE SYSTEM SHALL funcionar sin conexión a Internet y sin cuenta de usuario.
 - **R-13.2** THE SYSTEM SHALL validar un JSON de 200 actividades en menos de 300 ms en un dispositivo de gama media.
-- **R-13.3** THE SYSTEM SHALL mostrar todos los textos en español desde recursos.
+- **R-13.3** THE SYSTEM SHALL mostrar todos los textos desde recursos, en español por defecto y en inglés cuando el idioma del teléfono sea inglés *(v1.2; antes solo español, D-71)*. Las plantillas también existen en los dos idiomas.
 - **R-13.4** THE SYSTEM SHALL soportar tema claro y oscuro.
 - **R-13.5** THE SYSTEM SHALL tener cobertura de tests ≥ 80 % en dominio e importador.
-- **R-13.6** THE SYSTEM SHALL no solicitar el permiso `INTERNET`.
+- **R-13.6** THE SYSTEM SHALL no solicitar el permiso `INTERNET` (ver R-22.7).
+- **R-13.7** *(v1.2)* THE SYSTEM SHALL llamar "Plan" en la interfaz a lo que los requisitos y el código llaman orden ("Eliminar plan", "Plan no encontrado", "Pausar"…), sin cambiar nombres internos (`RoutineOrder`), rutas, deep links ni base de datos *(D-63)*.
+
+## R-14 Entrada compartida *(v1.2)*
+
+**Historia:** Como usuario, quiero enviar la respuesta de mi IA a Rutinify con "Compartir" y mandar la plantilla a mi IA sin copiar y pegar, para crear un plan en menos pasos.
+
+- **R-14.1** THE SYSTEM SHALL aparecer como destino de "Compartir" para texto (`ACTION_SEND` con `text/plain`) desde cualquier app.
+- **R-14.2** WHEN la app recibe un texto compartido, THE SYSTEM SHALL abrir *Nueva rutina* con ese texto en el campo, reemplazando lo que hubiera, y validarlo de inmediato con las reglas de R-3 (incluido el límite de R-3.20). *(D-64)*
+- **R-14.3** IF la validación del texto compartido encuentra errores, THEN THE SYSTEM SHALL mostrarlos en *Nueva rutina* como en R-3.16, con el texto en el campo para corregirlo; WHEN no hay errores, THE SYSTEM SHALL abrir *Revisión* (R-3.19).
+- **R-14.4** IF el envío no trae texto o el texto está vacío, THEN THE SYSTEM SHALL abrir *Nueva rutina* sin cambiar el campo y mostrar "No llegó ningún texto para importar".
+- **R-14.5** WHEN llega un texto compartido mientras hay un borrador abierto en *Revisión*, THE SYSTEM SHALL descartar ese borrador y abrir *Nueva rutina* con el texto nuevo. *(D-64)*
+- **R-14.6** THE SYSTEM SHALL mostrar en *Nueva rutina* un botón "Abrir en IA" junto a "Copiar plantilla".
+- **R-14.7** WHEN el usuario pulsa "Abrir en IA", THE SYSTEM SHALL abrir el selector de apps de Android (`ACTION_SEND`, `text/plain`) con el título "Enviar la plantilla a…" y el texto completo de la plantilla del escenario elegido (R-16.3).
+- **R-14.8** IF ninguna app puede recibir el texto, THEN THE SYSTEM SHALL copiar la plantilla al portapapeles y mostrar "No hay apps para enviar la plantilla; la copié al portapapeles".
+
+## R-15 Modo alarma real por categoría *(v1.2)*
+
+**Historia:** Como cuidador, quiero que las actividades importantes (una toma, sacar al cachorro de madrugada) suenen como un despertador aunque el teléfono esté bloqueado o en "No molestar", y que el resto siga siendo un aviso discreto.
+
+- **R-15.1** THE SYSTEM SHALL permitir marcar o desmarcar cada categoría como "crítica" en *Ajustes* › "Alarmas críticas", que lista las categorías de los planes guardados. La marca es global: vale para todos los planes que usan esa categoría. *(D-66, abierta)*
+- **R-15.2** WHEN el usuario marca o desmarca una categoría, THE SYSTEM SHALL reprogramar con el modo nuevo las alarmas *Pendientes* de esa categoría en planes *Activos*.
+- **R-15.3** WHERE la categoría de una alarma es crítica AND la app tiene permiso de alarmas exactas, THE SYSTEM SHALL programarla con `setAlarmClock` en vez de `setExactAndAllowWhileIdle`.
+- **R-15.4** IF la categoría es crítica AND falta el permiso de alarmas exactas, THEN THE SYSTEM SHALL programarla en modo ventana (R-5.4) y mostrar en *Ajustes* y en el detalle del plan "Las alarmas críticas necesitan el permiso de alarmas exactas para sonar a su hora".
+- **R-15.5** WHEN el usuario marca la primera categoría crítica AND falta el permiso de alarmas exactas, THE SYSTEM SHALL explicar por qué hace falta y ofrecer abrir el ajuste del sistema, como en R-11.2.
+- **R-15.6** WHEN se dispara una alarma crítica, THE SYSTEM SHALL publicar una notificación de categoría alarma en el canal "Alarmas críticas", con sonido de alarma (uso `USAGE_ALARM`) que se repite hasta que el usuario actúe o pasen 10 minutos. *(D-67)*
+- **R-15.7** WHERE la app puede usar intents de pantalla completa, THE SYSTEM SHALL mostrar la *pantalla de alarma* sobre la pantalla de bloqueo, encendiendo la pantalla, con el título, la descripción (si existe), la hora, el nombre del plan y los botones "Hecho", "+5 min" y "Silenciar".
+- **R-15.8** WHEN el usuario pulsa "Hecho" o "+5 min" en la pantalla de alarma o en la notificación, THE SYSTEM SHALL aplicar R-7.4 o R-7.5, detener el sonido y cerrar la pantalla de alarma.
+- **R-15.9** WHEN el usuario pulsa "Silenciar", THE SYSTEM SHALL detener el sonido, cerrar la pantalla de alarma y dejar una notificación sin sonido con "Hecho" y "+5 min"; la alarma sigue *Disparada*.
+- **R-15.10** WHEN pasan 10 minutos desde el disparo sin que el usuario actúe, THE SYSTEM SHALL silenciar la alarma como en R-15.9.
+- **R-15.11** IF la app no puede usar intents de pantalla completa (Android 14+ sin el permiso `USE_FULL_SCREEN_INTENT`), THEN THE SYSTEM SHALL mostrar la alarma como notificación emergente con el mismo sonido y los mismos botones, y mostrar en *Permisos* la fila "Alarmas a pantalla completa: desactivado" con un botón que abra el ajuste del sistema. *(D-68)*
+- **R-15.12** WHILE "No molestar" deja pasar las alarmas (lo predeterminado en Android), THE SYSTEM SHALL hacer sonar las alarmas críticas; las no críticas siguen las reglas de "No molestar".
+- **R-15.13** WHEN el teléfono arranca o cambia la hora o la zona horaria (R-12), THE SYSTEM SHALL reprogramar las alarmas críticas con `setAlarmClock`, como las demás.
+- **R-15.14** THE SYSTEM SHALL mantener R-7 sin cambios para las alarmas de categorías no críticas.
+
+## R-16 Plantillas por escenario *(v1.2)*
+
+**Historia:** Como usuario, quiero una plantilla pensada para mi caso (cachorro, medicación, bebé, estudio) para que la IA me devuelva un plan útil a la primera.
+
+- **R-16.1** THE SYSTEM SHALL ofrecer cinco plantillas: "Cachorro", "Medicación", "Bebé", "Estudio" y "Genérica", cada una en su propio recurso de `res/raw`. *(D-70)*
+- **R-16.2** THE SYSTEM SHALL mostrar en *Nueva rutina*, antes de "Ver plantilla", "Copiar plantilla" y "Abrir en IA", un selector de escenario con "Genérica" elegida la primera vez, y recordar la última elección.
+- **R-16.3** WHEN el usuario elige un escenario, THE SYSTEM SHALL usar su plantilla en "Ver plantilla" (R-1.4), "Copiar plantilla" (R-1.2) y "Abrir en IA" (R-14.7).
+- **R-16.4** THE SYSTEM SHALL pedir con todas las plantillas el mismo contrato JSON (v1 hasta v2.0); cada plantilla incluye un ejemplo válido de su escenario.
+- **R-16.5** THE SYSTEM SHALL indicar en la plantilla "Medicación" que la IA use solo los horarios y dosis que escribe el usuario, sin proponer dosis ni cambiar la pauta.
+
+## R-17 Diagnóstico local *(v1.3, opcional)*
+
+**Historia:** Como desarrollador en la prueba cerrada, quiero saber dónde se atascan los usuarios sin recoger datos personales ni usar la red.
+
+- **R-17.1** THE SYSTEM SHALL ofrecer en *Ajustes* el interruptor "Guardar diagnóstico en este teléfono", desactivado por defecto. *(D-72)*
+- **R-17.2** WHILE el interruptor está activado, THE SYSTEM SHALL contar localmente, sin identificadores ni contenido de las rutinas: las validaciones fallidas por tipo de error y las veces que se llega a cada paso (abrir *Nueva rutina*, pulsar "Validar", abrir *Revisión*, pulsar "Programar alarmas" y programar un plan).
+- **R-17.3** WHILE el interruptor está activado, THE SYSTEM SHALL contar los planes programados, para medir si el usuario crea una segunda rutina.
+- **R-17.4** THE SYSTEM SHALL no enviar los contadores a ningún sitio ni solicitar el permiso `INTERNET` (R-13.6).
+- **R-17.5** WHEN el usuario pulsa "Exportar diagnóstico", THE SYSTEM SHALL abrir el selector de Android (`ACTION_SEND`, `text/plain`) con los contadores en texto legible y la versión de la app.
+- **R-17.6** WHEN el usuario pulsa "Borrar diagnóstico", THE SYSTEM SHALL poner a cero todos los contadores y mostrar "Diagnóstico borrado".
+- **R-17.7** WHEN el usuario desactiva el interruptor, THE SYSTEM SHALL dejar de contar y borrar los contadores.
+
+## R-18 Reprogramar en bloque *(v1.4)*
+
+**Historia:** Como cuidador, si el día se retrasa ("voy tarde"), quiero mover de una vez todas las alarmas pendientes de un plan, o corregir una sola, sin volver a importarlo.
+
+- **R-18.1** THE SYSTEM SHALL ofrecer en el detalle de un plan *Activo* o *Pausado* la acción "Voy tarde", que mueve todas sus alarmas *Pendientes* el mismo número de minutos.
+- **R-18.2** WHEN el usuario pulsa "Voy tarde", THE SYSTEM SHALL pedir el sentido ("Retrasar" o "Adelantar") y los minutos (de 1 a 720), y mostrar la vista previa "{n} alarmas; la próxima pasa de las {hora} a las {hora}". *(D-73)*
+- **R-18.3** WHEN el usuario confirma, THE SYSTEM SHALL cambiar la hora de pared de cada alarma *Pendiente* (pasando al día siguiente o al anterior si cruza la medianoche), dejar sin cambios las *Disparadas*, *Hechas*, *Omitidas* y *Canceladas*, reprogramar en el sistema las de planes *Activos* y mostrar "{n} alarmas movidas".
+- **R-18.4** WHERE una alarma *Pendiente* está pospuesta (+5 min), THE SYSTEM SHALL mover también su hora pospuesta.
+- **R-18.5** IF al adelantar alguna alarma quedaría en el pasado (anterior o igual a ahora), THEN THE SYSTEM SHALL no cambiar nada y mostrar "Con ese ajuste, {k} alarmas quedarían en el pasado; elige menos minutos".
+- **R-18.6** IF alguna alarma quedaría antes del Día 1 del plan o después del Día 31, THEN THE SYSTEM SHALL no cambiar nada y mostrar "Con ese ajuste, alguna alarma saldría del rango del plan (del día 1 al día 31)".
+- **R-18.7** WHILE el plan está *Pausado*, THE SYSTEM SHALL guardar las horas nuevas sin programarlas; se programan al reanudar (R-10.6).
+- **R-18.8** THE SYSTEM SHALL no volver a comprobar conflictos (R-6) al mover alarmas, aunque el rango del plan cambie un día.
+- **R-18.9** THE SYSTEM SHALL permitir editar la hora, el título y la categoría de una alarma *Pendiente* desde el detalle, con las reglas de R-4.2, y reprogramarla si el plan está *Activo*.
+- **R-18.10** IF la hora editada ya pasó, THEN THE SYSTEM SHALL no guardarla y mostrar "Esa hora ya pasó; elige una hora futura".
+
+## R-19 Compartir con otro cuidador sin servidor *(v1.4)*
+
+**Historia:** Como cuidador, quiero pasar el plan al teléfono de otra persona (pareja, cuidadora) con un QR o un mensaje, y que cada uno pueda quedarse solo con sus tareas.
+
+- **R-19.1** THE SYSTEM SHALL ofrecer en el menú del detalle "Compartir plan", que genera un JSON del contrato del plan (v1, o v2 si es recurrente) con nombre, fecha, notas y todas sus actividades (incluido `assignee`), sin estados ni posposiciones.
+- **R-19.2** WHEN el usuario pulsa "Compartir plan", THE SYSTEM SHALL ofrecer "Mostrar QR" y "Compartir como texto".
+- **R-19.3** WHEN el usuario elige "Compartir como texto", THE SYSTEM SHALL abrir el selector de Android con la línea "Importa este plan en Rutinify" y el JSON en un bloque de código; el otro teléfono lo importa con R-14 o pegándolo.
+- **R-19.4** WHEN el usuario elige "Mostrar QR" AND el enlace cabe en un QR, THE SYSTEM SHALL mostrar un QR con el enlace `rutinify://import?…` (D-75) y el texto "Escanéalo desde Rutinify en el otro teléfono".
+- **R-19.5** IF el enlace supera 2.331 bytes (QR versión 40 con corrección M), THEN THE SYSTEM SHALL no generar el QR y mostrar "Este plan es demasiado grande para un QR; compártelo como texto" con el botón "Compartir como texto".
+- **R-19.6** THE SYSTEM SHALL ofrecer en *Nueva rutina* el botón "Escanear QR".
+- **R-19.7** WHEN la app lee un QR de Rutinify o abre un enlace `rutinify://import`, THE SYSTEM SHALL decodificar el JSON, ponerlo en *Nueva rutina* y validarlo como en R-14.2.
+- **R-19.8** IF el QR o el enlace no contienen un plan de Rutinify o están dañados, THEN THE SYSTEM SHALL mostrar "Este código no contiene un plan de Rutinify".
+- **R-19.9** WHERE el borrador tiene actividades con `assignee`, THE SYSTEM SHALL mostrar en *Revisión* el filtro "Solo las tareas de…" con cada responsable distinto y "Todas"; al elegir un responsable, THE SYSTEM SHALL quitar del borrador las actividades de los demás responsables y conservar las que no tienen responsable; al elegir "Todas", volver a mostrarlas. *(D-76)*
+- **R-19.10** THE SYSTEM SHALL no usar ningún servidor: el plan viaja solo dentro del QR, del enlace o del texto.
+
+## R-20 Historial y exportación *(v1.4)*
+
+**Historia:** Como cuidador, quiero un registro de qué se hizo y cuándo, para enseñárselo al veterinario o al médico.
+
+- **R-20.1** THE SYSTEM SHALL registrar, con fecha y hora, cada vez que una alarma de un plan pasa a *Hecha*, pasa a *Omitida* o se pospone (+5 min). *(D-77)*
+- **R-20.2** THE SYSTEM SHALL mostrar en el detalle del plan el resumen "{h} de {t} hechas" (t = alarmas del plan que no están *Canceladas*) y, si las hay, "{o} omitidas · {p} pospuestas".
+- **R-20.3** THE SYSTEM SHALL ofrecer en el menú del detalle "Exportar historial" con las opciones "Texto" y "PDF".
+- **R-20.4** WHEN el usuario elige "Texto", THE SYSTEM SHALL abrir el selector de Android con el nombre y el rango del plan, el resumen de R-20.2 y, por día, cada alarma con su hora, título, estado, hora en que se marcó *Hecha* y veces que se pospuso.
+- **R-20.5** WHEN el usuario elige "PDF", THE SYSTEM SHALL generar en el teléfono, sin red, un PDF con el mismo contenido y compartirlo como archivo (`application/pdf`). *(D-78)*
+- **R-20.6** IF no se puede generar el PDF, THEN THE SYSTEM SHALL mostrar "No se pudo crear el PDF; prueba a exportarlo como texto".
+
+## R-21 Widget "Lo siguiente" *(v1.4)*
+
+**Historia:** Como cuidador, quiero ver en la pantalla de inicio del teléfono qué toca ahora y marcarlo como hecho sin abrir la app.
+
+- **R-21.1** THE SYSTEM SHALL ofrecer un widget "Lo siguiente" con la próxima alarma *Pendiente* de los planes *Activos*: hora (y día, si no es hoy), título y nombre del plan. *(D-79)*
+- **R-21.2** THE SYSTEM SHALL incluir en el widget el botón "Hecho", que aplica R-9.5 a esa alarma.
+- **R-21.3** WHILE no hay alarmas pendientes en planes activos, THE SYSTEM SHALL mostrar en el widget "Nada pendiente".
+- **R-21.4** THE SYSTEM SHALL actualizar el widget cuando una alarma se dispara, se marca, se pospone, se mueve o se reprograma, y cuando un plan cambia de estado o se borra.
+- **R-21.5** WHEN el usuario toca el widget fuera del botón, THE SYSTEM SHALL abrir el detalle del plan con esa alarma resaltada (R-7.6).
+
+## R-22 IA en el dispositivo *(v2.0)*
+
+**Historia:** Como usuario de un teléfono compatible, quiero escribir mi rutina y que el propio teléfono la convierta, sin salir de la app ni usar otra IA.
+
+- **R-22.1** WHERE Gemini Nano está disponible en el dispositivo (estado `AVAILABLE` de ML Kit GenAI), THE SYSTEM SHALL mostrar en *Nueva rutina* la opción "Convertir en el teléfono", con un campo para escribir la rutina en texto libre. *(D-80)*
+- **R-22.2** WHEN el usuario pulsa "Convertir", THE SYSTEM SHALL pedir al modelo el JSON del contrato con las instrucciones de la plantilla del escenario elegido, validar el resultado con R-3 (y R-23 si aplica) y abrir *Revisión* si no hay errores; si los hay, mostrar el JSON generado con los errores, como en R-3.16.
+- **R-22.3** WHILE la conversión está en curso, THE SYSTEM SHALL mostrar "Convirtiendo…" y permitir cancelarla.
+- **R-22.4** IF el modelo no está disponible (`UNAVAILABLE`, `DOWNLOADABLE` o `DOWNLOADING`), THEN THE SYSTEM SHALL ocultar la opción y mantener el flujo de copiar y pegar sin cambios.
+- **R-22.5** IF la conversión falla, THEN THE SYSTEM SHALL mostrar "La IA del teléfono no pudo convertir la rutina; usa la plantilla con tu IA de siempre".
+- **R-22.6** IF el texto supera el límite de entrada del modelo (unos 4.000 tokens), THEN THE SYSTEM SHALL no enviarlo y mostrar "El texto es demasiado largo para la IA del teléfono; acórtalo o usa tu IA de siempre".
+- **R-22.7** THE SYSTEM SHALL procesar el texto solo en el teléfono. Si la dependencia exige el permiso `INTERNET`, la compatibilidad con R-13.6 se decide antes de implementar *(D-80, abierta)*.
+
+## R-23 Schema v2 con repetición sin fin *(v2.0)*
+
+**Historia:** Como usuario con rutinas que se repiten (los paseos de cada día, la clase de los lunes), quiero importarlas una vez y que se repitan hasta que las pare.
+
+- **R-23.1** THE SYSTEM SHALL aceptar `schemaVersion` 1 y 2. Un JSON v1 se trata igual que hasta ahora; v2 es v1 más el campo `routine.recurrence`. R-3.4 pasa a decir "Versión de formato no soportada (se esperaba 1 o 2)". *(D-81)*
+- **R-23.2** THE SYSTEM SHALL aceptar en v2 `routine.recurrence` con `weekdays` (lista de 1 a 7 días distintos entre `"MO"`, `"TU"`, `"WE"`, `"TH"`, `"FR"`, `"SA"` y `"SU"`) y `until` opcional (`yyyy-MM-dd`); sin `until`, la rutina se repite sin fin.
+- **R-23.3** IF `recurrence` aparece con `schemaVersion` 1, THEN THE SYSTEM SHALL mostrar "El campo recurrence necesita schemaVersion 2".
+- **R-23.4** IF `weekdays` falta, está vacío o tiene valores desconocidos o repetidos, THEN THE SYSTEM SHALL mostrar "recurrence.weekdays debe ser una lista de días como [\"MO\", \"WE\"]".
+- **R-23.5** IF `until` no es una fecha válida o es anterior a `routine.date`, THEN THE SYSTEM SHALL mostrar "recurrence.until debe ser una fecha igual o posterior a la de la rutina".
+- **R-23.6** IF `recurrence` aparece junto con `repeatDays` mayor que 1 o con alguna actividad con `dayOffset` mayor que 1, THEN THE SYSTEM SHALL mostrar "recurrence no se puede combinar con repeatDays ni con dayOffset mayor que 1".
+- **R-23.7** THE SYSTEM SHALL crear y programar solo las alarmas de los próximos 7 días (*ventana de programación*) y, una vez al día y en cada evento de R-12, crear y programar las que entran en la ventana.
+- **R-23.8** THE SYSTEM SHALL contar para el máximo de 500 alarmas pendientes (R-5.10) solo las alarmas creadas dentro de la ventana; IF programar un plan recurrente superaría ese máximo, THEN THE SYSTEM SHALL aplicar el mensaje de R-5.10.
+- **R-23.9** THE SYSTEM SHALL considerar en conflicto (R-6) un plan recurrente y otro plan si algún día del otro plan cae en uno de los días de la semana del recurrente, entre su fecha de inicio y `until` (o sin límite).
+- **R-23.10** THE SYSTEM SHALL mostrar la recurrencia en Inicio y en el detalle, p. ej. "Lunes, miércoles y viernes, desde el 16 de noviembre" o "… hasta el 20 de diciembre".
+- **R-23.11** WHILE un plan recurrente sin `until` está *Activo*, THE SYSTEM SHALL no considerarlo *Terminado* (R-8.3).
+- **R-23.12** WHILE un plan recurrente está *Pausado*, THE SYSTEM SHALL no crear alarmas nuevas; WHEN se reanuda, THE SYSTEM SHALL crear las de la ventana a partir de ese momento, sin crear las de los días en pausa.
+- **R-23.13** WHEN el usuario duplica un plan recurrente (R-10.7), THE SYSTEM SHALL conservar la recurrencia con la fecha elegida como inicio.
+- **R-23.14** THE SYSTEM SHALL mostrar en *Revisión* de un plan recurrente cómo queda una semana (*abierta, D-81*).
+
+## R-24 Wear OS *(v2.0)*
+
+**Historia:** Como cuidador con las manos ocupadas, quiero marcar una actividad como hecha o posponerla desde el reloj.
+
+- **R-24.1** THE SYSTEM SHALL mostrar las notificaciones de alarma en un reloj Wear OS emparejado, con las acciones "Hecho" y "+5 min" (notificaciones puenteadas, sin app de reloj). *(D-82)*
+- **R-24.2** WHEN el usuario pulsa "Hecho" o "+5 min" en el reloj, THE SYSTEM SHALL aplicar R-7.4 o R-7.5 en el teléfono.
+- **R-24.3** WHERE la alarma es crítica, THE SYSTEM SHALL incluir también en el reloj la acción "Silenciar" (R-15.9).
 
 ---
 
-## Fuera de alcance (v2 — el diseño lo deja preparado)
+## Fuera de alcance
 
-Alarmas relativas a "me desperté" · rutinas recurrentes sin fin ("todos los lunes", "cada día hasta que lo pare"; los tratamientos con fin se cubren con rutinas de varios días, v1.1) · widget "lo siguiente" · llamada directa a la API de Claude · exportar a `.ics` · compartir rutina entre dispositivos.
+Alarmas relativas a "me desperté" · llamada directa a la API de Claude u otra IA en la nube · exportar a `.ics` · app propia de Wear OS (más allá de las notificaciones puenteadas de R-24) · sincronizar planes entre teléfonos con un servidor (compartir sin servidor está en R-19).
+
+Pasaron al roadmap: rutinas recurrentes sin fin (R-23, v2.0), widget "Lo siguiente" (R-21, v1.4) y compartir un plan entre teléfonos (R-19, v1.4).
