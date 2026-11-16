@@ -8,7 +8,7 @@
     <!-- Screen titles -->
     <string name="new_routine_title">Nueva rutina</string>
     <string name="review_title">Revisión</string>
-    <string name="order_detail_title">Detalle de la orden</string>
+    <string name="order_detail_title">Detalle del plan</string>
     <string name="permissions_title">Permisos</string>
     <string name="permissions_intro">Rutinify necesita estos permisos para que cada alarma suene a su hora y se vea con sus botones.</string>
     <string name="permissions_all_granted">Todo listo: las alarmas sonarán a su hora.</string>
@@ -201,17 +201,17 @@
         <item quantity="one">Rutina reanudada. Se omitió %1$d alarma cuya hora ya pasó</item>
         <item quantity="other">Rutina reanudada. Se omitieron %1$d alarmas cuya hora ya pasó</item>
     </plurals>
-    <string name="action_delete_order">Eliminar orden</string>
+    <string name="action_delete_order">Eliminar plan</string>
     <string name="action_duplicate_order">Duplicar para otra fecha</string>
     <string name="action_duplicate">Duplicar</string>
     <string name="action_delete">Eliminar</string>
     <string name="cancel_all_title">¿Eliminar todas las alarmas?</string>
     <plurals name="cancel_all_body">
-        <item quantity="one">Se cancelará %1$d alarma pendiente y la orden quedará cancelada. Las hechas y disparadas se conservan.</item>
-        <item quantity="other">Se cancelarán %1$d alarmas pendientes y la orden quedará cancelada. Las hechas y disparadas se conservan.</item>
+        <item quantity="one">Se cancelará %1$d alarma pendiente y el plan quedará cancelado. Las hechas y disparadas se conservan.</item>
+        <item quantity="other">Se cancelarán %1$d alarmas pendientes y el plan quedará cancelado. Las hechas y disparadas se conservan.</item>
     </plurals>
-    <string name="cancel_all_body_none">No quedan alarmas pendientes; la orden quedará cancelada. Las hechas y disparadas se conservan.</string>
-    <string name="delete_order_title">¿Eliminar la orden?</string>
+    <string name="cancel_all_body_none">No quedan alarmas pendientes; el plan quedará cancelado. Las hechas y disparadas se conservan.</string>
+    <string name="delete_order_title">¿Eliminar el plan?</string>
     <string name="delete_order_body">Se borrarán «%1$s» y todas sus alarmas, también el historial. No se puede deshacer.</string>
     <string name="alarm_status_pending">Pendiente</string>
     <string name="alarm_status_fired">Disparada</string>

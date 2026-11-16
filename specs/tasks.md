@@ -199,10 +199,11 @@
 
 > Foco en planes de cuidado (D-62). Mismo DoD por tarea. D-64, D-66, D-67, D-68 y D-69 (opción C) aprobadas el 2026-11-16: la fase no tiene decisiones abiertas.
 
-- [ ] **T-39 · "Plan" en la interfaz** — (R-13.7)
+- [x] **T-39 · "Plan" en la interfaz** — (R-13.7)
   - Reescribir en `strings.xml` las cadenas visibles con "orden" ("Eliminar plan", "Plan no encontrado"…); sin tocar nombres internos, rutas ni deep links (D-63).
   - Test que lee el `strings.xml` español y falla si un texto visible contiene "orden".
   - ✅ Ningún texto visible dice "orden"; tests de VM que comparan textos actualizados; capturas del README sin cambios de flujo.
+  - _Hecho:_ cuatro textos cambiados ("Detalle del plan", "Eliminar plan", "¿Eliminar el plan?" y "el plan quedará cancelado" en los tres mensajes de "Eliminar todas las alarmas"); las citas de KDoc también dicen "Eliminar plan". `VisibleTextsTest` lee `strings.xml` (textos y plurales, sin comentarios) y falla si aparece "orden". Los tests de VM comparan ids de recursos, así que no cambian. 2 tests nuevos (556 en verde).
 - [ ] **T-40 · Recibir texto compartido** — (R-14.1–R-14.5)
   - `intent-filter` `SEND` + `text/plain`, `MainActivity` `singleTop` con `onNewIntent`; `NewRoutineDestination(sharedText)` con `popUpTo(Home)` (D-64).
   - Tests de VM: texto válido → *Revisión*; texto con errores → errores y texto en el campo; vacío → "No llegó ningún texto para importar"; borrador anterior borrado de `DraftStore`. Test Robolectric del intent.

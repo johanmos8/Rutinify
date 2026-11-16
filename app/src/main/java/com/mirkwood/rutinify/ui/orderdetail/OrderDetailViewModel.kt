@@ -96,7 +96,7 @@ sealed interface OrderDetailDialog {
     /** "Eliminar todas las alarmas", saying how many pending alarms will be cancelled (R-10.1). */
     data class CancelAll(val message: UiText) : OrderDetailDialog
 
-    /** "Eliminar orden" (R-10.4). */
+    /** "Eliminar plan" (R-10.4). */
     data class DeleteOrder(val message: UiText) : OrderDetailDialog
 }
 

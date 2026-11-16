@@ -152,7 +152,7 @@ fun OrderDetailScreen(
     }
 }
 
-/** "Duplicar para otra fecha" and "Eliminar orden" live in the menu; both stay in every status (R-10.8). */
+/** "Duplicar para otra fecha" and "Eliminar plan" live in the menu; both stay in every status (R-10.8). */
 @Composable
 private fun OverflowMenu(canDuplicate: Boolean, onAction: (OrderDetailAction) -> Unit) {
     var expanded by remember { mutableStateOf(false) }

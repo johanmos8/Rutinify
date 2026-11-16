@@ -6,7 +6,7 @@ import com.mirkwood.rutinify.domain.scheduler.AlarmScheduler
 import com.mirkwood.rutinify.domain.scheduler.NotificationPublisher
 import javax.inject.Inject
 
-/** "Eliminar orden": removes the order and all its alarms (R-10.4). */
+/** "Eliminar plan": removes the order and all its alarms (R-10.4). */
 class DeleteOrderUseCase @Inject constructor(
     private val orders: OrderRepository,
     private val alarms: AlarmRepository,
