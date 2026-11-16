@@ -49,6 +49,11 @@ android {
             isIncludeAndroidResources = true
         }
     }
+    sourceSets {
+        // Exported Room schemas for MigrationTestHelper (D-83). Robolectric only sees the tested variant's merged
+        // assets, not `src/test`, so they go to `debug`: never in the release APK
+        getByName("debug").assets.directories.add("$projectDir/schemas")
+    }
 }
 
 room {

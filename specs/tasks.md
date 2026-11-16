@@ -219,10 +219,11 @@
   - Test por plantilla: el ejemplo embebido parsea sin errores ni avisos; la de medicación contiene la instrucción de R-16.5.
   - ✅ "Ver", "Copiar" y "Abrir en IA" usan la plantilla elegida; previews claro/oscuro del selector.
   - _Hecho:_ cinco plantillas con las mismas instrucciones del contrato, consejos por caso y un ejemplo propio. El ejemplo canónico de `valid_v1.json` pasa a "Cachorro" y "Genérica" usa un día de mudanza (D-70 actualizada). La de medicación pide no proponer dosis ni cambiar la pauta. `TemplateScenario`, `PromptTemplateSource.load(scenario)` y `TemplateScenarioStore` en `SharedPreferences`. Selector "Plantilla para" con chips que pasan a la línea siguiente. 9 tests nuevos (577 en verde). En el emulador: elegir "Medicación" muestra su plantilla y se recuerda al reabrir la app.
-- [ ] **T-43 · Categorías críticas en datos y dominio** — (R-15.1, R-15.2)
+- [x] **T-43 · Categorías críticas en datos y dominio** — (R-15.1, R-15.2)
   - Room v2: `category_setting` con `Migration(1, 2)` y test `MigrationTestHelper` (D-66, D-83).
   - `CategorySettingsRepository`, `SetCategoryCriticalUseCase` (reprograma las pendientes de la categoría); tests con fakes.
   - ✅ Migración probada con una base v1 real exportada; ningún plan existente cambia.
+  - _Hecho:_ Room v2 con `category_setting` y `Migration(1, 2)`; `MigrationsTest` crea una base v1 con un plan, migra, valida el esquema y comprueba que el plan y su alarma siguen igual. `CategorySettingDao` lista las categorías usadas por los planes con su marca; `CategorySettingsRepository` y `SetCategoryCriticalUseCase` (reprograma las pendientes futuras de la categoría en planes activos; el modo crítico llega al scheduler en T-45). Esquemas como assets de `debug` para el test (D-83). 8 tests nuevos (585 en verde). En el emulador, instalar encima de la versión anterior migró la base a la versión 2 y los planes siguen ahí.
 - [ ] **T-44 · Pantalla *Ajustes* con "Alarmas críticas"** — (R-15.1, R-15.4, R-15.5)
   - `SettingsDestination`, entrada desde Inicio; interruptor por categoría; aviso de R-15.4; petición de R-15.5.
   - Tests de VM; previews claro/oscuro.
