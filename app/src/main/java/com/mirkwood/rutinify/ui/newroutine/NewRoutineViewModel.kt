@@ -7,6 +7,8 @@ import com.mirkwood.rutinify.R
 import com.mirkwood.rutinify.domain.importer.ImportResult
 import com.mirkwood.rutinify.domain.importer.PromptTemplateSource
 import com.mirkwood.rutinify.domain.importer.RoutineImporter
+import com.mirkwood.rutinify.domain.importer.TemplateScenarioStore
+import com.mirkwood.rutinify.domain.model.TemplateScenario
 import com.mirkwood.rutinify.domain.repository.DraftEntry
 import com.mirkwood.rutinify.domain.repository.DraftStore
 import com.mirkwood.rutinify.domain.repository.SharedTextInbox
@@ -29,7 +31,9 @@ import javax.inject.Inject
 
 data class NewRoutineUiState(
     val text: String = "",
-    /** null until loaded from `res/raw` (R-1.3). */
+    /** Selected template scenario; "Genérica" the first time (R-16.2). */
+    val scenario: TemplateScenario = TemplateScenario.GENERIC,
+    /** Template of [scenario]; null until loaded from `res/raw` (R-1.3, R-16.3). */
     val template: String? = null,
     val templateExpanded: Boolean = false,
     val isValidating: Boolean = false,
@@ -44,6 +48,9 @@ sealed interface NewRoutineAction {
     data class TextChanged(val text: String) : NewRoutineAction
     data object PasteClicked : NewRoutineAction
     data object CopyTemplateClicked : NewRoutineAction
+
+    /** Template selector (R-16.2). */
+    data class ScenarioSelected(val scenario: TemplateScenario) : NewRoutineAction
 
     /** "Abrir en IA" (R-14.7). */
     data object OpenInAiClicked : NewRoutineAction
@@ -69,6 +76,7 @@ class NewRoutineViewModel @Inject constructor(
     private val draftStore: DraftStore,
     private val sharedTextInbox: SharedTextInbox,
     private val textSharer: TextSharer,
+    private val scenarioStore: TemplateScenarioStore,
 ) : ViewModel() {
 
     /** Everything except the text, which lives in [savedStateHandle] (R-2.5). */
@@ -81,7 +89,7 @@ class NewRoutineViewModel @Inject constructor(
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NewRoutineUiState(text = currentText()))
 
     init {
-        viewModelScope.launch { local.update { it.copy(template = templateSource.load()) } }
+        showScenario(scenarioStore.last() ?: TemplateScenario.GENERIC)
         receiveSharedText()
     }
 
@@ -90,6 +98,10 @@ class NewRoutineViewModel @Inject constructor(
             is NewRoutineAction.TextChanged -> setText(action.text)
             NewRoutineAction.PasteClicked -> paste()
             NewRoutineAction.CopyTemplateClicked -> copyTemplate()
+            is NewRoutineAction.ScenarioSelected -> {
+                scenarioStore.save(action.scenario)
+                showScenario(action.scenario)
+            }
             NewRoutineAction.OpenInAiClicked -> openInAi()
             NewRoutineAction.ToggleTemplate -> local.update { it.copy(templateExpanded = !it.templateExpanded) }
             NewRoutineAction.ValidateClicked -> validate()
@@ -131,9 +143,20 @@ class NewRoutineViewModel @Inject constructor(
         setText(text)
     }
 
+    /** Selects [scenario] and loads its template; a slower earlier load never overwrites a newer choice. */
+    private fun showScenario(scenario: TemplateScenario) {
+        local.update { it.copy(scenario = scenario, template = null) }
+        viewModelScope.launch {
+            val template = templateSource.load(scenario)
+            local.update { if (it.scenario == scenario) it.copy(template = template) else it }
+        }
+    }
+
+    private suspend fun currentTemplate(): String = local.value.template ?: templateSource.load(local.value.scenario)
+
     private fun copyTemplate() {
         viewModelScope.launch {
-            val template = local.value.template ?: templateSource.load()
+            val template = currentTemplate()
             clipboard.copyText(template)
             effectChannel.send(NewRoutineEffect.ShowMessage(UiText.Res(R.string.new_routine_template_copied)))
         }
@@ -142,7 +165,7 @@ class NewRoutineViewModel @Inject constructor(
     /** With no app able to receive text, the template is copied instead (R-14.8). */
     private fun openInAi() {
         viewModelScope.launch {
-            val template = local.value.template ?: templateSource.load()
+            val template = currentTemplate()
             if (textSharer.canShareText()) {
                 effectChannel.send(NewRoutineEffect.ShareTemplate(template))
             } else {

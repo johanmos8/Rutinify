@@ -94,7 +94,7 @@ Reglas de dependencia:
   van entre comillas tal cual (`"Deshacer"`), y las referencias a requisitos/decisiones (`R-5.7`, `D-28`) se mantienen.
   Excepción: los **nombres de los tests** siguen en español (§8).
 - Todos los textos visibles en `res/values/strings.xml` (plurales en `plurals`). Nada de strings literales en composables.
-- La plantilla de prompt vive en `res/raw/prompt_template.txt`.
+- Las plantillas de prompt viven en `res/raw/prompt_template_<escenario>.txt` (una por escenario, R-16).
 
 ## 5. Manejo de errores
 

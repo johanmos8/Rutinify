@@ -23,6 +23,11 @@ Instrucciones:
 4. No inventes actividades. Si una actividad no tiene una hora clara, elige la más razonable e indícalo en description.
 5. Usa comillas rectas (") y no añadas comentarios dentro del JSON.
 
+Consejos para la rutina de un cachorro o una mascota:
+- Usa categorías como paseo, comida, siesta, juego o veterinario.
+- Las salidas de madrugada van con dayOffset 1 (por ejemplo, las 02:00 después de la noche).
+- Si varias personas se reparten las tareas, pon en assignee quién hace cada una.
+
 Ejemplo de respuesta:
 ```json
 {

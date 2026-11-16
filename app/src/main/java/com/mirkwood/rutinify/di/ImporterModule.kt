@@ -6,8 +6,10 @@ import com.mirkwood.rutinify.data.share.InMemorySharedTextInbox
 import com.mirkwood.rutinify.data.importer.RoutineJsonImporter
 import com.mirkwood.rutinify.data.system.AndroidClipboard
 import com.mirkwood.rutinify.data.system.AndroidTextSharer
+import com.mirkwood.rutinify.data.system.SharedPrefsTemplateScenarioStore
 import com.mirkwood.rutinify.domain.importer.PromptTemplateSource
 import com.mirkwood.rutinify.domain.importer.RoutineImporter
+import com.mirkwood.rutinify.domain.importer.TemplateScenarioStore
 import com.mirkwood.rutinify.domain.repository.DraftStore
 import com.mirkwood.rutinify.domain.repository.SharedTextInbox
 import com.mirkwood.rutinify.domain.system.Clipboard
@@ -38,4 +40,7 @@ abstract class ImporterModule {
 
     @Binds
     abstract fun bindTextSharer(impl: AndroidTextSharer): TextSharer
+
+    @Binds
+    abstract fun bindTemplateScenarioStore(impl: SharedPrefsTemplateScenarioStore): TemplateScenarioStore
 }

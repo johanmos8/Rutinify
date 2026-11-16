@@ -8,6 +8,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
 import com.mirkwood.rutinify.data.importer.RawPromptTemplateSource
+import com.mirkwood.rutinify.domain.model.TemplateScenario
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
@@ -46,7 +47,7 @@ class AndroidClipboardTest {
 
     @Test
     fun `la plantilla se carga del recurso raw`() = runTest { // R-1.3
-        val template = RawPromptTemplateSource(context, Dispatchers.Unconfined).load()
+        val template = RawPromptTemplateSource(context, Dispatchers.Unconfined).load(TemplateScenario.GENERIC)
 
         assertThat(template).contains("[PEGA AQUÍ TU RUTINA]")
     }

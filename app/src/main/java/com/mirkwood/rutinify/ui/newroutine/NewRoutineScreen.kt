@@ -5,6 +5,7 @@ import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,6 +20,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -47,6 +49,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.mirkwood.rutinify.MainActivity
 import com.mirkwood.rutinify.R
+import com.mirkwood.rutinify.domain.model.TemplateScenario
 import com.mirkwood.rutinify.ui.common.BackTopAppBar
 import com.mirkwood.rutinify.ui.common.asString
 import com.mirkwood.rutinify.ui.preview.PreviewData
@@ -119,6 +122,8 @@ fun NewRoutineScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             TemplateSection(
+                scenario = state.scenario,
+                onScenarioSelected = { onAction(NewRoutineAction.ScenarioSelected(it)) },
                 template = state.template,
                 expanded = state.templateExpanded,
                 onCopy = { onAction(NewRoutineAction.CopyTemplateClicked) },
@@ -164,6 +169,8 @@ fun NewRoutineScreen(
 
 @Composable
 private fun TemplateSection(
+    scenario: TemplateScenario,
+    onScenarioSelected: (TemplateScenario) -> Unit,
     template: String?,
     expanded: Boolean,
     onCopy: () -> Unit,
@@ -174,6 +181,7 @@ private fun TemplateSection(
     Card(modifier = modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.new_routine_template_hint), style = MaterialTheme.typography.bodyMedium)
+            ScenarioSelector(selected = scenario, onSelected = onScenarioSelected)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 Button(onClick = onCopy, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_copy_template)) }
                 // R-14.6: next to "Copiar plantilla"
@@ -198,6 +206,23 @@ private fun TemplateSection(
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+/** R-16.2: one chip per scenario, wrapping so the selected one is always visible. */
+@Composable
+private fun ScenarioSelector(selected: TemplateScenario, onSelected: (TemplateScenario) -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(stringResource(R.string.new_routine_scenario_label), style = MaterialTheme.typography.labelLarge)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            TemplateScenario.entries.forEach { scenario ->
+                FilterChip(
+                    selected = scenario == selected,
+                    onClick = { onSelected(scenario) },
+                    label = { Text(stringResource(scenario.labelRes())) },
+                )
             }
         }
     }
@@ -233,7 +258,7 @@ private fun NewRoutineScreenEmptyPreview() {
 private fun NewRoutineScreenTemplatePreview() {
     RutinifyTheme {
         NewRoutineScreen(
-            state = NewRoutineUiState(template = PreviewData.TEMPLATE, templateExpanded = true),
+            state = NewRoutineUiState(scenario = TemplateScenario.MEDICATION, template = PreviewData.TEMPLATE, templateExpanded = true),
             onAction = {},
             onBack = {},
         )

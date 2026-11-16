@@ -12,9 +12,11 @@ import com.mirkwood.rutinify.domain.importer.Severity
 import com.mirkwood.rutinify.domain.importer.ValidationIssue
 import com.mirkwood.rutinify.domain.model.DraftOrigin
 import com.mirkwood.rutinify.domain.model.RoutineDraft
+import com.mirkwood.rutinify.domain.model.TemplateScenario
 import com.mirkwood.rutinify.domain.repository.DraftEntry
 import com.mirkwood.rutinify.testutil.FakeClipboard
 import com.mirkwood.rutinify.testutil.FakeRoutineImporter
+import com.mirkwood.rutinify.testutil.FakeTemplateScenarioStore
 import com.mirkwood.rutinify.testutil.FakeTextSharer
 import com.mirkwood.rutinify.testutil.MainDispatcherRule
 import com.mirkwood.rutinify.ui.common.ErrorMessages
@@ -28,7 +30,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
 
-/** T-21, T-40, T-41: New routine screen logic (R-1.1, R-1.2, R-1.4, R-2.1–R-2.5, R-3.19, R-14.2–R-14.8). */
+/** T-21, T-40–T-42: New routine screen logic (R-1.1, R-1.2, R-1.4, R-2.1–R-2.5, R-3.19, R-14.2–R-14.8, R-16.2, R-16.3). */
 @OptIn(ExperimentalCoroutinesApi::class) // UnconfinedTestDispatcher
 class NewRoutineViewModelTest {
 
@@ -46,8 +48,14 @@ class NewRoutineViewModelTest {
     private val inbox = InMemorySharedTextInbox()
     private val sharer = FakeTextSharer()
 
+    private val scenarios = FakeTemplateScenarioStore()
+
     private fun viewModel(handle: SavedStateHandle = savedState) =
-        NewRoutineViewModel(handle, importer, { template }, clipboard, draftStore, inbox, sharer)
+        NewRoutineViewModel(handle, importer, { template }, clipboard, draftStore, inbox, sharer, scenarios)
+
+    /** Each scenario has its own template text. */
+    private fun scenarioViewModel() =
+        NewRoutineViewModel(savedState, importer, { "Plantilla ${it.name}" }, clipboard, draftStore, inbox, sharer, scenarios)
 
     /** Arguments of `NewRoutineDestination(fromShare = true)`. */
     private fun sharedHandle() = SavedStateHandle(mapOf("fromShare" to true))
@@ -296,5 +304,51 @@ class NewRoutineViewModelTest {
             assertThat(awaitItem()).isEqualTo(NewRoutineEffect.ShowMessage(UiText.Res(R.string.new_routine_no_share_apps)))
         }
         assertThat(clipboard.text).isEqualTo(template)
+    }
+
+    // ---- Templates per scenario (T-42) ----
+
+    @Test
+    fun `la primera vez la plantilla elegida es la generica`() = runTest { // R-16.2
+        val vm = subscribed(scenarioViewModel())
+
+        assertThat(vm.uiState.value.scenario).isEqualTo(TemplateScenario.GENERIC)
+        assertThat(vm.uiState.value.template).isEqualTo("Plantilla GENERIC")
+    }
+
+    @Test
+    fun `recuerda el ultimo escenario elegido`() = runTest { // R-16.2
+        scenarios.saved = TemplateScenario.MEDICATION
+
+        val vm = subscribed(scenarioViewModel())
+
+        assertThat(vm.uiState.value.scenario).isEqualTo(TemplateScenario.MEDICATION)
+        assertThat(vm.uiState.value.template).isEqualTo("Plantilla MEDICATION")
+    }
+
+    @Test
+    fun `elegir un escenario cambia la plantilla y lo guarda`() = runTest { // R-16.2, R-16.3
+        val vm = subscribed(scenarioViewModel())
+
+        vm.onAction(NewRoutineAction.ScenarioSelected(TemplateScenario.BABY))
+
+        assertThat(vm.uiState.value.scenario).isEqualTo(TemplateScenario.BABY)
+        assertThat(vm.uiState.value.template).isEqualTo("Plantilla BABY")
+        assertThat(scenarios.saved).isEqualTo(TemplateScenario.BABY)
+    }
+
+    @Test
+    fun `copiar y abrir en IA usan la plantilla del escenario elegido`() = runTest { // R-16.3
+        val vm = subscribed(scenarioViewModel())
+        vm.onAction(NewRoutineAction.ScenarioSelected(TemplateScenario.STUDY))
+
+        vm.effects.test {
+            vm.onAction(NewRoutineAction.CopyTemplateClicked)
+            awaitItem()
+            vm.onAction(NewRoutineAction.OpenInAiClicked)
+
+            assertThat(awaitItem()).isEqualTo(NewRoutineEffect.ShareTemplate("Plantilla STUDY"))
+        }
+        assertThat(clipboard.text).isEqualTo("Plantilla STUDY")
     }
 }

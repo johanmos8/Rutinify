@@ -92,6 +92,12 @@
     <string name="new_routine_template_hint">Copia la plantilla, pégala en tu IA junto con tu rutina y trae aquí el JSON que te devuelva.</string>
     <string name="action_copy_template">Copiar plantilla</string>
     <string name="action_open_in_ai">Abrir en IA</string>
+    <string name="new_routine_scenario_label">Plantilla para</string>
+    <string name="template_scenario_puppy">Cachorro</string>
+    <string name="template_scenario_medication">Medicación</string>
+    <string name="template_scenario_baby">Bebé</string>
+    <string name="template_scenario_study">Estudio</string>
+    <string name="template_scenario_generic">Genérica</string>
     <string name="new_routine_share_template_title">Enviar la plantilla a…</string>
     <string name="new_routine_no_share_apps">No hay apps para enviar la plantilla; la copié al portapapeles</string>
     <string name="action_show_template">Ver plantilla</string>

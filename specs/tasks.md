@@ -214,10 +214,11 @@
   - Tests de VM del efecto y del fallback.
   - ✅ El chooser recibe la plantilla completa del escenario elegido.
   - _Hecho:_ botón "Abrir en IA" junto a "Copiar plantilla" ("Ver plantilla" pasa a su propia línea para caber en pantallas estrechas). `TextSharer` decide en el VM entre el efecto `ShareTemplate` y el fallback, que copia y muestra "No hay apps para enviar la plantilla; la copié al portapapeles". `<queries>` en el manifiesto; el chooser excluye a Rutinify. 2 tests nuevos (568 en verde). En el emulador, el chooser muestra la plantilla completa y no lista a Rutinify. Desde Android 10 el título lo pone el sistema ("Sharing text"), así que R-14.7 y D-65 se ajustaron. Hasta T-42 se envía la plantilla actual (genérica).
-- [ ] **T-42 · Plantillas por escenario** — (R-16.1–R-16.5, R-1.5)
+- [x] **T-42 · Plantillas por escenario** — (R-16.1–R-16.5, R-1.5)
   - Cinco recursos en `raw/` (D-70); `TemplateScenario`, `GetTemplateUseCase`; selector en *Nueva rutina* que recuerda la elección.
   - Test por plantilla: el ejemplo embebido parsea sin errores ni avisos; la de medicación contiene la instrucción de R-16.5.
   - ✅ "Ver", "Copiar" y "Abrir en IA" usan la plantilla elegida; previews claro/oscuro del selector.
+  - _Hecho:_ cinco plantillas con las mismas instrucciones del contrato, consejos por caso y un ejemplo propio. El ejemplo canónico de `valid_v1.json` pasa a "Cachorro" y "Genérica" usa un día de mudanza (D-70 actualizada). La de medicación pide no proponer dosis ni cambiar la pauta. `TemplateScenario`, `PromptTemplateSource.load(scenario)` y `TemplateScenarioStore` en `SharedPreferences`. Selector "Plantilla para" con chips que pasan a la línea siguiente. 9 tests nuevos (577 en verde). En el emulador: elegir "Medicación" muestra su plantilla y se recuerda al reabrir la app.
 - [ ] **T-43 · Categorías críticas en datos y dominio** — (R-15.1, R-15.2)
   - Room v2: `category_setting` con `Migration(1, 2)` y test `MigrationTestHelper` (D-66, D-83).
   - `CategorySettingsRepository`, `SetCategoryCriticalUseCase` (reprograma las pendientes de la categoría); tests con fakes.
