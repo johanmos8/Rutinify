@@ -217,7 +217,7 @@
 - **R-14.4** IF el envío no trae texto o el texto está vacío, THEN THE SYSTEM SHALL abrir *Nueva rutina* sin cambiar el campo y mostrar "No llegó ningún texto para importar".
 - **R-14.5** WHEN llega un texto compartido mientras hay un borrador abierto en *Revisión*, THE SYSTEM SHALL descartar ese borrador y abrir *Nueva rutina* con el texto nuevo. *(D-64)*
 - **R-14.6** THE SYSTEM SHALL mostrar en *Nueva rutina* un botón "Abrir en IA" junto a "Copiar plantilla".
-- **R-14.7** WHEN el usuario pulsa "Abrir en IA", THE SYSTEM SHALL abrir el selector de apps de Android (`ACTION_SEND`, `text/plain`) con el título "Enviar la plantilla a…" y el texto completo de la plantilla del escenario elegido (R-16.3).
+- **R-14.7** WHEN el usuario pulsa "Abrir en IA", THE SYSTEM SHALL abrir el selector de apps de Android (`ACTION_SEND`, `text/plain`) con el texto completo de la plantilla del escenario elegido (R-16.3), sin Rutinify entre los destinos. El título "Enviar la plantilla a…" solo se ve en Android 9; desde Android 10 el sistema pone el suyo. *(D-65)*
 - **R-14.8** IF ninguna app puede recibir el texto, THEN THE SYSTEM SHALL copiar la plantilla al portapapeles y mostrar "No hay apps para enviar la plantilla; la copié al portapapeles".
 
 ## R-15 Modo alarma real por categoría *(v1.2)*

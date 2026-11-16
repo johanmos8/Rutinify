@@ -15,6 +15,7 @@ import com.mirkwood.rutinify.domain.model.RoutineDraft
 import com.mirkwood.rutinify.domain.repository.DraftEntry
 import com.mirkwood.rutinify.testutil.FakeClipboard
 import com.mirkwood.rutinify.testutil.FakeRoutineImporter
+import com.mirkwood.rutinify.testutil.FakeTextSharer
 import com.mirkwood.rutinify.testutil.MainDispatcherRule
 import com.mirkwood.rutinify.ui.common.ErrorMessages
 import com.mirkwood.rutinify.ui.common.UiText
@@ -27,7 +28,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
 
-/** T-21, T-40: New routine screen logic (R-1.1, R-1.2, R-1.4, R-2.1–R-2.5, R-3.19, R-14.2–R-14.5). */
+/** T-21, T-40, T-41: New routine screen logic (R-1.1, R-1.2, R-1.4, R-2.1–R-2.5, R-3.19, R-14.2–R-14.8). */
 @OptIn(ExperimentalCoroutinesApi::class) // UnconfinedTestDispatcher
 class NewRoutineViewModelTest {
 
@@ -43,9 +44,10 @@ class NewRoutineViewModelTest {
     private val draftStore = InMemoryDraftStore()
     private val savedState = SavedStateHandle()
     private val inbox = InMemorySharedTextInbox()
+    private val sharer = FakeTextSharer()
 
     private fun viewModel(handle: SavedStateHandle = savedState) =
-        NewRoutineViewModel(handle, importer, { template }, clipboard, draftStore, inbox)
+        NewRoutineViewModel(handle, importer, { template }, clipboard, draftStore, inbox, sharer)
 
     /** Arguments of `NewRoutineDestination(fromShare = true)`. */
     private fun sharedHandle() = SavedStateHandle(mapOf("fromShare" to true))
@@ -267,5 +269,32 @@ class NewRoutineViewModelTest {
 
         assertThat(vm.uiState.value.text).isEmpty()
         assertThat(inbox.take()).isEqualTo("{}")
+    }
+
+    // ---- "Abrir en IA" (T-41) ----
+
+    @Test
+    fun `abrir en IA envia la plantilla al selector de apps`() = runTest { // R-14.7
+        val vm = subscribed(viewModel())
+
+        vm.effects.test {
+            vm.onAction(NewRoutineAction.OpenInAiClicked)
+
+            assertThat(awaitItem()).isEqualTo(NewRoutineEffect.ShareTemplate(template))
+        }
+        assertThat(clipboard.text).isNull()
+    }
+
+    @Test
+    fun `sin apps que reciban texto copia la plantilla y lo explica`() = runTest { // R-14.8
+        sharer.available = false
+        val vm = subscribed(viewModel())
+
+        vm.effects.test {
+            vm.onAction(NewRoutineAction.OpenInAiClicked)
+
+            assertThat(awaitItem()).isEqualTo(NewRoutineEffect.ShowMessage(UiText.Res(R.string.new_routine_no_share_apps)))
+        }
+        assertThat(clipboard.text).isEqualTo(template)
     }
 }

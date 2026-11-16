@@ -11,6 +11,7 @@ import com.mirkwood.rutinify.domain.repository.DraftEntry
 import com.mirkwood.rutinify.domain.repository.DraftStore
 import com.mirkwood.rutinify.domain.repository.SharedTextInbox
 import com.mirkwood.rutinify.domain.system.Clipboard
+import com.mirkwood.rutinify.domain.system.TextSharer
 import com.mirkwood.rutinify.ui.common.ErrorMessages
 import com.mirkwood.rutinify.ui.common.UiText
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -43,6 +44,9 @@ sealed interface NewRoutineAction {
     data class TextChanged(val text: String) : NewRoutineAction
     data object PasteClicked : NewRoutineAction
     data object CopyTemplateClicked : NewRoutineAction
+
+    /** "Abrir en IA" (R-14.7). */
+    data object OpenInAiClicked : NewRoutineAction
     data object ToggleTemplate : NewRoutineAction
     data object ValidateClicked : NewRoutineAction
 }
@@ -51,6 +55,9 @@ sealed interface NewRoutineEffect {
     /** Snackbar text ("Plantilla copiada", "El portapapeles está vacío"). */
     data class ShowMessage(val message: UiText) : NewRoutineEffect
     data class NavigateToReview(val draftId: String) : NewRoutineEffect
+
+    /** Android's app chooser with the template, titled "Enviar la plantilla a…" (R-14.7, D-65). */
+    data class ShareTemplate(val template: String) : NewRoutineEffect
 }
 
 @HiltViewModel
@@ -61,6 +68,7 @@ class NewRoutineViewModel @Inject constructor(
     private val clipboard: Clipboard,
     private val draftStore: DraftStore,
     private val sharedTextInbox: SharedTextInbox,
+    private val textSharer: TextSharer,
 ) : ViewModel() {
 
     /** Everything except the text, which lives in [savedStateHandle] (R-2.5). */
@@ -82,6 +90,7 @@ class NewRoutineViewModel @Inject constructor(
             is NewRoutineAction.TextChanged -> setText(action.text)
             NewRoutineAction.PasteClicked -> paste()
             NewRoutineAction.CopyTemplateClicked -> copyTemplate()
+            NewRoutineAction.OpenInAiClicked -> openInAi()
             NewRoutineAction.ToggleTemplate -> local.update { it.copy(templateExpanded = !it.templateExpanded) }
             NewRoutineAction.ValidateClicked -> validate()
         }
@@ -127,6 +136,19 @@ class NewRoutineViewModel @Inject constructor(
             val template = local.value.template ?: templateSource.load()
             clipboard.copyText(template)
             effectChannel.send(NewRoutineEffect.ShowMessage(UiText.Res(R.string.new_routine_template_copied)))
+        }
+    }
+
+    /** With no app able to receive text, the template is copied instead (R-14.8). */
+    private fun openInAi() {
+        viewModelScope.launch {
+            val template = local.value.template ?: templateSource.load()
+            if (textSharer.canShareText()) {
+                effectChannel.send(NewRoutineEffect.ShareTemplate(template))
+            } else {
+                clipboard.copyText(template)
+                effectChannel.send(NewRoutineEffect.ShowMessage(UiText.Res(R.string.new_routine_no_share_apps)))
+            }
         }
     }
 

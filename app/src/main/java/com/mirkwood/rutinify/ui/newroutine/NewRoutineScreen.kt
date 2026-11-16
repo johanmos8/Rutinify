@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.ui.newroutine
 
+import android.content.ComponentName
+import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -31,6 +33,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -42,6 +45,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
+import com.mirkwood.rutinify.MainActivity
 import com.mirkwood.rutinify.R
 import com.mirkwood.rutinify.ui.common.BackTopAppBar
 import com.mirkwood.rutinify.ui.common.asString
@@ -61,6 +65,8 @@ fun NewRoutineRoute(
     val snackbarHostState = remember { SnackbarHostState() }
     val resources = LocalResources.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
+    val context = LocalContext.current
+    val chooserTitle = stringResource(R.string.new_routine_share_template_title)
 
     LaunchedEffect(viewModel, lifecycle) {
         lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -68,6 +74,13 @@ fun NewRoutineRoute(
                 when (effect) {
                     is NewRoutineEffect.ShowMessage -> snackbarHostState.showSnackbar(effect.message.resolve(resources))
                     is NewRoutineEffect.NavigateToReview -> onNavigateToReview(effect.draftId)
+                    is NewRoutineEffect.ShareTemplate -> {
+                        val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, effect.template)
+                        val chooser = Intent.createChooser(send, chooserTitle)
+                            // Rutinify also receives text (R-14.1): sending the template to itself would import it
+                            .putExtra(Intent.EXTRA_EXCLUDE_COMPONENTS, arrayOf(ComponentName(context, MainActivity::class.java)))
+                        context.startActivity(chooser)
+                    }
                 }
             }
         }
@@ -109,6 +122,7 @@ fun NewRoutineScreen(
                 template = state.template,
                 expanded = state.templateExpanded,
                 onCopy = { onAction(NewRoutineAction.CopyTemplateClicked) },
+                onOpenInAi = { onAction(NewRoutineAction.OpenInAiClicked) },
                 onToggle = { onAction(NewRoutineAction.ToggleTemplate) },
             )
             OutlinedTextField(
@@ -153,17 +167,22 @@ private fun TemplateSection(
     template: String?,
     expanded: Boolean,
     onCopy: () -> Unit,
+    onOpenInAi: () -> Unit,
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(modifier = modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.new_routine_template_hint), style = MaterialTheme.typography.bodyMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onCopy) { Text(stringResource(R.string.action_copy_template)) }
-                TextButton(onClick = onToggle, enabled = template != null) {
-                    Text(stringResource(if (expanded) R.string.action_hide_template else R.string.action_show_template))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                Button(onClick = onCopy, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_copy_template)) }
+                // R-14.6: next to "Copiar plantilla"
+                OutlinedButton(onClick = onOpenInAi, modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.action_open_in_ai))
                 }
+            }
+            TextButton(onClick = onToggle, enabled = template != null) {
+                Text(stringResource(if (expanded) R.string.action_hide_template else R.string.action_show_template))
             }
             AnimatedVisibility(visible = expanded && template != null) {
                 Surface(

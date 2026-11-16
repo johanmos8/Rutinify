@@ -9,6 +9,15 @@
     <!-- Reschedule pending alarms after boot (R-12.1) -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!-- "Abrir en IA" checks for apps that receive text (R-14.8, D-65) -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.SEND" />
+
+            <data android:mimeType="text/plain" />
+        </intent>
+    </queries>
+
     <application
         android:name=".RutinifyApp"
         android:allowBackup="true"

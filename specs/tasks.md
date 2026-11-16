@@ -209,10 +209,11 @@
   - Tests de VM: texto válido → *Revisión*; texto con errores → errores y texto en el campo; vacío → "No llegó ningún texto para importar"; borrador anterior borrado de `DraftStore`. Test Robolectric del intent.
   - ✅ Compartir desde otra app abre *Revisión* sin más pasos cuando el JSON es válido.
   - _Hecho:_ `MainActivity` pasa a `singleTask` con el `intent-filter` de envío; `IncomingIntents` reconoce el envío y el texto espera en `SharedTextInbox` hasta que *Nueva rutina* (`fromShare = true`) lo toma, vacía `DraftStore` y valida. Tocar una notificación con la app abierta llega por `onNewIntent` y sigue abriendo el plan (D-64 actualizada). 10 tests nuevos (566 en verde). En el emulador, con `am start … SEND`: app cerrada → *Revisión* del tratamiento; app en *Revisión* + texto sin JSON → *Nueva rutina* con el error y "atrás" vuelve a Inicio; envío vacío → *Nueva rutina*; deep link de notificación con la app abierta → detalle del plan. Falta compartir desde ChatGPT y Gemini reales (pasos 25–26, T-50).
-- [ ] **T-41 · "Abrir en IA"** — (R-14.6–R-14.8)
+- [x] **T-41 · "Abrir en IA"** — (R-14.6–R-14.8)
   - Botón junto a "Copiar plantilla"; chooser "Enviar la plantilla a…"; `<queries>`; fallback al portapapeles (D-65).
   - Tests de VM del efecto y del fallback.
   - ✅ El chooser recibe la plantilla completa del escenario elegido.
+  - _Hecho:_ botón "Abrir en IA" junto a "Copiar plantilla" ("Ver plantilla" pasa a su propia línea para caber en pantallas estrechas). `TextSharer` decide en el VM entre el efecto `ShareTemplate` y el fallback, que copia y muestra "No hay apps para enviar la plantilla; la copié al portapapeles". `<queries>` en el manifiesto; el chooser excluye a Rutinify. 2 tests nuevos (568 en verde). En el emulador, el chooser muestra la plantilla completa y no lista a Rutinify. Desde Android 10 el título lo pone el sistema ("Sharing text"), así que R-14.7 y D-65 se ajustaron. Hasta T-42 se envía la plantilla actual (genérica).
 - [ ] **T-42 · Plantillas por escenario** — (R-16.1–R-16.5, R-1.5)
   - Cinco recursos en `raw/` (D-70); `TemplateScenario`, `GetTemplateUseCase`; selector en *Nueva rutina* que recuerda la elección.
   - Test por plantilla: el ejemplo embebido parsea sin errores ni avisos; la de medicación contiene la instrucción de R-16.5.
