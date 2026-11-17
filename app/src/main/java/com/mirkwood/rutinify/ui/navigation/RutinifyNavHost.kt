@@ -12,22 +12,33 @@ import com.mirkwood.rutinify.ui.newroutine.NewRoutineRoute
 import com.mirkwood.rutinify.ui.orderdetail.OrderDetailRoute
 import com.mirkwood.rutinify.ui.permissions.PermissionsRoute
 import com.mirkwood.rutinify.ui.review.ReviewRoute
+import com.mirkwood.rutinify.ui.settings.SettingsRoute
 
 /**
- * App navigation graph (design §10). [homeContent], [newRoutineContent], [orderDetailContent] and [permissionsContent] are
+ * App navigation graph (design §10). [homeContent], [newRoutineContent], [orderDetailContent], [permissionsContent] and [settingsContent] are
  * seams so JVM navigation tests can show the stateless screens instead of the Hilt-backed routes (D-43).
  */
 @Composable
 fun RutinifyNavHost(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
-    homeContent: @Composable (onNewRoutineClick: () -> Unit, onOrderClick: (Long) -> Unit, onPermissionsClick: () -> Unit) -> Unit =
-        { onNewRoutineClick, onOrderClick, onPermissionsClick ->
-            HomeRoute(onNewRoutineClick = onNewRoutineClick, onOrderClick = onOrderClick, onPermissionsClick = onPermissionsClick)
-        },
+    homeContent: @Composable (
+        onNewRoutineClick: () -> Unit,
+        onOrderClick: (Long) -> Unit,
+        onPermissionsClick: () -> Unit,
+        onSettingsClick: () -> Unit,
+    ) -> Unit = { onNewRoutineClick, onOrderClick, onPermissionsClick, onSettingsClick ->
+        HomeRoute(
+            onNewRoutineClick = onNewRoutineClick,
+            onOrderClick = onOrderClick,
+            onPermissionsClick = onPermissionsClick,
+            onSettingsClick = onSettingsClick,
+        )
+    },
     newRoutineContent: @Composable (onBack: () -> Unit, onNavigateToReview: (String) -> Unit) -> Unit =
         { onBack, onNavigateToReview -> NewRoutineRoute(onBack = onBack, onNavigateToReview = onNavigateToReview) },
     permissionsContent: @Composable (onBack: () -> Unit) -> Unit = { onBack -> PermissionsRoute(onBack = onBack) },
+    settingsContent: @Composable (onBack: () -> Unit) -> Unit = { onBack -> SettingsRoute(onBack = onBack) },
     orderDetailContent: @Composable (onBack: () -> Unit, onNavigateToReview: (String) -> Unit) -> Unit =
         { onBack, onNavigateToReview -> OrderDetailRoute(onBack = onBack, onNavigateToReview = onNavigateToReview) },
 ) {
@@ -43,6 +54,7 @@ fun RutinifyNavHost(
                 { navController.navigate(NewRoutineDestination()) },
                 { orderId -> navController.navigate(OrderDetailDestination(orderId)) },
                 { navController.navigate(PermissionsDestination) },
+                { navController.navigate(SettingsDestination) },
             )
         }
         composable<NewRoutineDestination> {
@@ -65,6 +77,9 @@ fun RutinifyNavHost(
         }
         composable<PermissionsDestination> {
             permissionsContent(navigateUp)
+        }
+        composable<SettingsDestination> {
+            settingsContent(navigateUp)
         }
     }
 }

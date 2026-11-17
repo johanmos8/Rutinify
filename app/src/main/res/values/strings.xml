@@ -228,4 +228,13 @@
     <string name="alarm_status_done">Hecha</string>
     <string name="alarm_status_skipped">Omitida</string>
     <string name="alarm_status_cancelled">Cancelada</string>
+
+    <!-- Settings (T-44, R-15) -->
+    <string name="settings_title">Ajustes</string>
+    <string name="settings_critical_section">Alarmas críticas</string>
+    <string name="settings_critical_description">Las alarmas de estas categorías suenan como un despertador hasta que respondas, también con «No molestar» si deja pasar las alarmas. Android las muestra como próxima alarma en la barra de estado.</string>
+    <string name="settings_critical_empty">Aún no hay categorías. Aparecerán aquí cuando programes un plan.</string>
+    <string name="settings_critical_exact_warning">Las alarmas críticas necesitan el permiso de alarmas exactas para sonar a su hora</string>
+    <string name="settings_exact_dialog_title">Permiso de alarmas exactas</string>
+    <string name="settings_exact_dialog_body">Una alarma crítica tiene que sonar a su hora. Sin el permiso de alarmas exactas, Android puede retrasarla unos minutos. Puedes activarlo en ajustes.</string>
 </resources>

@@ -224,10 +224,11 @@
   - `CategorySettingsRepository`, `SetCategoryCriticalUseCase` (reprograma las pendientes de la categoría); tests con fakes.
   - ✅ Migración probada con una base v1 real exportada; ningún plan existente cambia.
   - _Hecho:_ Room v2 con `category_setting` y `Migration(1, 2)`; `MigrationsTest` crea una base v1 con un plan, migra, valida el esquema y comprueba que el plan y su alarma siguen igual. `CategorySettingDao` lista las categorías usadas por los planes con su marca; `CategorySettingsRepository` y `SetCategoryCriticalUseCase` (reprograma las pendientes futuras de la categoría en planes activos; el modo crítico llega al scheduler en T-45). Esquemas como assets de `debug` para el test (D-83). 8 tests nuevos (585 en verde). En el emulador, instalar encima de la versión anterior migró la base a la versión 2 y los planes siguen ahí.
-- [ ] **T-44 · Pantalla *Ajustes* con "Alarmas críticas"** — (R-15.1, R-15.4, R-15.5)
+- [x] **T-44 · Pantalla *Ajustes* con "Alarmas críticas"** — (R-15.1, R-15.4, R-15.5)
   - `SettingsDestination`, entrada desde Inicio; interruptor por categoría; aviso de R-15.4; petición de R-15.5.
   - Tests de VM; previews claro/oscuro.
   - ✅ Marcar y desmarcar persiste y reprograma.
+  - _Hecho:_ `SettingsDestination` desde el engranaje de Inicio; `SettingsViewModel` con `ObserveCategorySettingsUseCase` y `SetCategoryCriticalUseCase`, diálogo de R-15.5 al marcar la primera crítica sin exactas, aviso de R-15.4 con "Abrir ajustes" y `RescheduleAll` al volver con el permiso (D-84). 13 tests nuevos (598 en verde), previews claro/oscuro. En el emulador: marcar y desmarcar, el diálogo sin permiso, "Abrir ajustes" lleva a "Alarmas y recordatorios" y el aviso desaparece al conceder.
 - [ ] **T-45 · Programación y notificación de alarmas críticas** — (R-15.3, R-15.6, R-15.12–R-15.14)
   - `AlarmScheduler.schedule(…, critical)` con `setAlarmClock`; canal `alarm_critical` (`USAGE_ALARM`, `CATEGORY_ALARM`, `FLAG_INSISTENT`) y `alarm_critical_silent` (D-67); `RescheduleAllUseCase` pasa `critical`.
   - Actualizar `CLAUDE.md` §10 con la excepción de canal de D-67.
@@ -242,7 +243,7 @@
   - Tests de `PermissionChecker` y del publicador con y sin permiso.
   - ✅ Sin permiso, la alarma suena como notificación emergente.
 - [ ] **T-48 · Petición guiada de alarmas exactas** — (R-11.2, R-15.5; D-69 opción C)
-  - Pedir el permiso al marcar la primera categoría crítica (R-15.5) y mostrar una tarjeta en Inicio tras programar el primer plan si falta el permiso; ambas abren `ACTION_REQUEST_SCHEDULE_EXACT_ALARM`.
+  - Pedir el permiso al marcar la primera categoría crítica (R-15.5; hecho ya en T-44, D-84) y mostrar una tarjeta en Inicio tras programar el primer plan si falta el permiso; ambas abren `ACTION_REQUEST_SCHEDULE_EXACT_ALARM`.
   - Sin `USE_EXACT_ALARM` en el manifiesto de v1.2.
   - ✅ Tests de VM de la petición y de la tarjeta; previews claro/oscuro; manifiesto sin `USE_EXACT_ALARM`.
 - [ ] **T-49 · Interfaz en inglés** — (R-13.3)

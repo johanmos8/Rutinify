@@ -21,6 +21,7 @@ import com.mirkwood.rutinify.ui.orderdetail.OrderDetailScreen
 import com.mirkwood.rutinify.ui.orderdetail.OrderDetailUiState
 import com.mirkwood.rutinify.ui.permissions.PermissionsScreen
 import com.mirkwood.rutinify.ui.permissions.PermissionsUiState
+import com.mirkwood.rutinify.ui.settings.SettingsScreen
 import com.google.common.truth.Truth.assertThat
 import com.mirkwood.rutinify.ui.theme.RutinifyTheme
 import org.junit.Before
@@ -49,13 +50,20 @@ class RutinifyNavHostTest {
                 // Stateless screen: hiltViewModel() needs a Hilt activity (D-43)
                 RutinifyNavHost(
                     navController = navController,
-                    homeContent = { onNew, onOrder, onPermissions ->
-                        HomeScreen(homeState.value, onNewRoutineClick = onNew, onOrderClick = onOrder, onPermissionsClick = onPermissions)
+                    homeContent = { onNew, onOrder, onPermissions, onSettings ->
+                        HomeScreen(
+                            homeState.value,
+                            onNewRoutineClick = onNew,
+                            onOrderClick = onOrder,
+                            onPermissionsClick = onPermissions,
+                            onSettingsClick = onSettings,
+                        )
                     },
                     newRoutineContent = { onBack, _ -> NewRoutineScreen(NewRoutineUiState(), onAction = {}, onBack = onBack) },
                     permissionsContent = { onBack ->
                         PermissionsScreen(PermissionsUiState(notifications = true, exactAlarms = false), onBack, {}, {})
                     },
+                    settingsContent = { onBack -> SettingsScreen(PreviewData.settingsState, onAction = {}, onBack = onBack) },
                     orderDetailContent = { onBack, _ -> OrderDetailScreen(OrderDetailUiState(isLoading = false, notFound = true), onAction = {}, onBack = onBack) },
                 )
             }
@@ -114,6 +122,18 @@ class RutinifyNavHostTest {
         composeRule.onNodeWithContentDescription(str(R.string.action_back)).performClick()
 
         composeRule.onNodeWithText(str(R.string.home_permissions_banner)).assertExists()
+    }
+
+    @Test
+    fun `el engranaje de Inicio abre Ajustes y atras vuelve a Inicio`() { // R-15.1, D-66
+        composeRule.onNodeWithContentDescription(str(R.string.settings_title)).performClick()
+
+        composeRule.onNodeWithText(str(R.string.settings_critical_section)).assertExists()
+        composeRule.onNodeWithText("Medicación").assertExists()
+
+        composeRule.onNodeWithContentDescription(str(R.string.action_back)).performClick()
+
+        composeRule.onNodeWithText(str(R.string.home_empty_title)).assertExists()
     }
 
     @Test

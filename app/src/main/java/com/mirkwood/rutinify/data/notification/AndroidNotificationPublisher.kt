@@ -15,11 +15,11 @@ import androidx.core.content.ContextCompat
 import com.mirkwood.rutinify.R
 import com.mirkwood.rutinify.data.LOG_TAG
 import com.mirkwood.rutinify.data.alarm.PendingIntentFactory
+import com.mirkwood.rutinify.domain.model.categoryDisplayName
 import com.mirkwood.rutinify.domain.scheduler.AlarmNotification
 import com.mirkwood.rutinify.domain.scheduler.NotificationPublisher
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 import javax.inject.Inject
 
 /** [NotificationPublisher] on top of `NotificationManager` (design §8). */
@@ -99,8 +99,7 @@ class AndroidNotificationPublisher @Inject constructor(
         fun channelId(category: String) = "cat_$category"
 
         /** "paseo-largo" → "Paseo largo" (design §8). */
-        fun channelName(category: String) =
-            category.replace('-', ' ').replaceFirstChar { it.titlecase(Locale.ROOT) }
+        fun channelName(category: String) = categoryDisplayName(category)
     }
 }
 

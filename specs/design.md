@@ -402,6 +402,7 @@ Rutas type-safe:
 @Serializable data class ReviewDestination(val draftId: String)
 @Serializable data class OrderDetailDestination(val orderId: Long, val highlightAlarmId: Long? = null, val scheduledCount: Int? = null)
 @Serializable data object PermissionsDestination
+@Serializable data object SettingsDestination // v1.2 (T-44)
 ```
 Deep link `rutinify://order/{orderId}?alarm={highlightAlarmId}` → `OrderDetailDestination` (R-7.6).
 
@@ -409,7 +410,8 @@ Deep link `rutinify://order/{orderId}?alarm={highlightAlarmId}` → `OrderDetail
 Home ──FAB──► NewRoutine ──Validar ok──► Review ──Programar──► OrderDetail (popUpTo Home)
   │                                         ▲
   ├──tap orden──► OrderDetail ──Duplicar────┘
-  └──banner───► Permissions
+  ├──banner───► Permissions
+  └──engranaje─► Settings (v1.2)
 ```
 
 | Pantalla | ViewModel / estado principal | Req. |
@@ -419,6 +421,7 @@ Home ──FAB──► NewRoutine ──Validar ok──► Review ──Progra
 | **Review** | `ReviewUiState(name, notes, date, dateWasDefaulted, items: List<ReviewItemUi>, summary, warnings, canSchedule, dialog)` | R-4.*, R-5.*, R-6.*, R-11.1-2 |
 | **OrderDetail** | `OrderDetailUiState(isLoading, notFound, name, dateLabel, notes, status, pending, total, timeline: List<TimelineItemUi>, scrollToIndex, windowedWarning)` (+ acciones en T-25–T-28); snackbar "{n} alarmas programadas" / deshacer | R-9.*, R-10.* |
 | **Permissions** | `PermissionsUiState(notifications, exactAlarms)` | R-11.4 |
+| **Settings** *(v1.2)* | `SettingsUiState(isLoading, categories: List<CategoryRowUi>, exactAlarmsGranted, showExactAlarmsDialog)` | R-15.1, R-15.4, R-15.5 |
 
 **Paso del borrador NewRoutine → Review:** `DraftStore` (`@Singleton`, en memoria, `Map<String, RoutineDraft>`); la ruta lleva solo `draftId`.
 Si el proceso muere estando en *Review*, el borrador no existe → se muestra "El borrador se perdió, vuelve a validar" y se regresa a *NewRoutine*, que conserva el texto (R-2.5). Ver D-10.
@@ -561,6 +564,7 @@ Cobertura: Kover con regla `minBound(80)` sobre `com.mirkwood.rutinify.domain.*`
 | D-81 | Schema v2 (R-23): `recurrence` propio (`weekdays` + `until`), no RRULE completo, que las IAs escriben mal y no hace falta para "todos los lunes". Modelo: tabla `routine_activity` (las actividades del día tipo) y columnas `recurrence_weekdays INTEGER NULL` (máscara de bits) y `recurrence_until TEXT NULL` en `routine_order`, base de datos 4 → 5. `alarm_item` sigue siendo una alarma concreta; `MaterializeRecurringUseCase` crea las de la ventana de 7 días (idempotente: no duplica una actividad y fecha ya creada) y la llaman `RescheduleAllUseCase` y una alarma diaria inexacta (`…action.MATERIALIZE`, `setAndAllowWhileIdle`, sin WorkManager). La regla de `requestCode` = id no cambia. Falta decidir cómo se ve un plan recurrente en *Revisión* (R-23.14): propuesta, el día tipo con la recurrencia en la cabecera y el resumen "{n} alarmas por semana" Se adopta la propuesta para *Revisión* (R-23.14). Aprobada por Johan el 2026-11-16 (recomendación aplicada). | Programar sin fin rompería el límite de 500 de Android; una ventana fija mantiene acotadas las pendientes | ✅ |
 | D-82 | Wear OS (R-24): primera iteración solo con notificaciones puenteadas: las notificaciones no son `setLocalOnly`, y las acciones "Hecho", "+5 min" y "Silenciar" son `PendingIntent` de broadcast que el reloj ejecuta en el teléfono. La pantalla completa no se muestra en el reloj; el reloj vibra con la notificación | Cubre el caso de uso sin módulo `:wear` ni Data Layer | No |
 | D-83 | Versiones de Room: v2 en v1.2 (`category_setting`), v3 en v1.3 (`diagnostic_counter`), v4 en v1.4 (`alarm_event`), v5 en v2.0 (`routine_activity` y columnas de recurrencia). Migraciones manuales, sin `fallbackToDestructiveMigration`, con test `MigrationTestHelper` por paso y de 1 a la última En T-43: los esquemas exportados se añaden como assets de `debug` (Robolectric solo ve los assets fusionados de la variante probada, no `src/test`; nunca llegan al APK de release) y el test usa la ruta absoluta de la base de datos, porque en Windows el driver de prueba de Room compara el nombre con la ruta del archivo. | Los planes en curso de los usuarios no se pueden perder al actualizar | No |
+| D-84 | Pantalla *Ajustes* (T-44): el engranaje de Inicio abre `SettingsDestination`. Sección "Alarmas críticas" con un texto que explica qué cambia (suena como despertador hasta que respondas, pasa "No molestar" si este deja pasar alarmas, y Android la muestra como próxima alarma, K-8) y una fila por categoría con su nombre legible ("paseo-largo" → "Paseo largo", la misma función que el nombre del canal, ahora `categoryDisplayName` en dominio) y un interruptor; toda la fila es pulsable. Sin categorías: "Aún no hay categorías. Aparecerán aquí cuando programes un plan." "La primera categoría crítica" de R-15.5 se mide sobre la lista visible: si no había ninguna marcada y faltan las exactas, sale el diálogo "Permiso de alarmas exactas" con "Abrir ajustes" y "Ahora no"; la marca se guarda igual (las alarmas suenan en ventana, R-15.4). El aviso de R-15.4 lleva también "Abrir ajustes". Al volver con las exactas recién concedidas se llama a `RescheduleAll`, como en *Permisos* (D-51). La petición de R-15.5 queda hecha aquí; T-48 añade solo la tarjeta de Inicio | Reutiliza el diálogo de R-11.2 y el patrón de *Permisos*; un botón junto al aviso evita volver a *Permisos* para corregirlo | No |
 | D-01..D-04 | Aprobadas por Johan el 2026-11-04 | | ✅ |
 
 ## 15. Preparación para v2

@@ -16,6 +16,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -47,6 +48,7 @@ fun HomeRoute(
     onNewRoutineClick: () -> Unit,
     onOrderClick: (orderId: Long) -> Unit,
     onPermissionsClick: () -> Unit,
+    onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
@@ -58,6 +60,7 @@ fun HomeRoute(
         onNewRoutineClick = onNewRoutineClick,
         onOrderClick = onOrderClick,
         onPermissionsClick = onPermissionsClick,
+        onSettingsClick = onSettingsClick,
         modifier = modifier,
     )
 }
@@ -70,11 +73,22 @@ fun HomeScreen(
     onNewRoutineClick: () -> Unit,
     onOrderClick: (orderId: Long) -> Unit,
     onPermissionsClick: () -> Unit,
+    onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
         modifier = modifier,
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.app_name)) }) },
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.app_name)) },
+                actions = {
+                    // D-66: Settings › "Alarmas críticas"
+                    IconButton(onClick = onSettingsClick) {
+                        Icon(painterResource(R.drawable.ic_settings), contentDescription = stringResource(R.string.settings_title))
+                    }
+                },
+            )
+        },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = onNewRoutineClick,
@@ -175,13 +189,13 @@ private fun EmptyState(modifier: Modifier = Modifier) {
 @ThemePreviews
 @Composable
 private fun HomeScreenOrdersPreview() {
-    RutinifyTheme { HomeScreen(state = PreviewData.homeState, onNewRoutineClick = {}, onOrderClick = {}, onPermissionsClick = {}) }
+    RutinifyTheme { HomeScreen(state = PreviewData.homeState, onNewRoutineClick = {}, onOrderClick = {}, onPermissionsClick = {}, onSettingsClick = {}) }
 }
 
 @ThemePreviews
 @Composable
 private fun HomeScreenEmptyPreview() {
-    RutinifyTheme { HomeScreen(state = HomeUiState(isLoading = false), onNewRoutineClick = {}, onOrderClick = {}, onPermissionsClick = {}) }
+    RutinifyTheme { HomeScreen(state = HomeUiState(isLoading = false), onNewRoutineClick = {}, onOrderClick = {}, onPermissionsClick = {}, onSettingsClick = {}) }
 }
 
 @ThemePreviews
@@ -193,6 +207,7 @@ private fun HomeScreenMissingPermissionsPreview() {
             onNewRoutineClick = {},
             onOrderClick = {},
             onPermissionsClick = {},
+            onSettingsClick = {},
         )
     }
 }

@@ -27,3 +27,7 @@ data class OrderDetailDestination(
 
 @Serializable
 data object PermissionsDestination
+
+/** Settings › "Alarmas críticas" (R-15.1, D-66). */
+@Serializable
+data object SettingsDestination

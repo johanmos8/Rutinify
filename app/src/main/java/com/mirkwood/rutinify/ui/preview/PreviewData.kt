@@ -18,6 +18,8 @@ import com.mirkwood.rutinify.ui.review.ReviewDayUi
 import com.mirkwood.rutinify.ui.review.ReviewDialog
 import com.mirkwood.rutinify.ui.review.ReviewItemUi
 import com.mirkwood.rutinify.ui.review.ReviewUiState
+import com.mirkwood.rutinify.ui.settings.CategoryRowUi
+import com.mirkwood.rutinify.ui.settings.SettingsUiState
 
 /** Fake data for screen and component `@Preview`s. Filled in as screens are added. */
 internal object PreviewData {
@@ -169,4 +171,13 @@ internal object PreviewData {
             windowedWarning = false,
         )
     }
+
+    val settingsState = SettingsUiState(
+        isLoading = false,
+        categories = listOf(
+            CategoryRowUi(name = "comida", label = "Comida", critical = false),
+            CategoryRowUi(name = "medicación", label = "Medicación", critical = true),
+            CategoryRowUi(name = "paseo-largo", label = "Paseo largo", critical = false),
+        ),
+    )
 }
