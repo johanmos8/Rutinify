@@ -56,7 +56,8 @@ class SettingsViewModelTest {
         rescheduleAll = RescheduleAllUseCase(
             alarms = alarms,
             scheduler = scheduler,
-            handleFired = HandleAlarmFiredUseCase(alarms, orders, FakeNotificationPublisher(), calculator, { zone }, lock),
+            categories = categories,
+            handleFired = HandleAlarmFiredUseCase(alarms, orders, FakeNotificationPublisher(), categories, calculator, { zone }, lock),
             calculator = calculator,
             zoneProvider = { zone },
             clock = clock,

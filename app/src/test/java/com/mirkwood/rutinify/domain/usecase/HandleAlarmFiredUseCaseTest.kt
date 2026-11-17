@@ -5,6 +5,7 @@ import com.mirkwood.rutinify.domain.model.AlarmStatus
 import com.mirkwood.rutinify.domain.model.OrderStatus
 import com.mirkwood.rutinify.domain.scheduler.AlarmNotification
 import com.mirkwood.rutinify.domain.time.TriggerTimeCalculator
+import com.mirkwood.rutinify.testutil.FakeCategorySettingsRepository
 import com.mirkwood.rutinify.testutil.FakeAlarmRepository
 import com.mirkwood.rutinify.testutil.FakeNotificationPublisher
 import com.mirkwood.rutinify.testutil.FakeOrderRepository
@@ -27,8 +28,9 @@ class HandleAlarmFiredUseCaseTest {
     private val alarms = FakeAlarmRepository(clock)
     private val orders = FakeOrderRepository()
     private val publisher = FakeNotificationPublisher()
+    private val categories = FakeCategorySettingsRepository()
     private val handleFired = HandleAlarmFiredUseCase(
-        alarms, orders, publisher, TriggerTimeCalculator(), { bogota }, AlarmMutationLock(),
+        alarms, orders, publisher, categories, TriggerTimeCalculator(), { bogota }, AlarmMutationLock(),
     )
 
     @Test
@@ -144,5 +146,18 @@ class HandleAlarmFiredUseCaseTest {
 
         assertThat(second).isEqualTo(FireOutcome.IGNORED)
         assertThat(publisher.shown).isEmpty()
+    }
+
+    @Test
+    fun `la alarma de una categoria critica se notifica como critica`() = runTest { // R-15.6
+        orders.add(testOrder(id = 1L))
+        alarms.add(testAlarm(id = 10L, orderId = 1L, category = "medicación"), testAlarm(id = 11L, orderId = 1L))
+        categories.setCritical("medicación", true)
+
+        handleFired(10L)
+        handleFired(11L)
+
+        assertThat(publisher.shown.getValue(10L).critical).isTrue()
+        assertThat(publisher.shown.getValue(11L).critical).isFalse() // R-15.14
     }
 }

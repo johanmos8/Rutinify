@@ -15,6 +15,8 @@ data class AlarmNotification(
     /** Normalized category: picks the `cat_<category>` channel (R-7.2). */
     val category: String,
     val triggerAt: Instant,
+    /** Rings as an alarm on the "Alarmas críticas" channel instead of [category]'s (R-15.6, D-67). */
+    val critical: Boolean = false,
 )
 
 /** System notifications (design §8). Never throws for a missing permission. */

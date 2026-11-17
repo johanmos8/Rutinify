@@ -23,6 +23,7 @@ import com.mirkwood.rutinify.domain.usecase.HandleAlarmFiredUseCase
 import com.mirkwood.rutinify.domain.usecase.RescheduleAllUseCase
 import com.mirkwood.rutinify.domain.usecase.SchedulingPermissionsUseCase
 import com.mirkwood.rutinify.domain.usecase.ScheduleOrderUseCase
+import com.mirkwood.rutinify.testutil.FakeCategorySettingsRepository
 import com.mirkwood.rutinify.testutil.FakeAlarmRepository
 import com.mirkwood.rutinify.testutil.FakeAlarmScheduler
 import com.mirkwood.rutinify.testutil.FakeNotificationPublisher
@@ -64,6 +65,7 @@ class ReviewViewModelTest {
     private val orders = FakeOrderRepository(now = now)
     private val alarms = FakeAlarmRepository(clock) { orders.activeDate(it) }.also { orders.alarmRepository = it }
     private val scheduler = FakeAlarmScheduler()
+    private val categories = FakeCategorySettingsRepository()
     private val publisher = FakeNotificationPublisher()
     private val lock = AlarmMutationLock()
     private val buildPreview = BuildSchedulePreviewUseCase(calculator)
@@ -93,12 +95,13 @@ class ReviewViewModelTest {
             defaultDatePolicy = DefaultDatePolicy(calculator),
             buildPreview = buildPreview,
             findConflicts = FindConflictingOrdersUseCase(orders),
-            scheduleOrder = ScheduleOrderUseCase(orders, alarms, scheduler, publisher, buildPreview, calculator, { bogota }, clock, lock),
+            scheduleOrder = ScheduleOrderUseCase(orders, alarms, scheduler, categories, publisher, buildPreview, calculator, { bogota }, clock, lock),
             permissions = SchedulingPermissionsUseCase(checker, prompts),
             rescheduleAll = RescheduleAllUseCase(
                 alarms = alarms,
                 scheduler = scheduler,
-                handleFired = HandleAlarmFiredUseCase(alarms, orders, publisher, calculator, { bogota }, lock),
+                categories = categories,
+                handleFired = HandleAlarmFiredUseCase(alarms, orders, publisher, categories, calculator, { bogota }, lock),
                 calculator = calculator,
                 zoneProvider = { bogota },
                 clock = clock,

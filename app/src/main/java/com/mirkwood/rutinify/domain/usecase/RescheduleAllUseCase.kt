@@ -2,6 +2,7 @@ package com.mirkwood.rutinify.domain.usecase
 
 import com.mirkwood.rutinify.domain.model.AlarmStatus
 import com.mirkwood.rutinify.domain.repository.AlarmRepository
+import com.mirkwood.rutinify.domain.repository.CategorySettingsRepository
 import com.mirkwood.rutinify.domain.scheduler.AlarmScheduler
 import com.mirkwood.rutinify.domain.time.TriggerTimeCalculator
 import com.mirkwood.rutinify.domain.time.ZoneProvider
@@ -19,6 +20,7 @@ data class RescheduleResult(val scheduled: Int, val firedNow: Int, val skipped: 
 class RescheduleAllUseCase @Inject constructor(
     private val alarms: AlarmRepository,
     private val scheduler: AlarmScheduler,
+    private val categories: CategorySettingsRepository,
     private val handleFired: HandleAlarmFiredUseCase,
     private val calculator: TriggerTimeCalculator,
     private val zoneProvider: ZoneProvider,
@@ -31,18 +33,20 @@ class RescheduleAllUseCase @Inject constructor(
         val zone = zoneProvider.zone()
         // Recomputed in the current zone every time: trigger instants are never stored (R-12.2)
         val pending = alarms.getPendingForActiveOrders()
-            .map { it.alarm.id to calculator.effectiveTrigger(it.alarm, it.orderDate, zone) }
+            .map { it.alarm to calculator.effectiveTrigger(it.alarm, it.orderDate, zone) }
         val (future, late) = pending.partition { (_, triggerAt) -> triggerAt.isAfter(now) }
         val (fireNow, skip) = late.partition { (_, triggerAt) -> Duration.between(triggerAt, now) <= LATE_TOLERANCE }
 
         // Room first, then AlarmManager. Skipped alarms are also cancelled: a clock moved forward
         // would otherwise fire their still-registered alarm at once (R-12.5)
-        val skipIds = skip.map { it.first }
+        val skipIds = skip.map { it.first.id }
         alarms.updateStatus(skipIds, AlarmStatus.SKIPPED)
         skipIds.forEach(scheduler::cancel)
         // Same requestCode → replaces any existing alarm (R-12.6); WINDOWED without the permission (R-11.7)
-        future.forEach { (id, triggerAt) -> scheduler.schedule(id, triggerAt) }
-        fireNow.forEach { (id, _) -> handleFired.fireLocked(id) }
+        // Critical categories become alarm clocks again after boot or a clock change (R-15.13)
+        val critical = if (future.isEmpty()) emptySet() else categories.criticalNames()
+        future.forEach { (alarm, triggerAt) -> scheduler.schedule(alarm.id, triggerAt, alarm.criticalIn(critical)) }
+        fireNow.forEach { (alarm, _) -> handleFired.fireLocked(alarm.id) }
 
         RescheduleResult(scheduled = future.size, firedNow = fireNow.size, skipped = skip.size)
     }

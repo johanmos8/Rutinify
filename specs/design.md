@@ -282,7 +282,7 @@ Sin fila = no crítica. Sin FK: la marca se conserva aunque ningún plan use ya 
 interface AlarmScheduler {
     fun canScheduleExact(): Boolean
     /** Idempotente: si ya existe, la reemplaza. */
-    fun schedule(alarmId: Long, triggerAt: Instant): ScheduleMode   // EXACT | WINDOWED
+    fun schedule(alarmId: Long, triggerAt: Instant, critical: CriticalAlarm?): ScheduleMode   // EXACT | WINDOWED; critical desde v1.2 (D-85)
     fun cancel(alarmId: Long)
 }
 ```
@@ -308,7 +308,9 @@ interface AlarmScheduler {
 ### 6.2 Modo de programación
 
 ```
-if (canScheduleExact())  setExactAndAllowWhileIdle(RTC_WAKEUP, t, pi)        → EXACT   (R-5.3)
+if (canScheduleExact() && critical != null)
+                         setAlarmClock(AlarmClockInfo(t, abrir plan), pi)    → EXACT   (R-15.3, v1.2)
+else if (canScheduleExact())  setExactAndAllowWhileIdle(RTC_WAKEUP, t, pi)   → EXACT   (R-5.3)
 else                     setWindow(RTC_WAKEUP, t, 10 min, pi)                → WINDOWED (R-5.4)
 ```
 En API 28–30 `canScheduleExact()` es siempre `true`. Ojo: `setWindow` no despierta en Doze profundo; es una degradación aceptada y avisada en UI (D-08).
@@ -565,6 +567,7 @@ Cobertura: Kover con regla `minBound(80)` sobre `com.mirkwood.rutinify.domain.*`
 | D-82 | Wear OS (R-24): primera iteración solo con notificaciones puenteadas: las notificaciones no son `setLocalOnly`, y las acciones "Hecho", "+5 min" y "Silenciar" son `PendingIntent` de broadcast que el reloj ejecuta en el teléfono. La pantalla completa no se muestra en el reloj; el reloj vibra con la notificación | Cubre el caso de uso sin módulo `:wear` ni Data Layer | No |
 | D-83 | Versiones de Room: v2 en v1.2 (`category_setting`), v3 en v1.3 (`diagnostic_counter`), v4 en v1.4 (`alarm_event`), v5 en v2.0 (`routine_activity` y columnas de recurrencia). Migraciones manuales, sin `fallbackToDestructiveMigration`, con test `MigrationTestHelper` por paso y de 1 a la última En T-43: los esquemas exportados se añaden como assets de `debug` (Robolectric solo ve los assets fusionados de la variante probada, no `src/test`; nunca llegan al APK de release) y el test usa la ruta absoluta de la base de datos, porque en Windows el driver de prueba de Room compara el nombre con la ruta del archivo. | Los planes en curso de los usuarios no se pueden perder al actualizar | No |
 | D-84 | Pantalla *Ajustes* (T-44): el engranaje de Inicio abre `SettingsDestination`. Sección "Alarmas críticas" con un texto que explica qué cambia (suena como despertador hasta que respondas, pasa "No molestar" si este deja pasar alarmas, y Android la muestra como próxima alarma, K-8) y una fila por categoría con su nombre legible ("paseo-largo" → "Paseo largo", la misma función que el nombre del canal, ahora `categoryDisplayName` en dominio) y un interruptor; toda la fila es pulsable. Sin categorías: "Aún no hay categorías. Aparecerán aquí cuando programes un plan." "La primera categoría crítica" de R-15.5 se mide sobre la lista visible: si no había ninguna marcada y faltan las exactas, sale el diálogo "Permiso de alarmas exactas" con "Abrir ajustes" y "Ahora no"; la marca se guarda igual (las alarmas suenan en ventana, R-15.4). El aviso de R-15.4 lleva también "Abrir ajustes". Al volver con las exactas recién concedidas se llama a `RescheduleAll`, como en *Permisos* (D-51). La petición de R-15.5 queda hecha aquí; T-48 añade solo la tarjeta de Inicio | Reutiliza el diálogo de R-11.2 y el patrón de *Permisos*; un botón junto al aviso evita volver a *Permisos* para corregirlo | No |
+| D-85 | Alarmas críticas en el scheduler (T-45): `AlarmScheduler.schedule(alarmId, triggerAt, critical: CriticalAlarm?)`, donde `CriticalAlarm(orderId)` da el plan que abre el `showIntent` de `AlarmClockInfo` (el mismo `PendingIntent` que el cuerpo de la notificación, §6.1); null = alarma normal. El parámetro no tiene valor por defecto, así que ningún caso de uso puede olvidarlo: `ScheduleOrder`, `RescheduleAll`, `Resume`, `Restore`, `Snooze` y `SetCategoryCritical` leen `criticalNames()` (una consulta por operación). `setAlarmClock` devuelve `EXACT`. El canal `alarm_critical` suena con el tono de alarma del usuario (`TYPE_ALARM`; si no hay ninguno, el de alarma del sistema) y vibra; `alarm_critical_silent` (importancia normal, sin sonido ni vibración) se crea a la vez, aunque no se usa hasta T-46. Ambos canales quedan fuera del grupo "Rutinas" y se crean al publicar la primera alarma crítica. Con `FLAG_INSISTENT` el sonido para cuando la notificación desaparece: "Hecho", "+5 min", tocarla o deslizarla. La pantalla completa llega en T-46/T-47 | Un tipo con el `orderId` evita un segundo parámetro suelto; sin valor por defecto, el compilador encuentra cada llamada | No |
 | D-01..D-04 | Aprobadas por Johan el 2026-11-04 | | ✅ |
 
 ## 15. Preparación para v2
@@ -613,8 +616,8 @@ Desde v1.2 el roadmap de §17 cubre la recurrencia sin fin (R-23), el widget (R-
   - `CategorySetting(name, critical)`.
   - `CategorySettingsRepository` (`observe()`, `setCritical(name, critical)`, `criticalNames()`).
   - `SetCategoryCriticalUseCase`: guarda la marca y reprograma las pendientes de esa categoría (R-15.2).
-- `AlarmScheduler.schedule(alarmId, triggerAt, critical: Boolean)`. Con `critical` y permiso exacto → `setAlarmClock`; sin permiso → `setWindow` (R-15.4). El `requestCode` y el `PendingIntent` de disparo no cambian (§6.1), así que cancelar sigue igual.
-- `HandleAlarmFiredUseCase` pregunta al repositorio si la categoría es crítica y llama a `NotificationPublisher.publish(notification, critical)`.
+- `AlarmScheduler.schedule(alarmId, triggerAt, critical: CriticalAlarm?)` (T-45, D-85). Con `critical` y permiso exacto → `setAlarmClock`; sin permiso → `setWindow` (R-15.4). El `requestCode` y el `PendingIntent` de disparo no cambian (§6.1), así que cancelar sigue igual.
+- `HandleAlarmFiredUseCase` pregunta al repositorio si la categoría es crítica y publica `AlarmNotification(…, critical = true)`.
 - `AndroidNotificationPublisher` decide la pantalla completa con `canUseFullScreenIntent()`.
 - Datos: Room v2 con `category_setting` (D-66, D-83).
 - `NotificationActionReceiver` gana la acción `…action.SILENCE` y `AlarmReceiver` la del corte a 10 min (D-67).

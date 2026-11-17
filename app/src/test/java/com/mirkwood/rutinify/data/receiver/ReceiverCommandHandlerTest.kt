@@ -9,6 +9,7 @@ import com.mirkwood.rutinify.domain.usecase.MarkAlarmDoneUseCase
 import com.mirkwood.rutinify.domain.usecase.SnoozeAlarmUseCase
 import com.mirkwood.rutinify.testutil.FakeAlarmRepository
 import com.mirkwood.rutinify.testutil.FakeAlarmScheduler
+import com.mirkwood.rutinify.testutil.FakeCategorySettingsRepository
 import com.mirkwood.rutinify.testutil.FakeNotificationPublisher
 import com.mirkwood.rutinify.testutil.FakeOrderRepository
 import com.mirkwood.rutinify.testutil.testAlarm
@@ -28,12 +29,13 @@ class ReceiverCommandHandlerTest {
     private val alarms = FakeAlarmRepository(clock)
     private val orders = FakeOrderRepository()
     private val scheduler = FakeAlarmScheduler()
+    private val categories = FakeCategorySettingsRepository()
     private val publisher = FakeNotificationPublisher()
     private val lock = AlarmMutationLock()
     private val handler = ReceiverCommandHandler(
-        HandleAlarmFiredUseCase(alarms, orders, publisher, TriggerTimeCalculator(), { ZoneId.of("America/Bogota") }, lock),
+        HandleAlarmFiredUseCase(alarms, orders, publisher, categories, TriggerTimeCalculator(), { ZoneId.of("America/Bogota") }, lock),
         MarkAlarmDoneUseCase(alarms, scheduler, publisher, lock),
-        SnoozeAlarmUseCase(alarms, orders, scheduler, publisher, clock, lock),
+        SnoozeAlarmUseCase(alarms, orders, scheduler, categories, publisher, clock, lock),
     )
 
     @Test

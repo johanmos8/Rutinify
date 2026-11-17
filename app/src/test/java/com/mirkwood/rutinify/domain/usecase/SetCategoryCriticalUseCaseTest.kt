@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.domain.usecase
 
+import com.mirkwood.rutinify.domain.scheduler.CriticalAlarm
 import com.google.common.truth.Truth.assertThat
 import com.mirkwood.rutinify.domain.time.TriggerTimeCalculator
 import com.mirkwood.rutinify.testutil.FakeAlarmRepository
@@ -70,5 +71,17 @@ class SetCategoryCriticalUseCaseTest {
         setCritical("medicación", critical = true)
 
         assertThat(scheduler.scheduled).containsExactly(10L, snoozed)
+    }
+
+    @Test
+    fun `marcar programa como despertador y desmarcar vuelve a la alarma normal`() = runTest { // R-15.2, R-15.3
+        alarms.add(testAlarm(id = 10, time = LocalTime.of(14, 0), category = "medicación"))
+
+        setCritical("medicación", critical = true)
+        assertThat(scheduler.critical).containsExactly(10L, CriticalAlarm(orderId = 1L))
+
+        setCritical("medicación", critical = false)
+        assertThat(scheduler.critical).isEmpty()
+        assertThat(scheduler.scheduled.keys).containsExactly(10L)
     }
 }

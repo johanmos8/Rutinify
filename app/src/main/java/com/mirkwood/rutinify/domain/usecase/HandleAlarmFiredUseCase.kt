@@ -3,6 +3,7 @@ package com.mirkwood.rutinify.domain.usecase
 import com.mirkwood.rutinify.domain.model.AlarmStatus
 import com.mirkwood.rutinify.domain.model.OrderStatus
 import com.mirkwood.rutinify.domain.repository.AlarmRepository
+import com.mirkwood.rutinify.domain.repository.CategorySettingsRepository
 import com.mirkwood.rutinify.domain.repository.OrderRepository
 import com.mirkwood.rutinify.domain.scheduler.AlarmNotification
 import com.mirkwood.rutinify.domain.scheduler.NotificationPublisher
@@ -26,6 +27,7 @@ class HandleAlarmFiredUseCase @Inject constructor(
     private val alarms: AlarmRepository,
     private val orders: OrderRepository,
     private val publisher: NotificationPublisher,
+    private val categories: CategorySettingsRepository,
     private val calculator: TriggerTimeCalculator,
     private val zoneProvider: ZoneProvider,
     private val lock: AlarmMutationLock,
@@ -50,6 +52,7 @@ class HandleAlarmFiredUseCase @Inject constructor(
             description = alarm.description,
             time = alarm.time,
             category = alarm.category,
+            critical = alarm.category in categories.criticalNames(), // R-15.6
             triggerAt = calculator.effectiveTrigger(alarm, order.date, zoneProvider.zone()),
         )
         return if (publisher.publish(notification)) FireOutcome.NOTIFIED else FireOutcome.FIRED_WITHOUT_NOTIFICATION

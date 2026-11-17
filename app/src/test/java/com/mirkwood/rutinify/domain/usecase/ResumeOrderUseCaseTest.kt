@@ -1,9 +1,11 @@
 package com.mirkwood.rutinify.domain.usecase
 
+import com.mirkwood.rutinify.domain.scheduler.CriticalAlarm
 import com.google.common.truth.Truth.assertThat
 import com.mirkwood.rutinify.domain.model.AlarmStatus
 import com.mirkwood.rutinify.domain.model.OrderStatus
 import com.mirkwood.rutinify.domain.time.TriggerTimeCalculator
+import com.mirkwood.rutinify.testutil.FakeCategorySettingsRepository
 import com.mirkwood.rutinify.testutil.FakeAlarmRepository
 import com.mirkwood.rutinify.testutil.FakeAlarmScheduler
 import com.mirkwood.rutinify.testutil.FakeOrderRepository
@@ -28,7 +30,8 @@ class ResumeOrderUseCaseTest {
     private val alarms = FakeAlarmRepository(clock)
     private val orders = FakeOrderRepository(alarms)
     private val scheduler = FakeAlarmScheduler()
-    private val resume = ResumeOrderUseCase(orders, alarms, scheduler, TriggerTimeCalculator(), { zone }, clock, AlarmMutationLock())
+    private val categories = FakeCategorySettingsRepository()
+    private val resume = ResumeOrderUseCase(orders, alarms, scheduler, categories, TriggerTimeCalculator(), { zone }, clock, AlarmMutationLock())
 
     private val date = LocalDate.of(2026, 11, 5)
 
@@ -114,5 +117,20 @@ class ResumeOrderUseCaseTest {
 
         assertThat(alarms.alarms.getValue(10)).isEqualTo(alarm)
         assertThat(scheduler.scheduled).containsExactly(10L, Instant.parse("2026-11-05T14:00:00Z"))
+    }
+
+    @Test
+    fun `al reanudar las alarmas criticas se programan como despertador`() = runTest { // R-10.6, R-15.3
+        orders.add(testOrder(id = 1, date = date, status = OrderStatus.PAUSED))
+        alarms.add(
+            testAlarm(id = 11, time = LocalTime.of(9, 0), category = "medicación"),
+            testAlarm(id = 12, time = LocalTime.of(10, 0)),
+        )
+        categories.setCritical("medicación", true)
+
+        resume(1)
+
+        assertThat(scheduler.critical).containsExactly(11L, CriticalAlarm(orderId = 1L))
+        assertThat(scheduler.scheduled.keys).containsExactly(11L, 12L)
     }
 }

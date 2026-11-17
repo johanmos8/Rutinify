@@ -1,9 +1,11 @@
 package com.mirkwood.rutinify.domain.usecase
 
+import com.mirkwood.rutinify.domain.scheduler.CriticalAlarm
 import com.google.common.truth.Truth.assertThat
 import com.mirkwood.rutinify.domain.model.AlarmStatus
 import com.mirkwood.rutinify.domain.model.OrderStatus
 import com.mirkwood.rutinify.domain.time.TriggerTimeCalculator
+import com.mirkwood.rutinify.testutil.FakeCategorySettingsRepository
 import com.mirkwood.rutinify.testutil.FakeAlarmRepository
 import com.mirkwood.rutinify.testutil.FakeAlarmScheduler
 import com.mirkwood.rutinify.testutil.FakeNotificationPublisher
@@ -31,13 +33,15 @@ class RescheduleAllUseCaseTest {
     private val orders = FakeOrderRepository()
     private val alarms = FakeAlarmRepository(clock) { id -> orders.orders[id]?.takeIf { it.status == OrderStatus.ACTIVE }?.date }
     private val scheduler = FakeAlarmScheduler()
+    private val categories = FakeCategorySettingsRepository()
     private val publisher = FakeNotificationPublisher()
     private val lock = AlarmMutationLock()
     private val calculator = TriggerTimeCalculator()
     private val reschedule = RescheduleAllUseCase(
         alarms = alarms,
         scheduler = scheduler,
-        handleFired = HandleAlarmFiredUseCase(alarms, orders, publisher, calculator, { zone }, lock),
+        categories = categories,
+        handleFired = HandleAlarmFiredUseCase(alarms, orders, publisher, categories, calculator, { zone }, lock),
         calculator = calculator,
         zoneProvider = { zone },
         clock = clock,
@@ -203,5 +207,20 @@ class RescheduleAllUseCaseTest {
         val result = reschedule()
 
         assertThat(result).isEqualTo(RescheduleResult(scheduled = 1, firedNow = 1, skipped = 1))
+    }
+
+    @Test
+    fun `las alarmas de categorias criticas se vuelven a programar como despertador`() = runTest { // R-15.13, R-15.14
+        orders.add(testOrder(id = 1L, date = date))
+        alarms.add(
+            testAlarm(id = 10L, time = LocalTime.of(13, 0), category = "medicación"),
+            testAlarm(id = 11L, time = LocalTime.of(14, 0), category = "paseo"),
+        )
+        categories.setCritical("medicación", true)
+
+        reschedule()
+
+        assertThat(scheduler.critical).containsExactly(10L, CriticalAlarm(orderId = 1L))
+        assertThat(scheduler.scheduled.keys).containsExactly(10L, 11L)
     }
 }

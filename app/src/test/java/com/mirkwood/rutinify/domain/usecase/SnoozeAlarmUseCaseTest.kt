@@ -1,9 +1,11 @@
 package com.mirkwood.rutinify.domain.usecase
 
+import com.mirkwood.rutinify.domain.scheduler.CriticalAlarm
 import com.google.common.truth.Truth.assertThat
 import com.mirkwood.rutinify.domain.model.AlarmStatus
 import com.mirkwood.rutinify.domain.model.OrderStatus
 import com.mirkwood.rutinify.domain.scheduler.AlarmNotification
+import com.mirkwood.rutinify.testutil.FakeCategorySettingsRepository
 import com.mirkwood.rutinify.testutil.FakeAlarmRepository
 import com.mirkwood.rutinify.testutil.FakeAlarmScheduler
 import com.mirkwood.rutinify.testutil.FakeNotificationPublisher
@@ -25,8 +27,9 @@ class SnoozeAlarmUseCaseTest {
     private val alarms = FakeAlarmRepository(clock)
     private val orders = FakeOrderRepository()
     private val scheduler = FakeAlarmScheduler()
+    private val categories = FakeCategorySettingsRepository()
     private val publisher = FakeNotificationPublisher()
-    private val snooze = SnoozeAlarmUseCase(alarms, orders, scheduler, publisher, clock, AlarmMutationLock())
+    private val snooze = SnoozeAlarmUseCase(alarms, orders, scheduler, categories, publisher, clock, AlarmMutationLock())
 
     private val fiveMinutesLater = now.plusSeconds(300)
 
@@ -112,5 +115,27 @@ class SnoozeAlarmUseCaseTest {
         assertThat(snooze(99L)).isFalse()
         assertThat(publisher.shown).isEmpty()
         assertThat(scheduler.scheduled).isEmpty()
+    }
+
+    @Test
+    fun `una alarma critica pospuesta vuelve a sonar como despertador`() = runTest { // R-15.8, R-15.3
+        orders.add(testOrder(id = 1L))
+        alarms.add(testAlarm(id = 10L, orderId = 1L, status = AlarmStatus.FIRED, category = "medicación"))
+        categories.setCritical("medicación", true)
+
+        snooze(10L)
+
+        assertThat(scheduler.critical).containsExactly(10L, CriticalAlarm(orderId = 1L))
+    }
+
+    @Test
+    fun `una alarma no critica pospuesta sigue siendo normal`() = runTest { // R-15.14
+        orders.add(testOrder(id = 1L))
+        alarms.add(testAlarm(id = 10L, orderId = 1L, status = AlarmStatus.FIRED))
+        categories.setCritical("medicación", true)
+
+        snooze(10L)
+
+        assertThat(scheduler.critical).isEmpty()
     }
 }

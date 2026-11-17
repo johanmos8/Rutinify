@@ -7,6 +7,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.ComponentName
 import android.content.Intent
+import android.media.AudioAttributes
 import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -227,5 +228,52 @@ class AndroidNotificationPublisherTest {
         assertThat(shown(42L)).isNull()
         assertThat(shown(43L)).isNull()
         assertThat(shown(50L)).isNotNull()
+    }
+
+    @Test
+    fun `una alarma critica suena en el canal Alarmas criticas con sonido de alarma`() { // R-15.6, D-67
+        assertThat(publisher.publish(siesta.copy(critical = true))).isTrue()
+
+        val notification = requireNotNull(shown(42L))
+        assertThat(notification.channelId).isEqualTo("alarm_critical")
+        assertThat(notification.category).isEqualTo(Notification.CATEGORY_ALARM)
+        assertThat(notification.flags and Notification.FLAG_INSISTENT).isNotEqualTo(0)
+        val channel = manager.getNotificationChannel("alarm_critical")
+        assertThat(channel.name.toString()).isEqualTo("Alarmas críticas")
+        assertThat(channel.importance).isEqualTo(NotificationManager.IMPORTANCE_HIGH)
+        assertThat(channel.audioAttributes.usage).isEqualTo(AudioAttributes.USAGE_ALARM)
+        assertThat(channel.sound).isNotNull()
+        // The category channel is not needed for a critical alarm
+        assertThat(manager.getNotificationChannel("cat_siesta")).isNull()
+    }
+
+    @Test
+    fun `al publicar una critica tambien crea el canal silenciado sin sonido`() { // D-67
+        publisher.publish(siesta.copy(critical = true))
+
+        val silent = manager.getNotificationChannel("alarm_critical_silent")
+        assertThat(silent.name.toString()).isEqualTo("Alarmas críticas silenciadas")
+        assertThat(silent.sound).isNull()
+        assertThat(silent.shouldVibrate()).isFalse()
+    }
+
+    @Test
+    fun `una critica conserva el contenido y las acciones de siempre`() { // R-15.8, R-7.1, R-7.3
+        publisher.publish(siesta.copy(critical = true))
+
+        val notification = requireNotNull(shown(42L))
+        assertThat(notification.extras.getString(Notification.EXTRA_TITLE)).isEqualTo("Siesta")
+        assertThat(notification.actions.map { it.title.toString() }).containsExactly("Hecho", "+5 min").inOrder()
+    }
+
+    @Test
+    fun `una alarma no critica sigue igual que antes`() { // R-15.14
+        publisher.publish(siesta)
+
+        val notification = requireNotNull(shown(42L))
+        assertThat(notification.channelId).isEqualTo("cat_siesta")
+        assertThat(notification.category).isEqualTo(Notification.CATEGORY_REMINDER)
+        assertThat(notification.flags and Notification.FLAG_INSISTENT).isEqualTo(0)
+        assertThat(manager.getNotificationChannel("alarm_critical")).isNull()
     }
 }

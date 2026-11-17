@@ -4,6 +4,7 @@ import com.mirkwood.rutinify.domain.model.AlarmItem
 import com.mirkwood.rutinify.domain.model.AlarmStatus
 import com.mirkwood.rutinify.domain.model.OrderStatus
 import com.mirkwood.rutinify.domain.repository.AlarmRepository
+import com.mirkwood.rutinify.domain.repository.CategorySettingsRepository
 import com.mirkwood.rutinify.domain.repository.OrderRepository
 import com.mirkwood.rutinify.domain.scheduler.AlarmScheduler
 import com.mirkwood.rutinify.domain.time.TriggerTimeCalculator
@@ -16,6 +17,7 @@ class RestoreAlarmUseCase @Inject constructor(
     private val alarms: AlarmRepository,
     private val orders: OrderRepository,
     private val scheduler: AlarmScheduler,
+    private val categories: CategorySettingsRepository,
     private val calculator: TriggerTimeCalculator,
     private val zoneProvider: ZoneProvider,
     private val clock: Clock,
@@ -38,7 +40,7 @@ class RestoreAlarmUseCase @Inject constructor(
             alarms.updateStatus(listOf(alarm.id), AlarmStatus.SKIPPED)
             return@withLock false
         }
-        scheduler.schedule(alarm.id, triggerAt)
+        scheduler.schedule(alarm.id, triggerAt, alarm.criticalIn(categories.criticalNames()))
         true
     }
 }

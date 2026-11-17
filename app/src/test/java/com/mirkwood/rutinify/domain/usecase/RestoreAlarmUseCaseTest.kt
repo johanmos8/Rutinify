@@ -1,9 +1,11 @@
 package com.mirkwood.rutinify.domain.usecase
 
+import com.mirkwood.rutinify.domain.scheduler.CriticalAlarm
 import com.google.common.truth.Truth.assertThat
 import com.mirkwood.rutinify.domain.model.AlarmStatus
 import com.mirkwood.rutinify.domain.model.OrderStatus
 import com.mirkwood.rutinify.domain.time.TriggerTimeCalculator
+import com.mirkwood.rutinify.testutil.FakeCategorySettingsRepository
 import com.mirkwood.rutinify.testutil.FakeAlarmRepository
 import com.mirkwood.rutinify.testutil.FakeAlarmScheduler
 import com.mirkwood.rutinify.testutil.FakeOrderRepository
@@ -28,7 +30,8 @@ class RestoreAlarmUseCaseTest {
     private val orders = FakeOrderRepository()
     private val alarms = FakeAlarmRepository(clock)
     private val scheduler = FakeAlarmScheduler()
-    private val restore = RestoreAlarmUseCase(alarms, orders, scheduler, TriggerTimeCalculator(), { zone }, clock, AlarmMutationLock())
+    private val categories = FakeCategorySettingsRepository()
+    private val restore = RestoreAlarmUseCase(alarms, orders, scheduler, categories, TriggerTimeCalculator(), { zone }, clock, AlarmMutationLock())
 
     private val date = LocalDate.of(2026, 11, 5)
 
@@ -96,5 +99,15 @@ class RestoreAlarmUseCaseTest {
 
         assertThat(scheduled).isFalse()
         assertThat(alarms.alarms).isEmpty()
+    }
+
+    @Test
+    fun `una alarma critica restaurada se programa como despertador`() = runTest { // R-9.4, R-15.3
+        orders.add(testOrder(id = 1, date = date))
+        categories.setCritical("medicación", true)
+
+        restore(testAlarm(id = 10L, time = LocalTime.of(9, 0), category = "medicación"))
+
+        assertThat(scheduler.critical).containsExactly(10L, CriticalAlarm(orderId = 1L))
     }
 }

@@ -5,6 +5,7 @@ import android.os.Build
 import android.util.Log
 import com.mirkwood.rutinify.data.LOG_TAG
 import com.mirkwood.rutinify.domain.scheduler.AlarmScheduler
+import com.mirkwood.rutinify.domain.scheduler.CriticalAlarm
 import com.mirkwood.rutinify.domain.scheduler.ScheduleMode
 import java.time.Instant
 import javax.inject.Inject
@@ -19,19 +20,26 @@ class AndroidAlarmScheduler @Inject constructor(
     override fun canScheduleExact(): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()
 
-    override fun schedule(alarmId: Long, triggerAt: Instant): ScheduleMode {
-        // Same PendingIntent identity → AlarmManager replaces the previous alarm (R-12.6)
+    override fun schedule(alarmId: Long, triggerAt: Instant, critical: CriticalAlarm?): ScheduleMode {
+        // Same PendingIntent identity → AlarmManager replaces the previous alarm, in either mode (R-12.6, R-15.2)
         val operation = pendingIntents.fire(alarmId)
         val millis = triggerAt.toEpochMilli()
         if (canScheduleExact()) {
             try {
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, millis, operation)
+                if (critical != null) {
+                    // R-15.3: a real alarm clock; tapping it in the system UI opens the plan (D-67)
+                    val info = AlarmManager.AlarmClockInfo(millis, pendingIntents.openOrder(critical.orderId, alarmId))
+                    alarmManager.setAlarmClock(info, operation)
+                } else {
+                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, millis, operation)
+                }
                 return ScheduleMode.EXACT
             } catch (e: SecurityException) {
                 // Permission revoked between the check and the call: degrade instead of losing the alarm
                 Log.w(LOG_TAG, "Exact alarm denied for $alarmId, falling back to a window", e)
             }
         }
+        // R-5.4, R-15.4: critical alarms also fall back to a window without the permission
         alarmManager.setWindow(AlarmManager.RTC_WAKEUP, millis, WINDOW_MILLIS, operation)
         return ScheduleMode.WINDOWED
     }

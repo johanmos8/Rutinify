@@ -23,6 +23,7 @@ import com.mirkwood.rutinify.domain.usecase.ObserveOrderDetailUseCase
 import com.mirkwood.rutinify.domain.usecase.PauseOrderUseCase
 import com.mirkwood.rutinify.domain.usecase.RestoreAlarmUseCase
 import com.mirkwood.rutinify.domain.usecase.ResumeOrderUseCase
+import com.mirkwood.rutinify.testutil.FakeCategorySettingsRepository
 import com.mirkwood.rutinify.testutil.FakeAlarmRepository
 import com.mirkwood.rutinify.testutil.FakeAlarmScheduler
 import com.mirkwood.rutinify.testutil.FakeNotificationPublisher
@@ -57,6 +58,7 @@ class OrderDetailViewModelTest {
     private val alarms = FakeAlarmRepository(clock)
     private val orders = FakeOrderRepository(alarms)
     private val scheduler = FakeAlarmScheduler(exact = true)
+    private val categories = FakeCategorySettingsRepository()
     private val publisher = FakeNotificationPublisher()
     private val lock = AlarmMutationLock()
     private val drafts = InMemoryDraftStore()
@@ -75,11 +77,11 @@ class OrderDetailViewModelTest {
         canScheduleExactAlarms = CanScheduleExactAlarmsUseCase(scheduler),
         markAlarmDone = MarkAlarmDoneUseCase(alarms, scheduler, publisher, lock),
         deleteAlarm = DeleteAlarmUseCase(alarms, scheduler, publisher, lock),
-        restoreAlarm = RestoreAlarmUseCase(alarms, orders, scheduler, TriggerTimeCalculator(), { zone }, clock, lock),
+        restoreAlarm = RestoreAlarmUseCase(alarms, orders, scheduler, categories, TriggerTimeCalculator(), { zone }, clock, lock),
         cancelOrderAlarms = CancelOrderAlarmsUseCase(orders, scheduler, publisher, lock),
         deleteOrder = DeleteOrderUseCase(orders, alarms, scheduler, publisher, lock),
         pauseOrder = PauseOrderUseCase(orders, alarms, scheduler, lock),
-        resumeOrder = ResumeOrderUseCase(orders, alarms, scheduler, TriggerTimeCalculator(), { zone }, clock, lock),
+        resumeOrder = ResumeOrderUseCase(orders, alarms, scheduler, categories, TriggerTimeCalculator(), { zone }, clock, lock),
         duplicateOrder = DuplicateOrderUseCase(orders, drafts),
         zoneProvider = { zone },
         clock = clock,

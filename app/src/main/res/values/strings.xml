@@ -85,6 +85,8 @@
 
     <!-- Notifications (design §8) -->
     <string name="notification_group_routines">Rutinas</string>
+    <string name="notification_channel_critical">Alarmas críticas</string>
+    <string name="notification_channel_critical_silent">Alarmas críticas silenciadas</string>
     <string name="notification_action_done">Hecho</string>
     <string name="notification_action_snooze">+5 min</string>
 

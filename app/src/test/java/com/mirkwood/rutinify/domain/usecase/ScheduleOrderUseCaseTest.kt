@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.domain.usecase
 
+import com.mirkwood.rutinify.domain.scheduler.CriticalAlarm
 import com.google.common.truth.Truth.assertThat
 import com.mirkwood.rutinify.domain.model.AlarmStatus
 import com.mirkwood.rutinify.domain.model.DraftItem
@@ -8,6 +9,7 @@ import com.mirkwood.rutinify.domain.model.OrderStatus
 import com.mirkwood.rutinify.domain.model.RoutineDraft
 import com.mirkwood.rutinify.domain.scheduler.AlarmNotification
 import com.mirkwood.rutinify.domain.time.TriggerTimeCalculator
+import com.mirkwood.rutinify.testutil.FakeCategorySettingsRepository
 import com.mirkwood.rutinify.testutil.FakeAlarmRepository
 import com.mirkwood.rutinify.testutil.FakeAlarmScheduler
 import com.mirkwood.rutinify.testutil.FakeNotificationPublisher
@@ -35,11 +37,13 @@ class ScheduleOrderUseCaseTest {
     private val orders = FakeOrderRepository(now = now)
     private val alarms = FakeAlarmRepository(clock) { orders.activeDate(it) }.also { orders.alarmRepository = it }
     private val scheduler = FakeAlarmScheduler()
+    private val categories = FakeCategorySettingsRepository()
     private val publisher = FakeNotificationPublisher()
     private val scheduleOrder = ScheduleOrderUseCase(
         orders = orders,
         alarms = alarms,
         scheduler = scheduler,
+        categories = categories,
         publisher = publisher,
         buildPreview = BuildSchedulePreviewUseCase(calculator),
         calculator = calculator,
@@ -266,5 +270,16 @@ class ScheduleOrderUseCaseTest {
 
         assertThat(keepBoth).isEqualTo(ScheduleOrderResult.TooManyAlarms(requested = 3, alreadyScheduled = 498))
         assertThat(replace).isInstanceOf(ScheduleOrderResult.Scheduled::class.java)
+    }
+
+    @Test
+    fun `las actividades de categorias criticas se programan como despertador`() = runTest { // R-15.3, R-15.14
+        categories.setCritical("paseo", true)
+
+        val result = schedule() as ScheduleOrderResult.Scheduled
+
+        val paseo = newOrderAlarms(result.orderId).single { it.category == "paseo" }
+        assertThat(scheduler.critical).containsExactly(paseo.id, CriticalAlarm(result.orderId))
+        assertThat(result.scheduledCount).isEqualTo(4)
     }
 }

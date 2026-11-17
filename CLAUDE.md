@@ -147,10 +147,10 @@ Reglas de dependencia:
 
 ## 10. Alarmas y notificaciones (reglas duras)
 
-- Disparar avisos **solo** con `AlarmManager.setExactAndAllowWhileIdle` (o `setWindow` si no hay permiso de alarma exacta). **Nunca WorkManager** para disparar.
+- Disparar avisos **solo** con `AlarmManager.setExactAndAllowWhileIdle`, o `setAlarmClock` si la categoría es crítica (R-15.3); con `setWindow` si no hay permiso de alarma exacta. **Nunca WorkManager** para disparar.
 - El `requestCode` de cada `PendingIntent` = `AlarmItem.id` (ver `design.md` §6). No inventar otros esquemas.
 - Room es la fuente de verdad: primero se escribe en Room, luego se toca `AlarmManager`. Toda operación de reprogramación debe ser **idempotente**.
-- Toda notificación usa el canal de su categoría (`cat_<categoria>`).
+- Toda notificación usa el canal de su categoría (`cat_<categoria>`). Excepción (D-67): las alarmas de categorías críticas usan `alarm_critical` (sonido de alarma) y, silenciadas, `alarm_critical_silent`, porque el sonido de un canal no se puede cambiar después de crearlo.
 
 ## 11. Git
 

@@ -6,6 +6,7 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
+import com.mirkwood.rutinify.domain.scheduler.CriticalAlarm
 import com.mirkwood.rutinify.domain.scheduler.ScheduleMode
 import org.junit.After
 import org.junit.Test
@@ -39,7 +40,7 @@ class AndroidAlarmSchedulerTest {
     fun `con permiso programa una alarma exacta permitida en reposo`() { // R-5.3
         ShadowAlarmManager.setCanScheduleExactAlarms(true)
 
-        val mode = scheduler.schedule(1L, triggerAt)
+        val mode = scheduler.schedule(1L, triggerAt, null)
 
         val alarm = shadow.scheduledAlarms.single()
         assertThat(mode).isEqualTo(ScheduleMode.EXACT)
@@ -52,7 +53,7 @@ class AndroidAlarmSchedulerTest {
     fun `sin permiso programa con ventana de 10 minutos`() { // R-5.4
         ShadowAlarmManager.setCanScheduleExactAlarms(false)
 
-        val mode = scheduler.schedule(1L, triggerAt)
+        val mode = scheduler.schedule(1L, triggerAt, null)
 
         val alarm = shadow.scheduledAlarms.single()
         assertThat(mode).isEqualTo(ScheduleMode.WINDOWED)
@@ -72,15 +73,15 @@ class AndroidAlarmSchedulerTest {
 
     @Test
     fun `la alarma usa el PendingIntent con requestCode igual al id`() { // design §6.1
-        scheduler.schedule(42L, triggerAt)
+        scheduler.schedule(42L, triggerAt, null)
 
         assertThat(shadowOf(operationOf(shadow.scheduledAlarms.single())).requestCode).isEqualTo(42)
     }
 
     @Test
     fun `programar dos veces el mismo id deja una sola alarma`() { // R-12.6
-        scheduler.schedule(1L, triggerAt)
-        scheduler.schedule(1L, triggerAt)
+        scheduler.schedule(1L, triggerAt, null)
+        scheduler.schedule(1L, triggerAt, null)
 
         assertThat(shadow.scheduledAlarms).hasSize(1)
     }
@@ -89,24 +90,24 @@ class AndroidAlarmSchedulerTest {
     fun `reprogramar el mismo id reemplaza la hora`() { // R-12.6, snooze (R-7.5)
         val later = triggerAt.plusSeconds(300)
 
-        scheduler.schedule(1L, triggerAt)
-        scheduler.schedule(1L, later)
+        scheduler.schedule(1L, triggerAt, null)
+        scheduler.schedule(1L, later, null)
 
         assertThat(shadow.scheduledAlarms.single().triggerAtMs).isEqualTo(later.toEpochMilli())
     }
 
     @Test
     fun `ids distintos son alarmas distintas`() { // design §6.1
-        scheduler.schedule(1L, triggerAt)
-        scheduler.schedule(2L, triggerAt)
+        scheduler.schedule(1L, triggerAt, null)
+        scheduler.schedule(2L, triggerAt, null)
 
         assertThat(shadow.scheduledAlarms).hasSize(2)
     }
 
     @Test
     fun `cancel encuentra el mismo PendingIntent y quita la alarma`() { // design §6.1
-        scheduler.schedule(1L, triggerAt)
-        scheduler.schedule(2L, triggerAt)
+        scheduler.schedule(1L, triggerAt, null)
+        scheduler.schedule(2L, triggerAt, null)
 
         scheduler.cancel(1L)
 
@@ -125,11 +126,64 @@ class AndroidAlarmSchedulerTest {
 
     @Test
     fun `se puede volver a programar tras cancelar`() { // R-12.6
-        scheduler.schedule(1L, triggerAt)
+        scheduler.schedule(1L, triggerAt, null)
         scheduler.cancel(1L)
 
-        scheduler.schedule(1L, triggerAt)
+        scheduler.schedule(1L, triggerAt, null)
 
         assertThat(shadow.scheduledAlarms).hasSize(1)
+    }
+
+    @Test
+    fun `una alarma critica con permiso se programa como despertador`() { // R-15.3, D-67
+        ShadowAlarmManager.setCanScheduleExactAlarms(true)
+
+        val mode = scheduler.schedule(1L, triggerAt, CriticalAlarm(orderId = 7))
+
+        assertThat(mode).isEqualTo(ScheduleMode.EXACT)
+        val alarm = shadow.scheduledAlarms.single()
+        assertThat(alarm.triggerAtMs).isEqualTo(triggerAt.toEpochMilli())
+        val info = requireNotNull(alarmManager.nextAlarmClock)
+        assertThat(info.triggerTime).isEqualTo(triggerAt.toEpochMilli())
+        // Tapping the upcoming alarm in the system opens the plan with the alarm highlighted
+        val show = shadowOf(info.showIntent).savedIntent
+        assertThat(show.data.toString()).isEqualTo("rutinify://order/7?alarm=1")
+        assertThat(shadowOf(operationOf(alarm)).requestCode).isEqualTo(1)
+    }
+
+    @Test
+    fun `una alarma critica sin permiso se programa con ventana`() { // R-15.4
+        ShadowAlarmManager.setCanScheduleExactAlarms(false)
+
+        val mode = scheduler.schedule(1L, triggerAt, CriticalAlarm(orderId = 7))
+
+        assertThat(mode).isEqualTo(ScheduleMode.WINDOWED)
+        assertThat(shadow.scheduledAlarms.single().windowLengthMs).isEqualTo(10 * 60 * 1000L)
+        assertThat(alarmManager.nextAlarmClock).isNull()
+    }
+
+    @Test
+    fun `pasar de critica a normal reemplaza el despertador`() { // R-15.2, R-12.6
+        ShadowAlarmManager.setCanScheduleExactAlarms(true)
+        scheduler.schedule(1L, triggerAt, CriticalAlarm(orderId = 7))
+        assertThat(alarmManager.nextAlarmClock).isNotNull()
+
+        scheduler.schedule(1L, triggerAt, null)
+
+        assertThat(alarmManager.nextAlarmClock).isNull()
+        val alarm = shadow.scheduledAlarms.single()
+        assertThat(alarm.isAllowWhileIdle).isTrue()
+    }
+
+    @Test
+    fun `cancelar una alarma critica la quita con el mismo PendingIntent`() { // R-15.3, design §6.1
+        ShadowAlarmManager.setCanScheduleExactAlarms(true)
+        scheduler.schedule(1L, triggerAt, CriticalAlarm(orderId = 7))
+        assertThat(alarmManager.nextAlarmClock).isNotNull()
+
+        scheduler.cancel(1L)
+
+        assertThat(shadow.scheduledAlarms).isEmpty()
+        assertThat(alarmManager.nextAlarmClock).isNull()
     }
 }

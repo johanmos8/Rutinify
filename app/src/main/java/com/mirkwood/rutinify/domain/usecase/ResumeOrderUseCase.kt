@@ -3,6 +3,7 @@ package com.mirkwood.rutinify.domain.usecase
 import com.mirkwood.rutinify.domain.model.AlarmStatus
 import com.mirkwood.rutinify.domain.model.OrderStatus
 import com.mirkwood.rutinify.domain.repository.AlarmRepository
+import com.mirkwood.rutinify.domain.repository.CategorySettingsRepository
 import com.mirkwood.rutinify.domain.repository.OrderRepository
 import com.mirkwood.rutinify.domain.scheduler.AlarmScheduler
 import com.mirkwood.rutinify.domain.time.TriggerTimeCalculator
@@ -18,6 +19,7 @@ class ResumeOrderUseCase @Inject constructor(
     private val orders: OrderRepository,
     private val alarms: AlarmRepository,
     private val scheduler: AlarmScheduler,
+    private val categories: CategorySettingsRepository,
     private val calculator: TriggerTimeCalculator,
     private val zoneProvider: ZoneProvider,
     private val clock: Clock,
@@ -36,13 +38,15 @@ class ResumeOrderUseCase @Inject constructor(
         val now = clock.instant()
         val zone = zoneProvider.zone()
         val (future, past) = alarms.getPendingByOrder(orderId)
-            .map { it.id to calculator.effectiveTrigger(it, order.date, zone) }
+            .map { it to calculator.effectiveTrigger(it, order.date, zone) }
             .partition { (_, triggerAt) -> triggerAt.isAfter(now) }
 
         // Room first, then AlarmManager
-        alarms.updateStatus(past.map { it.first }, AlarmStatus.SKIPPED)
+        alarms.updateStatus(past.map { it.first.id }, AlarmStatus.SKIPPED)
         orders.updateStatus(orderId, OrderStatus.ACTIVE)
-        future.sortedBy { it.second }.forEach { (id, triggerAt) -> scheduler.schedule(id, triggerAt) }
+        val critical = if (future.isEmpty()) emptySet() else categories.criticalNames()
+        future.sortedBy { it.second }
+            .forEach { (alarm, triggerAt) -> scheduler.schedule(alarm.id, triggerAt, alarm.criticalIn(critical)) }
         ResumeResult(scheduled = future.size, skipped = past.size)
     }
 }

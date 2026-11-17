@@ -229,11 +229,12 @@
   - Tests de VM; previews claro/oscuro.
   - ✅ Marcar y desmarcar persiste y reprograma.
   - _Hecho:_ `SettingsDestination` desde el engranaje de Inicio; `SettingsViewModel` con `ObserveCategorySettingsUseCase` y `SetCategoryCriticalUseCase`, diálogo de R-15.5 al marcar la primera crítica sin exactas, aviso de R-15.4 con "Abrir ajustes" y `RescheduleAll` al volver con el permiso (D-84). 13 tests nuevos (598 en verde), previews claro/oscuro. En el emulador: marcar y desmarcar, el diálogo sin permiso, "Abrir ajustes" lleva a "Alarmas y recordatorios" y el aviso desaparece al conceder.
-- [ ] **T-45 · Programación y notificación de alarmas críticas** — (R-15.3, R-15.6, R-15.12–R-15.14)
+- [x] **T-45 · Programación y notificación de alarmas críticas** — (R-15.3, R-15.6, R-15.12–R-15.14)
   - `AlarmScheduler.schedule(…, critical)` con `setAlarmClock`; canal `alarm_critical` (`USAGE_ALARM`, `CATEGORY_ALARM`, `FLAG_INSISTENT`) y `alarm_critical_silent` (D-67); `RescheduleAllUseCase` pasa `critical`.
   - Actualizar `CLAUDE.md` §10 con la excepción de canal de D-67.
   - Tests Robolectric: `setAlarmClock` con permiso, `setWindow` sin él, cancelar con el mismo `PendingIntent`; tests de use case.
   - ✅ Las no críticas siguen exactamente como en v1.1 (tests existentes en verde).
+  - _Hecho:_ `AlarmScheduler.schedule(…, critical: CriticalAlarm?)` con `setAlarmClock` (el `showIntent` abre el plan); los seis casos de uso que programan leen `criticalNames()`; `AlarmNotification.critical` lleva la alarma al canal `alarm_critical` (tono de alarma del usuario, `USAGE_ALARM`), `CATEGORY_ALARM` y `FLAG_INSISTENT`; `alarm_critical_silent` creado para T-46 (D-85). `CLAUDE.md` §10 actualizado. 16 tests nuevos (614 en verde). En el emulador: al marcar "medicación", Android muestra su alarma como próxima alarma; una alarma crítica sonó a su hora en `alarm_critical` y "Hecho" quitó la notificación.
 - [ ] **T-46 · Pantalla de alarma, "Silenciar" y corte a 10 min** — (R-15.7–R-15.10)
   - `AlarmActivity` (`showWhenLocked`, `turnScreenOn`) con "Hecho", "+5 min" y "Silenciar"; acciones `SILENCE` y corte programado (D-67).
   - Tests de VM y de receiver; previews claro/oscuro.

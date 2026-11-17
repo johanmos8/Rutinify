@@ -7,8 +7,12 @@ import android.app.NotificationChannelGroup
 import android.app.NotificationManager
 import android.content.Context
 import android.content.pm.PackageManager
+import android.media.AudioAttributes
+import android.media.RingtoneManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
@@ -45,7 +49,7 @@ class AndroidNotificationPublisher @Inject constructor(
 
     override fun publish(notification: AlarmNotification): Boolean {
         if (!canNotify()) return false
-        ensureChannels(listOf(notification.category))
+        if (notification.critical) ensureCriticalChannels() else ensureChannels(listOf(notification.category))
         return try {
             manager.notify(TAG, notification.alarmId.toInt(), build(notification))
             true
@@ -68,15 +72,52 @@ class AndroidNotificationPublisher @Inject constructor(
 
     private fun canNotify(): Boolean = notificationsAllowed(context, manager)
 
+    /**
+     * The two channels of critical alarms (D-67). A channel's sound cannot change after it is created, so critical
+     * alarms cannot use `cat_<category>`: one channel rings with the system alarm sound, the other is silent (T-46).
+     */
+    private fun ensureCriticalChannels() {
+        if (manager.getNotificationChannel(CHANNEL_CRITICAL) == null) {
+            val channel = NotificationChannel(
+                CHANNEL_CRITICAL,
+                context.getString(R.string.notification_channel_critical),
+                NotificationManager.IMPORTANCE_HIGH,
+            )
+            // USAGE_ALARM: rings at alarm volume and passes "No molestar" when it lets alarms through (R-15.12)
+            val attributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ALARM)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
+            channel.setSound(alarmSound(), attributes)
+            channel.enableVibration(true)
+            manager.createNotificationChannel(channel)
+        }
+        if (manager.getNotificationChannel(CHANNEL_CRITICAL_SILENT) == null) {
+            val channel = NotificationChannel(
+                CHANNEL_CRITICAL_SILENT,
+                context.getString(R.string.notification_channel_critical_silent),
+                NotificationManager.IMPORTANCE_DEFAULT,
+            )
+            channel.setSound(null, null)
+            channel.enableVibration(false)
+            manager.createNotificationChannel(channel)
+        }
+    }
+
+    /** The user's alarm tone; the default notification tone only if the phone has none. */
+    private fun alarmSound(): Uri =
+        RingtoneManager.getActualDefaultRingtoneUri(context, RingtoneManager.TYPE_ALARM)
+            ?: Settings.System.DEFAULT_ALARM_ALERT_URI
+
     private fun build(n: AlarmNotification): Notification {
         val done = context.getString(R.string.notification_action_done)
         val snooze = context.getString(R.string.notification_action_snooze)
-        return NotificationCompat.Builder(context, channelId(n.category))
+        val builder = NotificationCompat.Builder(context, if (n.critical) CHANNEL_CRITICAL else channelId(n.category))
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(n.title)
             .setContentText(n.description ?: n.time.format(TIME_FORMAT))
             .setSubText(n.orderName)
-            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setCategory(if (n.critical) NotificationCompat.CATEGORY_ALARM else NotificationCompat.CATEGORY_REMINDER)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setWhen(n.triggerAt.toEpochMilli())
             .setShowWhen(true)
@@ -85,13 +126,18 @@ class AndroidNotificationPublisher @Inject constructor(
             .addAction(NotificationCompat.Action.Builder(null, done, pendingIntents.done(n.alarmId)).build())
             .addAction(NotificationCompat.Action.Builder(null, snooze, pendingIntents.snooze(n.alarmId)).build())
             .addExtras(Bundle().apply { putLong(EXTRA_ORDER_ID, n.orderId) })
-            .build()
+        return builder.build().apply {
+            // R-15.6: the sound repeats until "Hecho", "+5 min" or dismissing removes the notification
+            if (n.critical) flags = flags or Notification.FLAG_INSISTENT
+        }
     }
 
     private companion object {
         /** Notification id = alarm id, with this tag (design §6.1). */
         const val TAG = "alarm"
         const val GROUP_ID = "routines"
+        const val CHANNEL_CRITICAL = "alarm_critical"
+        const val CHANNEL_CRITICAL_SILENT = "alarm_critical_silent"
         const val EXTRA_ORDER_ID = "com.mirkwood.rutinify.extra.ORDER_ID"
         const val NO_ORDER = -1L
         val TIME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")

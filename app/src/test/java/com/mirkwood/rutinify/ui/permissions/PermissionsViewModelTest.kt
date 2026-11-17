@@ -7,6 +7,7 @@ import com.mirkwood.rutinify.domain.usecase.AlarmMutationLock
 import com.mirkwood.rutinify.domain.usecase.GetPermissionStatusUseCase
 import com.mirkwood.rutinify.domain.usecase.HandleAlarmFiredUseCase
 import com.mirkwood.rutinify.domain.usecase.RescheduleAllUseCase
+import com.mirkwood.rutinify.testutil.FakeCategorySettingsRepository
 import com.mirkwood.rutinify.testutil.FakeAlarmRepository
 import com.mirkwood.rutinify.testutil.FakeAlarmScheduler
 import com.mirkwood.rutinify.testutil.FakeNotificationPublisher
@@ -38,6 +39,7 @@ class PermissionsViewModelTest {
     private val orders = FakeOrderRepository()
     private val alarms = FakeAlarmRepository(clock) { id -> orders.activeDate(id) }
     private val scheduler = FakeAlarmScheduler()
+    private val categories = FakeCategorySettingsRepository()
     private val checker = FakePermissionChecker(notifications = false, exactAlarms = false)
     private val lock = AlarmMutationLock()
 
@@ -46,7 +48,8 @@ class PermissionsViewModelTest {
         rescheduleAll = RescheduleAllUseCase(
             alarms = alarms,
             scheduler = scheduler,
-            handleFired = HandleAlarmFiredUseCase(alarms, orders, FakeNotificationPublisher(), TriggerTimeCalculator(), { zone }, lock),
+            categories = categories,
+            handleFired = HandleAlarmFiredUseCase(alarms, orders, FakeNotificationPublisher(), categories, TriggerTimeCalculator(), { zone }, lock),
             calculator = TriggerTimeCalculator(),
             zoneProvider = { zone },
             clock = clock,

@@ -6,6 +6,7 @@ import com.mirkwood.rutinify.domain.model.NewOrder
 import com.mirkwood.rutinify.domain.model.RoutineDraft
 import com.mirkwood.rutinify.domain.model.spanOn
 import com.mirkwood.rutinify.domain.repository.AlarmRepository
+import com.mirkwood.rutinify.domain.repository.CategorySettingsRepository
 import com.mirkwood.rutinify.domain.repository.OrderRepository
 import com.mirkwood.rutinify.domain.scheduler.AlarmScheduler
 import com.mirkwood.rutinify.domain.scheduler.NotificationPublisher
@@ -44,6 +45,7 @@ class ScheduleOrderUseCase @Inject constructor(
     private val orders: OrderRepository,
     private val alarms: AlarmRepository,
     private val scheduler: AlarmScheduler,
+    private val categories: CategorySettingsRepository,
     private val publisher: NotificationPublisher,
     private val buildPreview: BuildSchedulePreviewUseCase,
     private val calculator: TriggerTimeCalculator,
@@ -99,9 +101,10 @@ class ScheduleOrderUseCase @Inject constructor(
         created.cancelledAlarmIds.forEach(scheduler::cancel)
         replaceIds.forEach(publisher::cancelForOrder)
         publisher.ensureChannels(created.alarms.map { it.category }) // R-5.9
+        val critical = categories.criticalNames()
         val modes = created.alarms
             .filter { it.status == AlarmStatus.PENDING }
-            .map { scheduler.schedule(it.id, calculator.triggerAt(date, it.time, it.dayOffset, zone)) }
+            .map { scheduler.schedule(it.id, calculator.triggerAt(date, it.time, it.dayOffset, zone), it.criticalIn(critical)) }
 
         ScheduleOrderResult.Scheduled(
             orderId = created.order.id,
