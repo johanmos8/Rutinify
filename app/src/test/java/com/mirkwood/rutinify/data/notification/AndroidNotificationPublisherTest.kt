@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.data.notification
 
+import com.mirkwood.rutinify.ui.alarm.AlarmActivity
 import android.Manifest
 import android.app.Application
 import android.app.Notification
@@ -263,7 +264,8 @@ class AndroidNotificationPublisherTest {
 
         val notification = requireNotNull(shown(42L))
         assertThat(notification.extras.getString(Notification.EXTRA_TITLE)).isEqualTo("Siesta")
-        assertThat(notification.actions.map { it.title.toString() }).containsExactly("Hecho", "+5 min").inOrder()
+        // "Silenciar" comes after the usual two (T-46)
+        assertThat(notification.actions.map { it.title.toString() }.take(2)).containsExactly("Hecho", "+5 min").inOrder()
     }
 
     @Test
@@ -275,5 +277,30 @@ class AndroidNotificationPublisherTest {
         assertThat(notification.category).isEqualTo(Notification.CATEGORY_REMINDER)
         assertThat(notification.flags and Notification.FLAG_INSISTENT).isEqualTo(0)
         assertThat(manager.getNotificationChannel("alarm_critical")).isNull()
+    }
+
+    @Test
+    fun `una critica que suena ofrece Silenciar y abre la pantalla de alarma`() { // R-15.7, R-15.9
+        publisher.publish(siesta.copy(critical = true))
+
+        val notification = requireNotNull(shown(42L))
+        assertThat(notification.actions.map { it.title.toString() }).containsExactly("Hecho", "+5 min", "Silenciar").inOrder()
+        val screen = shadowOf(requireNotNull(notification.fullScreenIntent)).savedIntent
+        assertThat(screen.component).isEqualTo(ComponentName(app, AlarmActivity::class.java))
+        assertThat(screen.getLongExtra(AlarmActivity.EXTRA_ORDER_ID, -1)).isEqualTo(3L)
+    }
+
+    @Test
+    fun `silenciada pasa al canal mudo sin repetir sonido y con Hecho y mas 5 min`() { // R-15.9, D-67
+        publisher.publish(siesta.copy(critical = true))
+
+        publisher.publish(siesta.copy(critical = true, silenced = true))
+
+        val notification = requireNotNull(shown(42L))
+        assertThat(notification.channelId).isEqualTo("alarm_critical_silent")
+        assertThat(notification.flags and Notification.FLAG_INSISTENT).isEqualTo(0)
+        assertThat(notification.fullScreenIntent).isNull()
+        assertThat(notification.actions.map { it.title.toString() }).containsExactly("Hecho", "+5 min").inOrder()
+        assertThat(shadowManager.allNotifications).hasSize(1)
     }
 }

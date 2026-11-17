@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.data.receiver
 
+import com.mirkwood.rutinify.testutil.FakeSilencedAlarms
+import com.mirkwood.rutinify.domain.usecase.SilenceAlarmUseCase
 import com.google.common.truth.Truth.assertThat
 import com.mirkwood.rutinify.domain.model.AlarmStatus
 import com.mirkwood.rutinify.domain.time.TriggerTimeCalculator
@@ -32,10 +34,12 @@ class ReceiverCommandHandlerTest {
     private val categories = FakeCategorySettingsRepository()
     private val publisher = FakeNotificationPublisher()
     private val lock = AlarmMutationLock()
+    private val silenced = FakeSilencedAlarms()
     private val handler = ReceiverCommandHandler(
-        HandleAlarmFiredUseCase(alarms, orders, publisher, categories, TriggerTimeCalculator(), { ZoneId.of("America/Bogota") }, lock),
+        HandleAlarmFiredUseCase(alarms, orders, publisher, categories, scheduler, clock, TriggerTimeCalculator(), { ZoneId.of("America/Bogota") }, lock),
         MarkAlarmDoneUseCase(alarms, scheduler, publisher, lock),
         SnoozeAlarmUseCase(alarms, orders, scheduler, categories, publisher, clock, lock),
+        SilenceAlarmUseCase(alarms, orders, publisher, scheduler, silenced, TriggerTimeCalculator(), { ZoneId.of("America/Bogota") }, lock),
     )
 
     @Test
@@ -69,5 +73,15 @@ class ReceiverCommandHandlerTest {
 
         assertThat(alarms.alarms.getValue(10L).status).isEqualTo(AlarmStatus.PENDING)
         assertThat(scheduler.scheduled).containsExactly(10L, now.plusSeconds(300))
+    }
+
+    @Test
+    fun `Silence silencia la alarma de ese id`() = runTest { // R-15.9
+        orders.add(testOrder(id = 1L))
+        alarms.add(testAlarm(id = 10L, orderId = 1L, status = AlarmStatus.FIRED, category = "medicación"))
+
+        handler.handle(ReceiverCommand.Silence(10L))
+
+        assertThat(publisher.shown.getValue(10L).silenced).isTrue()
     }
 }

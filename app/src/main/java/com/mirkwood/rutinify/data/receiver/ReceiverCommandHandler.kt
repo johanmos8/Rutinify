@@ -2,6 +2,7 @@ package com.mirkwood.rutinify.data.receiver
 
 import com.mirkwood.rutinify.domain.usecase.HandleAlarmFiredUseCase
 import com.mirkwood.rutinify.domain.usecase.MarkAlarmDoneUseCase
+import com.mirkwood.rutinify.domain.usecase.SilenceAlarmUseCase
 import com.mirkwood.rutinify.domain.usecase.SnoozeAlarmUseCase
 import javax.inject.Inject
 
@@ -10,6 +11,7 @@ class ReceiverCommandHandler @Inject constructor(
     private val handleFired: HandleAlarmFiredUseCase,
     private val markDone: MarkAlarmDoneUseCase,
     private val snooze: SnoozeAlarmUseCase,
+    private val silence: SilenceAlarmUseCase,
 ) {
 
     suspend fun handle(command: ReceiverCommand) {
@@ -17,6 +19,7 @@ class ReceiverCommandHandler @Inject constructor(
             is ReceiverCommand.Fire -> handleFired(command.alarmId)
             is ReceiverCommand.Done -> markDone(command.alarmId)
             is ReceiverCommand.Snooze -> snooze(command.alarmId)
+            is ReceiverCommand.Silence -> silence(command.alarmId)
         }
     }
 }

@@ -235,12 +235,13 @@
   - Tests Robolectric: `setAlarmClock` con permiso, `setWindow` sin él, cancelar con el mismo `PendingIntent`; tests de use case.
   - ✅ Las no críticas siguen exactamente como en v1.1 (tests existentes en verde).
   - _Hecho:_ `AlarmScheduler.schedule(…, critical: CriticalAlarm?)` con `setAlarmClock` (el `showIntent` abre el plan); los seis casos de uso que programan leen `criticalNames()`; `AlarmNotification.critical` lleva la alarma al canal `alarm_critical` (tono de alarma del usuario, `USAGE_ALARM`), `CATEGORY_ALARM` y `FLAG_INSISTENT`; `alarm_critical_silent` creado para T-46 (D-85). `CLAUDE.md` §10 actualizado. 16 tests nuevos (614 en verde). En el emulador: al marcar "medicación", Android muestra su alarma como próxima alarma; una alarma crítica sonó a su hora en `alarm_critical` y "Hecho" quitó la notificación.
-- [ ] **T-46 · Pantalla de alarma, "Silenciar" y corte a 10 min** — (R-15.7–R-15.10)
+- [x] **T-46 · Pantalla de alarma, "Silenciar" y corte a 10 min** — (R-15.7–R-15.10)
   - `AlarmActivity` (`showWhenLocked`, `turnScreenOn`) con "Hecho", "+5 min" y "Silenciar"; acciones `SILENCE` y corte programado (D-67).
   - Tests de VM y de receiver; previews claro/oscuro.
   - ✅ "Silenciar" deja la alarma *Disparada* con notificación muda; a los 10 min se silencia sola.
+  - _Hecho:_ `AlarmActivity` + `AlarmViewModel` (hora, título, descripción, plan y los tres botones); `SilenceAlarmUseCase` vuelve a publicar en `alarm_critical_silent`; el corte lo programa `HandleAlarmFiredUseCase` y lo cancelan "Hecho", "+5 min" y "Silenciar"; `SilencedAlarms` cierra la pantalla si se silencia desde fuera (D-86). 25 tests nuevos (639 en verde), previews claro/oscuro. En el emulador, con la pantalla apagada: la pantalla se encendió con la alarma; "Silenciar" la cerró y dejó la notificación muda con dos botones; sin tocar nada, a los 10 min pasó sola al canal mudo. Encontrado K-13: con otra notificación de la app en la bandeja, Android 16 la agrupa y no suena.
 - [ ] **T-47 · Permiso de pantalla completa y fallback** — (R-15.11)
-  - `USE_FULL_SCREEN_INTENT`; `canUseFullScreenIntent()` en cada disparo; fila en *Permisos* con `ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT` (D-68).
+  - `USE_FULL_SCREEN_INTENT` (ya declarado en T-46, D-86); `canUseFullScreenIntent()` en cada disparo; fila en *Permisos* con `ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT` (D-68).
   - Tests de `PermissionChecker` y del publicador con y sin permiso.
   - ✅ Sin permiso, la alarma suena como notificación emergente.
 - [ ] **T-48 · Petición guiada de alarmas exactas** — (R-11.2, R-15.5; D-69 opción C)

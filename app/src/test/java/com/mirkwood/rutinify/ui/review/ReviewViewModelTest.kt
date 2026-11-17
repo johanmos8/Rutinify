@@ -101,7 +101,7 @@ class ReviewViewModelTest {
                 alarms = alarms,
                 scheduler = scheduler,
                 categories = categories,
-                handleFired = HandleAlarmFiredUseCase(alarms, orders, publisher, categories, calculator, { bogota }, lock),
+                handleFired = HandleAlarmFiredUseCase(alarms, orders, publisher, categories, scheduler, clock, calculator, { bogota }, lock),
                 calculator = calculator,
                 zoneProvider = { bogota },
                 clock = clock,

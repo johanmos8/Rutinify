@@ -93,4 +93,14 @@ class MarkAlarmDoneUseCaseTest {
         assertThat(markDone(10L)).isFalse()
         assertThat(alarms.alarms.getValue(10L).doneAt).isEqualTo(firstDoneAt)
     }
+
+    @Test
+    fun `Hecho quita el corte de una alarma critica`() = runTest { // R-15.8
+        alarms.add(testAlarm(id = 10L, status = AlarmStatus.FIRED))
+        scheduler.scheduleSilence(10L, now.plusSeconds(600))
+
+        markDone(10L)
+
+        assertThat(scheduler.silences).isEmpty()
+    }
 }

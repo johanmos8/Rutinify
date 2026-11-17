@@ -5,10 +5,12 @@ import com.mirkwood.rutinify.domain.model.OrderStatus
 import com.mirkwood.rutinify.domain.repository.AlarmRepository
 import com.mirkwood.rutinify.domain.repository.CategorySettingsRepository
 import com.mirkwood.rutinify.domain.repository.OrderRepository
-import com.mirkwood.rutinify.domain.scheduler.AlarmNotification
+import com.mirkwood.rutinify.domain.scheduler.AlarmScheduler
 import com.mirkwood.rutinify.domain.scheduler.NotificationPublisher
 import com.mirkwood.rutinify.domain.time.TriggerTimeCalculator
 import com.mirkwood.rutinify.domain.time.ZoneProvider
+import java.time.Clock
+import java.time.Duration
 import javax.inject.Inject
 
 enum class FireOutcome {
@@ -28,6 +30,8 @@ class HandleAlarmFiredUseCase @Inject constructor(
     private val orders: OrderRepository,
     private val publisher: NotificationPublisher,
     private val categories: CategorySettingsRepository,
+    private val scheduler: AlarmScheduler,
+    private val clock: Clock,
     private val calculator: TriggerTimeCalculator,
     private val zoneProvider: ZoneProvider,
     private val lock: AlarmMutationLock,
@@ -44,17 +48,16 @@ class HandleAlarmFiredUseCase @Inject constructor(
         }
         // Room first: the alarm is FIRED even if the notification cannot be shown (R-7.8)
         alarms.updateStatus(listOf(alarmId), AlarmStatus.FIRED)
-        val notification = AlarmNotification(
-            alarmId = alarm.id,
-            orderId = order.id,
-            orderName = order.name,
-            title = alarm.title,
-            description = alarm.description,
-            time = alarm.time,
-            category = alarm.category,
-            critical = alarm.category in categories.criticalNames(), // R-15.6
-            triggerAt = calculator.effectiveTrigger(alarm, order.date, zoneProvider.zone()),
-        )
-        return if (publisher.publish(notification)) FireOutcome.NOTIFIED else FireOutcome.FIRED_WITHOUT_NOTIFICATION
+        val critical = alarm.category in categories.criticalNames() // R-15.6
+        val triggerAt = calculator.effectiveTrigger(alarm, order.date, zoneProvider.zone())
+        if (!publisher.publish(alarmNotification(alarm, order, triggerAt, critical))) return FireOutcome.FIRED_WITHOUT_NOTIFICATION
+        // R-15.10: a critical alarm nobody answers goes quiet 10 minutes after it starts ringing
+        if (critical) scheduler.scheduleSilence(alarmId, clock.instant().plus(CRITICAL_RING))
+        return FireOutcome.NOTIFIED
+    }
+
+    private companion object {
+        /** D-67: the usual cutoff of alarm clocks. */
+        val CRITICAL_RING: Duration = Duration.ofMinutes(10)
     }
 }

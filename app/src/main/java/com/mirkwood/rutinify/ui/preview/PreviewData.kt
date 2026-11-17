@@ -10,6 +10,7 @@ import com.mirkwood.rutinify.ui.common.ErrorMessages
 import com.mirkwood.rutinify.ui.common.UiText
 import com.mirkwood.rutinify.ui.home.HomeUiState
 import com.mirkwood.rutinify.ui.home.OrderCardUi
+import com.mirkwood.rutinify.ui.alarm.AlarmUiState
 import com.mirkwood.rutinify.ui.orderdetail.OrderDetailUiState
 import com.mirkwood.rutinify.ui.orderdetail.PauseAction
 import com.mirkwood.rutinify.ui.orderdetail.TimelineItemUi
@@ -179,5 +180,13 @@ internal object PreviewData {
             CategoryRowUi(name = "medicación", label = "Medicación", critical = true),
             CategoryRowUi(name = "paseo-largo", label = "Paseo largo", critical = false),
         ),
+    )
+
+    val alarmState = AlarmUiState(
+        isLoading = false,
+        title = "Amoxicilina",
+        description = "500 mg con comida",
+        timeLabel = "14:00",
+        planName = "Antibiótico de Luna",
     )
 }

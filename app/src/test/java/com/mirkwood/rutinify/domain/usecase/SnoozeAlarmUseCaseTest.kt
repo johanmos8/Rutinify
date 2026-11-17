@@ -138,4 +138,15 @@ class SnoozeAlarmUseCaseTest {
 
         assertThat(scheduler.critical).isEmpty()
     }
+
+    @Test
+    fun `posponer quita el corte de una alarma critica`() = runTest { // R-15.8
+        orders.add(testOrder(id = 1L))
+        alarms.add(testAlarm(id = 10L, orderId = 1L, status = AlarmStatus.FIRED, category = "medicación"))
+        scheduler.scheduleSilence(10L, now.plusSeconds(600))
+
+        snooze(10L)
+
+        assertThat(scheduler.silences).isEmpty()
+    }
 }

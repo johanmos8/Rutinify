@@ -28,6 +28,7 @@ class SnoozeAlarmUseCase @Inject constructor(
      */
     suspend operator fun invoke(alarmId: Long): Boolean = lock.withLock {
         publisher.cancel(alarmId)
+        scheduler.cancelSilence(alarmId) // R-15.8
         val alarm = alarms.getById(alarmId)
         val order = alarm?.let { orders.getOrder(it.orderId) }
         if (alarm == null || order == null || alarm.status != AlarmStatus.FIRED || order.status != OrderStatus.ACTIVE) {

@@ -7,6 +7,7 @@ import androidx.core.net.toUri
 import com.mirkwood.rutinify.MainActivity
 import com.mirkwood.rutinify.data.receiver.AlarmReceiver
 import com.mirkwood.rutinify.data.receiver.NotificationActionReceiver
+import com.mirkwood.rutinify.ui.alarm.AlarmActivity
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
@@ -39,6 +40,37 @@ class PendingIntentFactory @Inject constructor(
     /** "+5 min" notification action (R-7.5). */
     fun snooze(alarmId: Long): PendingIntent =
         createBroadcast(alarmId, actionIntent(alarmId, ACTION_SNOOZE, "snooze"))
+
+    /**
+     * "Silenciar" on a ringing critical alarm (R-15.9) and its 10-minute cutoff alarm (R-15.10): one intent, so the
+     * cutoff can be cancelled from either path (D-67).
+     */
+    fun silence(alarmId: Long): PendingIntent =
+        createBroadcast(alarmId, actionIntent(alarmId, ACTION_SILENCE, SUFFIX_SILENCE))
+
+    /** The silence intent for [alarmId] if it exists; never creates one. */
+    fun existingSilence(alarmId: Long): PendingIntent? =
+        PendingIntent.getBroadcast(
+            context,
+            requestCode(alarmId),
+            actionIntent(alarmId, ACTION_SILENCE, SUFFIX_SILENCE),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_NO_CREATE,
+        )
+
+    /** Full-screen alarm screen of a critical alarm (R-15.7). */
+    fun alarmScreen(alarmId: Long, orderId: Long): PendingIntent {
+        val intent = Intent(context, AlarmActivity::class.java)
+            .setData("$SCHEME://$HOST_ALARM/$alarmId/screen".toUri())
+            .putExtra(AlarmActivity.EXTRA_ALARM_ID, alarmId)
+            .putExtra(AlarmActivity.EXTRA_ORDER_ID, orderId)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION)
+        return PendingIntent.getActivity(
+            context,
+            requestCode(alarmId),
+            intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+    }
 
     /** Notification body: order detail with [alarmId] highlighted (R-7.6); matches `ORDER_DEEP_LINK` in the NavHost. */
     fun openOrder(orderId: Long, alarmId: Long): PendingIntent {
@@ -76,11 +108,13 @@ class PendingIntentFactory @Inject constructor(
         const val ACTION_FIRE = "com.mirkwood.rutinify.action.FIRE"
         const val ACTION_DONE = "com.mirkwood.rutinify.action.DONE"
         const val ACTION_SNOOZE = "com.mirkwood.rutinify.action.SNOOZE"
+        const val ACTION_SILENCE = "com.mirkwood.rutinify.action.SILENCE"
+        private const val SUFFIX_SILENCE = "silence"
         private const val SCHEME = "rutinify"
         private const val HOST_ALARM = "alarm"
         private const val HOST_ORDER = "order"
 
-        /** `rutinify://alarm/{id}[/done|/snooze]` → id; null for anything else. */
+        /** `rutinify://alarm/{id}[/done|/snooze|/silence]` → id; null for anything else. */
         fun alarmIdOf(intent: Intent): Long? {
             val uri = intent.data ?: return null
             if (uri.scheme != SCHEME || uri.host != HOST_ALARM) return null

@@ -50,6 +50,26 @@ class AndroidAlarmScheduler @Inject constructor(
         operation.cancel()
     }
 
+    override fun scheduleSilence(alarmId: Long, at: Instant) {
+        val operation = pendingIntents.silence(alarmId)
+        val millis = at.toEpochMilli()
+        if (canScheduleExact()) {
+            try {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, millis, operation)
+                return
+            } catch (e: SecurityException) {
+                Log.w(LOG_TAG, "Exact silence denied for $alarmId, falling back to a window", e)
+            }
+        }
+        alarmManager.setWindow(AlarmManager.RTC_WAKEUP, millis, WINDOW_MILLIS, operation)
+    }
+
+    override fun cancelSilence(alarmId: Long) {
+        // Only the alarm: the same PendingIntent may still back a shown "Silenciar" button
+        val operation = pendingIntents.existingSilence(alarmId) ?: return
+        alarmManager.cancel(operation)
+    }
+
     private companion object {
         /** R-5.4: up to 10 minutes late without the exact alarm permission. */
         const val WINDOW_MILLIS = 10 * 60 * 1000L

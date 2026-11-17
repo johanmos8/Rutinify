@@ -17,6 +17,8 @@ data class AlarmNotification(
     val triggerAt: Instant,
     /** Rings as an alarm on the "Alarmas críticas" channel instead of [category]'s (R-15.6, D-67). */
     val critical: Boolean = false,
+    /** A [critical] alarm after "Silenciar" or the 10-minute cutoff: silent, with "Hecho" and "+5 min" (R-15.9). */
+    val silenced: Boolean = false,
 )
 
 /** System notifications (design §8). Never throws for a missing permission. */

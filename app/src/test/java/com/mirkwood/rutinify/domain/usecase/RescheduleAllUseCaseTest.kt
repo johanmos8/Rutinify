@@ -41,7 +41,7 @@ class RescheduleAllUseCaseTest {
         alarms = alarms,
         scheduler = scheduler,
         categories = categories,
-        handleFired = HandleAlarmFiredUseCase(alarms, orders, publisher, categories, calculator, { zone }, lock),
+        handleFired = HandleAlarmFiredUseCase(alarms, orders, publisher, categories, scheduler, clock, calculator, { zone }, lock),
         calculator = calculator,
         zoneProvider = { zone },
         clock = clock,

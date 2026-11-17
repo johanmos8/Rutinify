@@ -67,4 +67,11 @@ class ReceiverCommandTest {
             assertThat(info.exported).isFalse()
         }
     }
+
+    @Test
+    fun `la accion Silenciar y el corte son Silence con su id`() { // R-15.9, R-15.10
+        val intent = shadowOf(factory.silence(42L)).savedIntent
+
+        assertThat(ReceiverCommand.from(intent)).isEqualTo(ReceiverCommand.Silence(42L))
+    }
 }

@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.data.alarm
 
+import com.mirkwood.rutinify.ui.alarm.AlarmActivity
+import com.mirkwood.rutinify.data.receiver.NotificationActionReceiver
 import android.app.PendingIntent
 import android.content.ComponentName
 import android.content.Context
@@ -87,5 +89,31 @@ class PendingIntentFactoryTest {
         assertThat(PendingIntentFactory.alarmIdOf(Intent().setData(Uri.parse("rutinify://alarm/abc")))).isNull()
         assertThat(PendingIntentFactory.alarmIdOf(Intent().setData(Uri.parse("https://alarm/5")))).isNull()
         assertThat(PendingIntentFactory.alarmIdOf(Intent().setData(Uri.parse("rutinify://alarm/0")))).isNull()
+    }
+
+    @Test
+    fun `Silenciar va al NotificationActionReceiver con su propia identidad`() { // R-15.9, design §6.1
+        val silence = factory.silence(42L)
+        val intent = shadowOf(silence).savedIntent
+
+        assertThat(intent.component).isEqualTo(ComponentName(context, NotificationActionReceiver::class.java))
+        assertThat(intent.action).isEqualTo(PendingIntentFactory.ACTION_SILENCE)
+        assertThat(intent.data).isEqualTo(Uri.parse("rutinify://alarm/42/silence"))
+        assertThat(shadowOf(silence).requestCode).isEqualTo(42)
+        assertThat(factory.existingSilence(42L)).isEqualTo(silence)
+        assertThat(factory.existingSilence(43L)).isNull()
+        assertThat(silence).isNotEqualTo(factory.snooze(42L))
+    }
+
+    @Test
+    fun `la pantalla de alarma abre AlarmActivity con la alarma y el plan`() { // R-15.7
+        val screen = shadowOf(factory.alarmScreen(42L, orderId = 7L))
+        val intent = screen.savedIntent
+
+        assertThat(screen.isActivityIntent).isTrue()
+        assertThat(intent.component).isEqualTo(ComponentName(context, AlarmActivity::class.java))
+        assertThat(intent.getLongExtra(AlarmActivity.EXTRA_ALARM_ID, -1)).isEqualTo(42L)
+        assertThat(intent.getLongExtra(AlarmActivity.EXTRA_ORDER_ID, -1)).isEqualTo(7L)
+        assertThat(screen.requestCode).isEqualTo(42)
     }
 }

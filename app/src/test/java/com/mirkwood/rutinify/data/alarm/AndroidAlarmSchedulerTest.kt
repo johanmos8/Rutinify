@@ -186,4 +186,35 @@ class AndroidAlarmSchedulerTest {
         assertThat(shadow.scheduledAlarms).isEmpty()
         assertThat(alarmManager.nextAlarmClock).isNull()
     }
+
+    @Test
+    fun `el corte se programa como alarma exacta con el intent de Silenciar`() { // R-15.10, D-67
+        ShadowAlarmManager.setCanScheduleExactAlarms(true)
+
+        scheduler.scheduleSilence(1L, triggerAt)
+
+        val alarm = shadow.scheduledAlarms.single()
+        assertThat(alarm.triggerAtMs).isEqualTo(triggerAt.toEpochMilli())
+        assertThat(alarm.isAllowWhileIdle).isTrue()
+        assertThat(shadowOf(operationOf(alarm)).savedIntent.action).isEqualTo(PendingIntentFactory.ACTION_SILENCE)
+    }
+
+    @Test
+    fun `el corte convive con la alarma y se cancela por separado`() { // R-15.8, design §6.1
+        ShadowAlarmManager.setCanScheduleExactAlarms(true)
+        scheduler.schedule(1L, triggerAt, null)
+        scheduler.scheduleSilence(1L, triggerAt.plusSeconds(600))
+
+        scheduler.cancelSilence(1L)
+
+        val remaining = shadow.scheduledAlarms.single()
+        assertThat(shadowOf(operationOf(remaining)).savedIntent.action).isEqualTo(PendingIntentFactory.ACTION_FIRE)
+    }
+
+    @Test
+    fun `cancelar un corte que no existe no falla`() {
+        scheduler.cancelSilence(77L)
+
+        assertThat(shadow.scheduledAlarms).isEmpty()
+    }
 }

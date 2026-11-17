@@ -49,7 +49,7 @@ class PermissionsViewModelTest {
             alarms = alarms,
             scheduler = scheduler,
             categories = categories,
-            handleFired = HandleAlarmFiredUseCase(alarms, orders, FakeNotificationPublisher(), categories, TriggerTimeCalculator(), { zone }, lock),
+            handleFired = HandleAlarmFiredUseCase(alarms, orders, FakeNotificationPublisher(), categories, scheduler, clock, TriggerTimeCalculator(), { zone }, lock),
             calculator = TriggerTimeCalculator(),
             zoneProvider = { zone },
             clock = clock,

@@ -30,4 +30,10 @@ interface AlarmScheduler {
 
     /** No-op when nothing is scheduled for [alarmId]. */
     fun cancel(alarmId: Long)
+
+    /** Silences a ringing critical alarm at [at] if nobody acts before (R-15.10, D-67). Idempotent. */
+    fun scheduleSilence(alarmId: Long, at: Instant)
+
+    /** No-op when no silence is scheduled for [alarmId]. */
+    fun cancelSilence(alarmId: Long)
 }

@@ -8,7 +8,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import javax.inject.Inject
 
-/** "Hecho" (R-7.4) and "+5 min" (R-7.5) notification actions (design §7). */
+/** "Hecho" (R-7.4), "+5 min" (R-7.5) and "Silenciar" (R-15.9) actions, plus the 10-minute cutoff (R-15.10). */
 @AndroidEntryPoint
 class NotificationActionReceiver : BroadcastReceiver() {
 
@@ -19,7 +19,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         val command = ReceiverCommand.from(intent)
-        if (command !is ReceiverCommand.Done && command !is ReceiverCommand.Snooze) return
+        if (command == null || command is ReceiverCommand.Fire) return
         val pendingResult = goAsync()
         scope.launchReceiverWork(finish = pendingResult::finish) { handler.handle(command) }
     }

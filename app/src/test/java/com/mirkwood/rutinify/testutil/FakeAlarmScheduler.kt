@@ -14,6 +14,9 @@ class FakeAlarmScheduler(var exact: Boolean = true) : AlarmScheduler {
     /** Alarm ids currently scheduled as alarm clocks, with their [CriticalAlarm] (R-15.3). */
     val critical = linkedMapOf<Long, CriticalAlarm>()
 
+    /** Pending 10-minute cutoffs of ringing critical alarms (R-15.10). */
+    val silences = linkedMapOf<Long, Instant>()
+
     override fun canScheduleExact(): Boolean = exact
 
     override fun schedule(alarmId: Long, triggerAt: Instant, critical: CriticalAlarm?): ScheduleMode {
@@ -29,5 +32,13 @@ class FakeAlarmScheduler(var exact: Boolean = true) : AlarmScheduler {
         scheduled.remove(alarmId)
         critical.remove(alarmId)
         cancelled += alarmId
+    }
+
+    override fun scheduleSilence(alarmId: Long, at: Instant) {
+        silences[alarmId] = at
+    }
+
+    override fun cancelSilence(alarmId: Long) {
+        silences.remove(alarmId)
     }
 }

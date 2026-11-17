@@ -5,6 +5,7 @@ import com.mirkwood.rutinify.domain.model.AlarmStatus
 import com.mirkwood.rutinify.domain.model.OrderStatus
 import com.mirkwood.rutinify.domain.scheduler.AlarmNotification
 import com.mirkwood.rutinify.domain.time.TriggerTimeCalculator
+import com.mirkwood.rutinify.testutil.FakeAlarmScheduler
 import com.mirkwood.rutinify.testutil.FakeCategorySettingsRepository
 import com.mirkwood.rutinify.testutil.FakeAlarmRepository
 import com.mirkwood.rutinify.testutil.FakeNotificationPublisher
@@ -29,8 +30,9 @@ class HandleAlarmFiredUseCaseTest {
     private val orders = FakeOrderRepository()
     private val publisher = FakeNotificationPublisher()
     private val categories = FakeCategorySettingsRepository()
+    private val scheduler = FakeAlarmScheduler()
     private val handleFired = HandleAlarmFiredUseCase(
-        alarms, orders, publisher, categories, TriggerTimeCalculator(), { bogota }, AlarmMutationLock(),
+        alarms, orders, publisher, categories, scheduler, clock, TriggerTimeCalculator(), { bogota }, AlarmMutationLock(),
     )
 
     @Test
@@ -159,5 +161,29 @@ class HandleAlarmFiredUseCaseTest {
 
         assertThat(publisher.shown.getValue(10L).critical).isTrue()
         assertThat(publisher.shown.getValue(11L).critical).isFalse() // R-15.14
+    }
+
+    @Test
+    fun `una alarma critica programa su corte a los 10 minutos`() = runTest { // R-15.10, D-67
+        orders.add(testOrder(id = 1L))
+        alarms.add(testAlarm(id = 10L, orderId = 1L, category = "medicación"), testAlarm(id = 11L, orderId = 1L))
+        categories.setCritical("medicación", true)
+
+        handleFired(10L)
+        handleFired(11L)
+
+        assertThat(scheduler.silences).containsExactly(10L, now.plusSeconds(600))
+    }
+
+    @Test
+    fun `sin notificacion no programa el corte`() = runTest { // R-7.8, R-15.10
+        publisher.enabled = false
+        orders.add(testOrder(id = 1L))
+        alarms.add(testAlarm(id = 10L, orderId = 1L, category = "medicación"))
+        categories.setCritical("medicación", true)
+
+        handleFired(10L)
+
+        assertThat(scheduler.silences).isEmpty()
     }
 }

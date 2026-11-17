@@ -10,6 +10,7 @@ sealed interface ReceiverCommand {
     data class Fire(override val alarmId: Long) : ReceiverCommand
     data class Done(override val alarmId: Long) : ReceiverCommand
     data class Snooze(override val alarmId: Long) : ReceiverCommand
+    data class Silence(override val alarmId: Long) : ReceiverCommand
 
     companion object {
         /** Action picks the command, the data URI carries the id; null for anything unexpected. */
@@ -19,6 +20,7 @@ sealed interface ReceiverCommand {
                 PendingIntentFactory.ACTION_FIRE -> Fire(alarmId)
                 PendingIntentFactory.ACTION_DONE -> Done(alarmId)
                 PendingIntentFactory.ACTION_SNOOZE -> Snooze(alarmId)
+                PendingIntentFactory.ACTION_SILENCE -> Silence(alarmId)
                 else -> null
             }
         }

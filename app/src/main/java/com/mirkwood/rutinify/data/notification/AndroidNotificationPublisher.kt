@@ -112,7 +112,13 @@ class AndroidNotificationPublisher @Inject constructor(
     private fun build(n: AlarmNotification): Notification {
         val done = context.getString(R.string.notification_action_done)
         val snooze = context.getString(R.string.notification_action_snooze)
-        val builder = NotificationCompat.Builder(context, if (n.critical) CHANNEL_CRITICAL else channelId(n.category))
+        val channel = when {
+            n.critical && n.silenced -> CHANNEL_CRITICAL_SILENT
+            n.critical -> CHANNEL_CRITICAL
+            else -> channelId(n.category)
+        }
+        val ringing = n.critical && !n.silenced
+        val builder = NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(n.title)
             .setContentText(n.description ?: n.time.format(TIME_FORMAT))
@@ -126,9 +132,16 @@ class AndroidNotificationPublisher @Inject constructor(
             .addAction(NotificationCompat.Action.Builder(null, done, pendingIntents.done(n.alarmId)).build())
             .addAction(NotificationCompat.Action.Builder(null, snooze, pendingIntents.snooze(n.alarmId)).build())
             .addExtras(Bundle().apply { putLong(EXTRA_ORDER_ID, n.orderId) })
+        if (ringing) {
+            val silence = context.getString(R.string.notification_action_silence)
+            builder
+                .addAction(NotificationCompat.Action.Builder(null, silence, pendingIntents.silence(n.alarmId)).build())
+                // R-15.7: over the lock screen; a heads-up notification where full screen is not allowed (T-47)
+                .setFullScreenIntent(pendingIntents.alarmScreen(n.alarmId, n.orderId), true)
+        }
         return builder.build().apply {
-            // R-15.6: the sound repeats until "Hecho", "+5 min" or dismissing removes the notification
-            if (n.critical) flags = flags or Notification.FLAG_INSISTENT
+            // R-15.6: the sound repeats until "Hecho", "+5 min", "Silenciar" or dismissing replaces or removes it
+            if (ringing) flags = flags or Notification.FLAG_INSISTENT
         }
     }
 

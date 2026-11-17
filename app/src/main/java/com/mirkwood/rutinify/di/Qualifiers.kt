@@ -10,7 +10,7 @@ annotation class IoDispatcher
 @Retention(AnnotationRetention.BINARY)
 annotation class DefaultDispatcher
 
-/** Process-lifetime scope; used by receivers with `goAsync()`. */
+/** Process-lifetime scope; used by receivers with `goAsync()` and by the alarm screen buttons. */
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class ApplicationScope

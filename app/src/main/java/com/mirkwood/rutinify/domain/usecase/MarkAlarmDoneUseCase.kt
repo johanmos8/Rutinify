@@ -19,6 +19,7 @@ class MarkAlarmDoneUseCase @Inject constructor(
      * but a leftover notification is still removed.
      */
     suspend operator fun invoke(alarmId: Long): Boolean = lock.withLock {
+        scheduler.cancelSilence(alarmId) // R-15.8: no cutoff left for an answered alarm
         val alarm = alarms.getById(alarmId)
         val status = alarm?.status
         if (status != AlarmStatus.PENDING && status != AlarmStatus.FIRED) {
