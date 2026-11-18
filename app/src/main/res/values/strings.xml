@@ -257,4 +257,15 @@
     <string name="settings_critical_exact_warning">Las alarmas críticas necesitan el permiso de alarmas exactas para sonar a su hora</string>
     <string name="settings_exact_dialog_title">Permiso de alarmas exactas</string>
     <string name="settings_exact_dialog_body">Una alarma crítica tiene que sonar a su hora. Sin el permiso de alarmas exactas, Android puede retrasarla unos minutos. Puedes activarlo en ajustes.</string>
+
+    <!-- Diagnostics (T-51, T-52, R-17) -->
+    <string name="settings_diagnostics_section">Diagnóstico</string>
+    <string name="settings_diagnostics_switch">Guardar diagnóstico en este teléfono</string>
+    <string name="settings_diagnostics_description">Cuenta en este teléfono los pasos que usas y los errores al validar, sin nombres ni contenido de tus rutinas. No se envía nada: solo lo compartes si pulsas «Exportar diagnóstico». Al desactivarlo se borra.</string>
+    <string name="action_export_diagnostics">Exportar diagnóstico</string>
+    <string name="action_clear_diagnostics">Borrar diagnóstico</string>
+    <string name="settings_diagnostics_cleared">Diagnóstico borrado</string>
+    <string name="diagnostics_share_title">Enviar el diagnóstico a…</string>
+    <string name="diagnostics_report_header">Diagnóstico de Rutinify %1$s (%2$d)</string>
+    <string name="diagnostics_report_empty">Sin datos todavía</string>
 </resources>

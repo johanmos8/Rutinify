@@ -256,4 +256,15 @@
     <string name="settings_critical_exact_warning">Critical alarms need the exact alarms permission to ring on time</string>
     <string name="settings_exact_dialog_title">Exact alarms permission</string>
     <string name="settings_exact_dialog_body">A critical alarm has to ring on time. Without the exact alarms permission, Android may delay it a few minutes. You can turn it on in settings.</string>
+
+    <!-- Diagnostics (R-17) -->
+    <string name="settings_diagnostics_section">Diagnostics</string>
+    <string name="settings_diagnostics_switch">Keep diagnostics on this phone</string>
+    <string name="settings_diagnostics_description">Counts on this phone the steps you use and the validation errors, without names or content of your routines. Nothing is sent: you only share it if you tap “Export diagnostics”. Turning it off deletes it.</string>
+    <string name="action_export_diagnostics">Export diagnostics</string>
+    <string name="action_clear_diagnostics">Delete diagnostics</string>
+    <string name="settings_diagnostics_cleared">Diagnostics deleted</string>
+    <string name="diagnostics_share_title">Send the diagnostics to…</string>
+    <string name="diagnostics_report_header">Rutinify diagnostics %1$s (%2$d)</string>
+    <string name="diagnostics_report_empty">No data yet</string>
 </resources>

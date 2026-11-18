@@ -271,10 +271,11 @@
   - Tests: no cuenta con el interruptor apagado; cuenta cada `IssueKind`; desactivar borra.
   - ✅ El manifiesto sigue sin `INTERNET`.
   - _Hecho:_ Room v3 con `diagnostic_counter` y `Migration(2, 3)` (tests 2→3 y 1→3); `DiagnosticsRepositoryImpl` (apagado por defecto, apagar borra); registro en *Nueva rutina*, *Revisión* y `ScheduleOrderUseCase` (D-72). `ManifestPermissionsTest` sigue comprobando que no hay `INTERNET`. 12 tests nuevos (680 en verde).
-- [ ] **T-52 · Exportar y borrar diagnóstico** — (R-17.5, R-17.6)
+- [x] **T-52 · Exportar y borrar diagnóstico** — (R-17.5, R-17.6)
   - Sección en *Ajustes*; `ExportDiagnosticsUseCase` con texto legible y versión de la app.
   - Tests de use case y VM; previews.
   - ✅ El texto exportado no contiene nombres ni contenido de rutinas.
+  - _Hecho:_ sección "Diagnóstico" en *Ajustes* con interruptor, "Exportar diagnóstico" y "Borrar diagnóstico"; `ManageDiagnosticsUseCase`, `ExportDiagnosticsUseCase` y `AppInfo`; `DiagnosticsText` arma el texto (D-90). Textos en español e inglés. 7 tests nuevos (687 en verde), preview nueva. En el emulador: tras activarlo y programar un plan, el selector de Android recibe "Diagnóstico de Rutinify 1.0 (1)" con `plans.created: 1`, `step.new_routine: 1`, `step.review: 1`…
 - [ ] **T-53 · Checklist de publicación** — (sin requisito de producto; D-68, D-69)
   - `specs/release-checklist.md`: ficha, política de privacidad, seguridad de datos, declaraciones de permisos, clasificación de contenido, `targetSdk`.
   - ✅ Checklist completa y revisada por Johan.

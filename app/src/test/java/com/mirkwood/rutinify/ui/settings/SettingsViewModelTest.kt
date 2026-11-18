@@ -1,5 +1,12 @@
 package com.mirkwood.rutinify.ui.settings
 
+import com.mirkwood.rutinify.testutil.es
+import com.mirkwood.rutinify.testutil.FakeDiagnosticsRepository
+import com.mirkwood.rutinify.domain.diagnostics.DiagnosticEvent
+import com.mirkwood.rutinify.domain.system.AppInfo
+import com.mirkwood.rutinify.domain.usecase.DiagnosticsReport
+import com.mirkwood.rutinify.domain.usecase.ExportDiagnosticsUseCase
+import com.mirkwood.rutinify.domain.usecase.ManageDiagnosticsUseCase
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import com.mirkwood.rutinify.domain.time.TriggerTimeCalculator
@@ -48,6 +55,11 @@ class SettingsViewModelTest {
     private val checker = FakePermissionChecker()
     private val lock = AlarmMutationLock()
     private val calculator = TriggerTimeCalculator()
+    private val diagnostics = FakeDiagnosticsRepository()
+    private val appInfo = object : AppInfo {
+        override val versionName = "1.3"
+        override val versionCode = 13L
+    }
 
     private fun viewModel() = SettingsViewModel(
         observeCategorySettings = ObserveCategorySettingsUseCase(categories),
@@ -63,6 +75,8 @@ class SettingsViewModelTest {
             clock = clock,
             lock = lock,
         ),
+        manageDiagnostics = ManageDiagnosticsUseCase(diagnostics),
+        exportDiagnostics = ExportDiagnosticsUseCase(diagnostics, appInfo),
     )
 
     /** Keeps `uiState` subscribed (WhileSubscribed) for the whole test. */
@@ -222,5 +236,56 @@ class SettingsViewModelTest {
         vm.onAction(SettingsAction.Resumed)
 
         assertThat(scheduler.scheduled).isEmpty()
+    }
+
+    @Test
+    fun `el diagnostico empieza apagado y se puede activar`() = runTest { // R-17.1
+        val vm = subscribed(viewModel())
+        assertThat(vm.uiState.value.diagnosticsEnabled).isFalse()
+
+        vm.onAction(SettingsAction.DiagnosticsToggled(true))
+
+        assertThat(vm.uiState.value.diagnosticsEnabled).isTrue()
+        assertThat(diagnostics.isEnabled()).isTrue()
+    }
+
+    @Test
+    fun `desactivarlo borra los contadores`() = runTest { // R-17.7
+        diagnostics.setEnabled(true)
+        diagnostics.record(DiagnosticEvent.PlanCreated)
+        val vm = subscribed(viewModel())
+
+        vm.onAction(SettingsAction.DiagnosticsToggled(false))
+
+        assertThat(diagnostics.counts).isEmpty()
+    }
+
+    @Test
+    fun `exportar comparte los contadores con la version de la app`() = runTest { // R-17.5
+        diagnostics.setEnabled(true)
+        diagnostics.record(DiagnosticEvent.Step.VALIDATE)
+        val vm = subscribed(viewModel())
+
+        vm.effects.test {
+            vm.onAction(SettingsAction.ExportDiagnostics)
+
+            assertThat(awaitItem()).isEqualTo(SettingsEffect.ShareDiagnostics(DiagnosticsReport("1.3", 13L, mapOf("step.validate" to 1))))
+        }
+    }
+
+    @Test
+    fun `borrar pone a cero y avisa Diagnostico borrado`() = runTest { // R-17.6
+        diagnostics.setEnabled(true)
+        diagnostics.record(DiagnosticEvent.PlanCreated)
+        val vm = subscribed(viewModel())
+
+        vm.effects.test {
+            vm.onAction(SettingsAction.ClearDiagnostics)
+
+            val effect = awaitItem() as SettingsEffect.ShowMessage
+            assertThat(effect.message.es()).isEqualTo("Diagnóstico borrado")
+        }
+        assertThat(diagnostics.counts).isEmpty()
+        assertThat(diagnostics.isEnabled()).isTrue()
     }
 }

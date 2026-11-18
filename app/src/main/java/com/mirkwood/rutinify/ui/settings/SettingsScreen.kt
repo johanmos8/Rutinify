@@ -1,5 +1,10 @@
 package com.mirkwood.rutinify.ui.settings
 
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.runtime.remember
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarHost
+import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -47,16 +52,28 @@ fun SettingsRoute(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val resources = LocalResources.current
+    val snackbarHostState = remember { SnackbarHostState() }
     // R-11.5: the warning follows changes made in system settings
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onAction(SettingsAction.Resumed) }
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
                 SettingsEffect.OpenExactAlarmSettings -> openExactAlarmSettings(context)
+                is SettingsEffect.ShareDiagnostics -> {
+                    val text = DiagnosticsText.build(
+                        header = resources.getString(R.string.diagnostics_report_header, effect.report.versionName, effect.report.versionCode),
+                        empty = resources.getString(R.string.diagnostics_report_empty),
+                        report = effect.report,
+                    )
+                    val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
+                    context.startActivity(Intent.createChooser(send, resources.getString(R.string.diagnostics_share_title)))
+                }
+                is SettingsEffect.ShowMessage -> snackbarHostState.showSnackbar(effect.message.resolve(resources))
             }
         }
     }
-    SettingsScreen(state = state, onAction = viewModel::onAction, onBack = onBack, modifier = modifier)
+    SettingsScreen(state = state, onAction = viewModel::onAction, onBack = onBack, snackbarHostState = snackbarHostState, modifier = modifier)
 }
 
 /** Stateless Settings: the "Alarmas críticas" section, one switch per category (R-15.1, D-66). */
@@ -66,10 +83,12 @@ fun SettingsScreen(
     onAction: (SettingsAction) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
     Scaffold(
         modifier = modifier,
         topBar = { BackTopAppBar(titleRes = R.string.settings_title, onBack = onBack) },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
@@ -97,6 +116,7 @@ fun SettingsScreen(
             items(state.categories, key = { it.name }) { row ->
                 CategorySwitchRow(row = row, onToggle = { onAction(SettingsAction.CriticalToggled(row.name, it)) })
             }
+            item(key = "diagnostics") { DiagnosticsSection(enabled = state.diagnosticsEnabled, onAction = onAction) }
         }
     }
     if (state.showExactAlarmsDialog) ExactAlarmsDialog(onAction)
@@ -160,6 +180,44 @@ private fun CategorySwitchRow(row: CategoryRowUi, onToggle: (Boolean) -> Unit, m
     }
 }
 
+/** R-17.1, R-17.5, R-17.6: optional local counters; nothing is sent unless the user exports them. */
+@Composable
+private fun DiagnosticsSection(enabled: Boolean, onAction: (SettingsAction) -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier = modifier.padding(top = 16.dp)) {
+        Text(
+            text = stringResource(R.string.settings_diagnostics_section),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 56.dp)
+                .toggleable(value = enabled, role = Role.Switch, onValueChange = { onAction(SettingsAction.DiagnosticsToggled(it)) })
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(stringResource(R.string.settings_diagnostics_switch), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+            Switch(checked = enabled, onCheckedChange = null)
+        }
+        Text(
+            text = stringResource(R.string.settings_diagnostics_description),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 16.dp),
+        )
+        Row(modifier = Modifier.padding(horizontal = 8.dp)) {
+            TextButton(onClick = { onAction(SettingsAction.ExportDiagnostics) }) {
+                Text(stringResource(R.string.action_export_diagnostics))
+            }
+            TextButton(onClick = { onAction(SettingsAction.ClearDiagnostics) }) {
+                Text(stringResource(R.string.action_clear_diagnostics))
+            }
+        }
+    }
+}
+
 /** R-15.5, worded like R-11.2. */
 @Composable
 private fun ExactAlarmsDialog(onAction: (SettingsAction) -> Unit) {
@@ -210,4 +268,10 @@ private fun SettingsScreenDialogPreview() {
             onBack = {},
         )
     }
+}
+
+@ThemePreviews
+@Composable
+private fun SettingsScreenDiagnosticsOnPreview() {
+    RutinifyTheme { SettingsScreen(state = PreviewData.settingsState.copy(diagnosticsEnabled = true), onAction = {}, onBack = {}) }
 }

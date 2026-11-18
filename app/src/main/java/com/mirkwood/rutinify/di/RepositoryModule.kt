@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.di
 
+import com.mirkwood.rutinify.domain.system.AppInfo
+import com.mirkwood.rutinify.data.system.AndroidAppInfo
 import com.mirkwood.rutinify.domain.diagnostics.DiagnosticsRepository
 import com.mirkwood.rutinify.domain.diagnostics.DiagnosticsRecorder
 import com.mirkwood.rutinify.data.repository.DiagnosticsRepositoryImpl
@@ -36,4 +38,7 @@ abstract class RepositoryModule {
 
     @Binds
     abstract fun bindDiagnosticsRecorder(impl: DiagnosticsRepositoryImpl): DiagnosticsRecorder
+
+    @Binds
+    abstract fun bindAppInfo(impl: AndroidAppInfo): AppInfo
 }
