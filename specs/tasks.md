@@ -333,6 +333,7 @@
 - [ ] **T-64 · Verificación v1.4** — (R-13.5)
   - `koverVerify` ≥ 80 %; pasos 29–31 de `manual-test.md` (QR entre dos teléfonos, plan grande, filtro).
   - ✅ Resultados anotados.
+  - _Avance (2026-11-18):_ `koverVerify` en verde. Pasos 30 y 31 superados en el emulador; el 29 necesita dos teléfonos reales. La casilla sigue sin marcar hasta repetirlos en teléfonos reales.
 
 ## Fase 14 · Diferenciación (v2.0)
 

@@ -78,6 +78,6 @@ instaladas y, para el QR, un segundo teléfono.
 
 | # | Paso | Esperado | Resultado |
 |---|---|---|---|
-| 29 | Teléfono A: "Compartir plan" → "Mostrar QR" en un plan de 7 días con dos responsables. Teléfono B: *Nueva rutina* → "Escanear QR" | B abre *Revisión* con las mismas actividades, días y responsables (R-19.4, R-19.7) | Pendiente |
-| 30 | En A, un plan con 200 actividades → "Mostrar QR" | "Este plan es demasiado grande para un QR; compártelo como texto" y el botón funciona (R-19.5) | Pendiente |
-| 31 | En B, elegir "Solo las tareas de…" con uno de los responsables y programar | El plan de B solo tiene las tareas de ese responsable y las sin responsable (R-19.9) | Pendiente |
+| 29 | Teléfono A: "Compartir plan" → "Mostrar QR" en un plan de 7 días con dos responsables. Teléfono B: *Nueva rutina* → "Escanear QR" | B abre *Revisión* con las mismas actividades, días y responsables (R-19.4, R-19.7) | Pendiente: necesita dos teléfonos reales. En el emulador, el QR generado se lee con el lector de ZXing (test) y un enlace `rutinify://import` abre *Revisión* con el plan |
+| 30 | En A, un plan con 200 actividades → "Mostrar QR" | "Este plan es demasiado grande para un QR; compártelo como texto" y el botón funciona (R-19.5) | Emulador API 36 (2026-11-18): un plan de 200 actividades mostró el aviso y "Compartir como texto" abrió el selector con el JSON. Falta en teléfono real |
+| 31 | En B, elegir "Solo las tareas de…" con uno de los responsables y programar | El plan de B solo tiene las tareas de ese responsable y las sin responsable (R-19.9) | Emulador API 36 (2026-11-18), con el plan recibido como texto en un solo teléfono: con "Ana" elegida, el plan quedó con sus dos tareas y la que no tiene responsable (3 de 3). Falta con dos teléfonos |
