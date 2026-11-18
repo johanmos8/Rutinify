@@ -1,6 +1,7 @@
 package com.mirkwood.rutinify.testutil
 
 import com.mirkwood.rutinify.domain.model.AlarmItem
+import com.mirkwood.rutinify.domain.model.AlarmScheduleUpdate
 import com.mirkwood.rutinify.domain.model.AlarmStatus
 import com.mirkwood.rutinify.domain.model.PendingAlarm
 import com.mirkwood.rutinify.domain.repository.AlarmRepository
@@ -44,6 +45,14 @@ class FakeAlarmRepository(
     override suspend fun snooze(alarmId: Long, until: Instant) {
         alarms[alarmId]?.let {
             alarms[alarmId] = it.copy(status = AlarmStatus.PENDING, snoozedUntil = until, statusChangedAt = clock.instant())
+        }
+    }
+
+    override suspend fun updateSchedules(updates: List<AlarmScheduleUpdate>) {
+        updates.forEach { update ->
+            alarms[update.alarmId]?.takeIf { it.status == AlarmStatus.PENDING }?.let {
+                alarms[update.alarmId] = it.copy(time = update.time, dayOffset = update.dayOffset, snoozedUntil = update.snoozedUntil)
+            }
         }
     }
 

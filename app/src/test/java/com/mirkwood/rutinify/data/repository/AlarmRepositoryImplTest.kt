@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.data.repository
 
+import java.time.LocalTime
+import com.mirkwood.rutinify.domain.model.AlarmScheduleUpdate
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
 import com.mirkwood.rutinify.data.local.DbTestData
@@ -30,7 +32,7 @@ class AlarmRepositoryImplTest {
     @Before
     fun setUp() {
         db = DbTestData.inMemoryDb()
-        repository = AlarmRepositoryImpl(db.alarmItemDao(), clock)
+        repository = AlarmRepositoryImpl(db, db.alarmItemDao(), clock)
     }
 
     @After
@@ -119,5 +121,24 @@ class AlarmRepositoryImplTest {
         val orderId = requireNotNull(repository.getById(ids[0])).orderId
 
         assertThat(repository.getPendingByOrder(orderId).map { it.id }).containsExactly(ids[0])
+    }
+
+    @Test
+    fun `updateSchedules mueve solo las pendientes en una transaccion`() = runTest { // R-18.3, D-73
+        val (pending, done) = insertOrderWithAlarms(AlarmStatus.PENDING, AlarmStatus.DONE)
+        val until = now.plusSeconds(900)
+
+        repository.updateSchedules(
+            listOf(
+                AlarmScheduleUpdate(pending, LocalTime.of(0, 30), 1, until),
+                AlarmScheduleUpdate(done, LocalTime.of(0, 30), 1, null),
+            ),
+        )
+
+        val moved = requireNotNull(repository.getById(pending))
+        assertThat(moved.time).isEqualTo(LocalTime.of(0, 30))
+        assertThat(moved.dayOffset).isEqualTo(1)
+        assertThat(moved.snoozedUntil).isEqualTo(until)
+        assertThat(repository.getById(done)?.dayOffset).isEqualTo(0)
     }
 }

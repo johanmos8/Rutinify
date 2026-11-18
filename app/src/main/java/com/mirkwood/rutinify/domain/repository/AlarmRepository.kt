@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.domain.repository
 
+import com.mirkwood.rutinify.domain.model.AlarmScheduleUpdate
 import com.mirkwood.rutinify.domain.model.AlarmItem
 import com.mirkwood.rutinify.domain.model.AlarmStatus
 import com.mirkwood.rutinify.domain.model.PendingAlarm
@@ -19,6 +20,9 @@ interface AlarmRepository {
 
     /** Back to PENDING with an absolute trigger instant (R-7.5, D-12). */
     suspend fun snooze(alarmId: Long, until: Instant)
+
+    /** Rewrites time, day and snooze of pending alarms in one transaction; non-pending ones are left alone (D-73). */
+    suspend fun updateSchedules(updates: List<AlarmScheduleUpdate>)
 
     /** Deletes the alarm (R-9.3). */
     suspend fun delete(alarmId: Long)

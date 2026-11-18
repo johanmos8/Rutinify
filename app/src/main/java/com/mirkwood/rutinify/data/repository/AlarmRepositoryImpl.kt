@@ -1,5 +1,8 @@
 package com.mirkwood.rutinify.data.repository
 
+import com.mirkwood.rutinify.domain.model.AlarmScheduleUpdate
+import com.mirkwood.rutinify.data.local.RutinifyDatabase
+import androidx.room.withTransaction
 import com.mirkwood.rutinify.data.local.AlarmItemDao
 import com.mirkwood.rutinify.domain.model.AlarmItem
 import com.mirkwood.rutinify.domain.model.AlarmStatus
@@ -10,6 +13,7 @@ import java.time.Instant
 import javax.inject.Inject
 
 class AlarmRepositoryImpl @Inject constructor(
+    private val db: RutinifyDatabase,
     private val alarmDao: AlarmItemDao,
     private val clock: Clock,
 ) : AlarmRepository {
@@ -29,6 +33,13 @@ class AlarmRepositoryImpl @Inject constructor(
 
     override suspend fun snooze(alarmId: Long, until: Instant) =
         alarmDao.snooze(alarmId, until, clock.instant())
+
+    override suspend fun updateSchedules(updates: List<AlarmScheduleUpdate>) {
+        if (updates.isEmpty()) return
+        db.withTransaction {
+            updates.forEach { alarmDao.updateSchedule(it.alarmId, it.time, it.dayOffset, it.snoozedUntil) }
+        }
+    }
 
     override suspend fun delete(alarmId: Long) = alarmDao.delete(alarmId)
 

@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.data.local
 
+import java.time.LocalTime
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
@@ -56,6 +57,16 @@ interface AlarmItemDao {
         """,
     )
     suspend fun snooze(id: Long, until: Instant, at: Instant)
+
+    /** "Voy tarde": only a PENDING alarm moves (R-18.3, D-73). */
+    @Query(
+        """
+        UPDATE alarm_item
+        SET time = :time, day_offset = :dayOffset, snoozed_until = :snoozedUntil
+        WHERE id = :id AND status = 'PENDING'
+        """,
+    )
+    suspend fun updateSchedule(id: Long, time: LocalTime, dayOffset: Int, snoozedUntil: Instant?)
 
     @Query("DELETE FROM alarm_item WHERE id = :id")
     suspend fun delete(id: Long)

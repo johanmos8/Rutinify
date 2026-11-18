@@ -285,14 +285,16 @@
   - Métrica: porcentaje de testers que programan un segundo plan; recoger diagnósticos exportados voluntarios.
   - D-69 (opción C): subir a la pista cerrada una versión con `USE_EXACT_ALARM` (`SCHEDULE_EXACT_ALARM` hasta `maxSdkVersion 32`) y su declaración en Play Console; anotar el resultado de la revisión y decidir con Johan si va a producción o se queda la petición guiada.
   - ✅ Resultado, aprendizajes y decisión final de D-69 anotados en `specs/` antes de empezar la Fase 13.
+  - _Pendiente (2026-11-18):_ necesita Play Console, testers reales y 14 días; no se puede hacer desde el repositorio. La Fase 13 se empezó antes por petición de Johan: sus funciones no dependen del resultado de D-69, que solo cambia el manifiesto.
 
 ## Fase 13 · Nicho de cuidados (v1.4)
 
 > Dependencias de D-75 (ZXing `core`, Google code scanner) y D-79 (Glance) aprobadas el 2026-11-16; D-73 y D-76 también.
 
-- [ ] **T-55 · Mover alarmas en bloque (dominio)** — (R-18.3–R-18.8)
+- [x] **T-55 · Mover alarmas en bloque (dominio)** — (R-18.3–R-18.8)
   - `ShiftOrderAlarmsUseCase` (TDD, D-73): cruzar medianoche hacia delante y hacia atrás, pospuestas, pasado, fuera de 0..30, plan pausado, estados que no cambian, idempotencia de la reprogramación.
   - ✅ Tests en verde con `Clock.fixed` y zona explícita.
+  - _Hecho:_ `ShiftOrderAlarmsUseCase` (vista previa y cambio, todo o nada) y `AlarmRepository.updateSchedules` en una transacción (D-73). 13 tests nuevos (700 en verde): medianoche hacia delante y hacia atrás, pospuestas, pasado, fuera del día 1–31, plan pausado sin programar, estados que no cambian, plan no permitido, vista previa sin cambios e idempotencia con alarmas críticas.
 - [ ] **T-56 · "Voy tarde" en el detalle** — (R-18.1, R-18.2)
   - Diálogo con sentido y minutos, vista previa y mensajes de error; mensaje "{n} alarmas movidas".
   - Tests de VM; previews claro/oscuro.
