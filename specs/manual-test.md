@@ -58,21 +58,21 @@ instaladas y, para el QR, un segundo teléfono.
 
 | # | Paso | Esperado | Resultado |
 |---|---|---|---|
-| 19 | Marcar "medicación" como crítica en *Ajustes*; programar un plan con una toma de esa categoría a 2 minutos y bloquear el teléfono | A la hora, la pantalla se enciende con la pantalla de alarma ("Hecho", "+5 min", "Silenciar") y suena el tono de alarma repetido (R-15.6, R-15.7); en `dumpsys alarm` la alarma es de tipo alarm clock | Pendiente |
-| 20 | Activar "No molestar" (dejando pasar alarmas, lo predeterminado) con una toma crítica y otra no crítica a la misma hora | La crítica suena; la no crítica no suena (R-15.12) | Pendiente |
-| 21 | Pulsar "Silenciar" en la pantalla de alarma | Se corta el sonido; queda una notificación muda con "Hecho" y "+5 min"; la alarma sigue *Disparada* (R-15.9) | Pendiente |
-| 22 | Dejar sonar una alarma crítica sin tocar nada | A los 10 minutos se silencia sola (R-15.10) | Pendiente |
-| 23 | Con una alarma crítica pendiente, reiniciar el teléfono | Tras desbloquear, sigue registrada como alarm clock y suena a su hora (R-15.13) | Pendiente |
-| 24 | Quitar el permiso de pantalla completa en Ajustes del sistema y repetir el paso 19 | Suena como notificación emergente con los mismos botones; *Permisos* muestra "Alarmas a pantalla completa: desactivado" (R-15.11) | Pendiente |
+| 19 | Marcar "medicación" como crítica en *Ajustes*; programar un plan con una toma de esa categoría a 2 minutos y bloquear el teléfono | A la hora, la pantalla se enciende con la pantalla de alarma ("Hecho", "+5 min", "Silenciar") y suena el tono de alarma repetido (R-15.6, R-15.7); en `dumpsys alarm` la alarma es de tipo alarm clock | Emulador API 36 (2026-11-17): pantalla de alarma con la pantalla apagada, tono de alarma repetido y alarma de tipo alarm clock. Falta teléfono real |
+| 20 | Activar "No molestar" (dejando pasar alarmas, lo predeterminado) con una toma crítica y otra no crítica a la misma hora | La crítica suena; la no crítica no suena (R-15.12) | Emulador API 36 (2026-11-18): la crítica sonó con el tono de alarma; Android bloqueó la no crítica (`intercepted … !allowReminders`). Falta teléfono real |
+| 21 | Pulsar "Silenciar" en la pantalla de alarma | Se corta el sonido; queda una notificación muda con "Hecho" y "+5 min"; la alarma sigue *Disparada* (R-15.9) | Emulador API 36 (2026-11-17): OK. Falta teléfono real |
+| 22 | Dejar sonar una alarma crítica sin tocar nada | A los 10 minutos se silencia sola (R-15.10) | Emulador API 36 (2026-11-17): a los 10 min pasó sola al canal mudo. Falta teléfono real |
+| 23 | Con una alarma crítica pendiente, reiniciar el teléfono | Tras desbloquear, sigue registrada como alarm clock y suena a su hora (R-15.13) | Emulador API 36 (2026-11-18): tras `adb reboot` seguía como próxima alarma y sonó a su hora. Falta teléfono real |
+| 24 | Quitar el permiso de pantalla completa en Ajustes del sistema y repetir el paso 19 | Suena como notificación emergente con los mismos botones; *Permisos* muestra "Alarmas a pantalla completa: desactivado" (R-15.11) | Emulador API 36 (2026-11-18): sonó como notificación emergente con sus tres botones; *Permisos* mostró "Desactivado". Falta teléfono real |
 
 ### Entrada compartida (v1.2, T-50)
 
 | # | Paso | Esperado | Resultado |
 |---|---|---|---|
-| 25 | En ChatGPT, pedir la rutina con la plantilla de "Cachorro" y compartir la respuesta → Rutinify | Se abre *Revisión* directamente con el plan (R-14.2, R-14.3) | Pendiente |
-| 26 | Lo mismo desde Gemini | Igual que el paso 25; si Gemini comparte solo un enlace o texto recortado, anotarlo (K-12) | Pendiente |
-| 27 | En *Nueva rutina*, elegir "Medicación" y pulsar "Abrir en IA" → ChatGPT | ChatGPT abre con la plantilla de medicación completa en la caja de mensaje (R-14.7) | Pendiente |
-| 28 | Compartir a Rutinify un texto sin JSON | *Nueva rutina* con el texto en el campo y el error de R-3.3 | Pendiente |
+| 25 | En ChatGPT, pedir la rutina con la plantilla de "Cachorro" y compartir la respuesta → Rutinify | Se abre *Revisión* directamente con el plan (R-14.2, R-14.3) | Pendiente: necesita teléfono real con ChatGPT |
+| 26 | Lo mismo desde Gemini | Igual que el paso 25; si Gemini comparte solo un enlace o texto recortado, anotarlo (K-12) | Pendiente: necesita teléfono real con Gemini |
+| 27 | En *Nueva rutina*, elegir "Medicación" y pulsar "Abrir en IA" → ChatGPT | ChatGPT abre con la plantilla de medicación completa en la caja de mensaje (R-14.7) | Pendiente: el chooser envía la plantilla completa (emulador, T-41); falta comprobarlo con ChatGPT en un teléfono real |
+| 28 | Compartir a Rutinify un texto sin JSON | *Nueva rutina* con el texto en el campo y el error de R-3.3 | Emulador API 36 (2026-11-16, T-40): OK |
 
 ### Compartir entre dos teléfonos (v1.4, T-64)
 

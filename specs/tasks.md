@@ -260,6 +260,7 @@
   - `koverVerify` ≥ 80 %; pasos 19–28 de `manual-test.md` en dispositivo real con Android 14+ (bloqueo, "No molestar", reinicio, sin pantalla completa, ChatGPT y Gemini).
   - README: Roadmap y capturas actualizados.
   - ✅ Resultados anotados en `manual-test.md`.
+  - _Avance (2026-11-18):_ `koverVerify` en verde. Pasos 19–24 y 28 superados en el emulador (API 36), incluidos "No molestar" (20) y reinicio (23). Falta lo que solo se puede hacer en un teléfono real: repetir 19–24 y los pasos 25–27 con ChatGPT y Gemini instalados. El README se actualiza al final de la serie. Por eso la casilla sigue sin marcar.
 
 ## Fase 12 · Validación con usuarios (v1.3)
 
