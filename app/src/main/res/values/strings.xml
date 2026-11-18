@@ -339,4 +339,11 @@
     <string name="history_as_pdf">PDF</string>
     <string name="history_chooser">Enviar el historial a…</string>
     <string name="history_pdf_failed">No se pudo crear el PDF; prueba a exportarlo como texto</string>
+
+    <!-- Widget (T-63, R-21) -->
+    <string name="widget_title">Lo siguiente</string>
+    <string name="widget_empty">Nada pendiente</string>
+    <string name="widget_tomorrow">mañana</string>
+    <string name="widget_time_day">%1$s · %2$s</string>
+    <string name="widget_description">La próxima alarma de tus planes, con su botón «Hecho»</string>
 </resources>

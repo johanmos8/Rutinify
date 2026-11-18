@@ -1,5 +1,8 @@
 package com.mirkwood.rutinify.data.repository
 
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.Flow
+import com.mirkwood.rutinify.domain.model.UpcomingAlarm
 import com.mirkwood.rutinify.domain.model.AlarmEventType
 import com.mirkwood.rutinify.domain.model.AlarmEvent
 import java.time.LocalTime
@@ -60,6 +63,9 @@ class AlarmRepositoryImpl @Inject constructor(
             updates.forEach { alarmDao.updateSchedule(it.alarmId, it.time, it.dayOffset, it.snoozedUntil) }
         }
     }
+
+    override fun observeUpcoming(): Flow<List<UpcomingAlarm>> =
+        alarmDao.observeUpcoming().map { rows -> rows.map { UpcomingAlarm(it.alarm.toDomain(), it.orderDate, it.orderName) } }
 
     override suspend fun getByOrder(orderId: Long): List<AlarmItem> = alarmDao.getByOrder(orderId).map { it.toDomain() }
 

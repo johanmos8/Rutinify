@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.domain.repository
 
+import kotlinx.coroutines.flow.Flow
+import com.mirkwood.rutinify.domain.model.UpcomingAlarm
 import com.mirkwood.rutinify.domain.model.AlarmEvent
 import java.time.LocalTime
 import com.mirkwood.rutinify.domain.model.AlarmScheduleUpdate
@@ -31,6 +33,9 @@ interface AlarmRepository {
 
     /** History of [orderId], oldest first (R-20.1). */
     suspend fun getEventsByOrder(orderId: Long): List<AlarmEvent>
+
+    /** Pending alarms of ACTIVE plans with their plan, following every change (R-21.1, R-21.4). */
+    fun observeUpcoming(): Flow<List<UpcomingAlarm>>
 
     /** Every alarm of [orderId], in any status. */
     suspend fun getByOrder(orderId: Long): List<AlarmItem>

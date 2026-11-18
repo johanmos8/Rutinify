@@ -325,10 +325,11 @@
   - `BuildHistoryReportUseCase` (TDD); texto; PDF con `PdfDocument` y `FileProvider` (D-78).
   - ✅ "19 de 21 hechas" correcto con canceladas, omitidas y pospuestas; PDF abre en un visor.
   - _Hecho:_ `BuildHistoryReportUseCase`, `HistoryText`, `ExportHistoryPdfUseCase` con `PdfDocument` y `FileProvider`; resumen en la cabecera del detalle y "Exportar historial" → "Texto"/"PDF" (D-78). Textos en español e inglés. 11 tests nuevos (759 en verde). En el emulador: "0 de 2 hechas · 1 omitida · 0 pospuestas" en el detalle; "PDF" crea `historial.pdf` (31 KB), el selector lo ofrece y el PDF se lee con el plan, el resumen y cada alarma.
-- [ ] **T-63 · Widget "Lo siguiente"** — (R-21.1–R-21.5)
+- [x] **T-63 · Widget "Lo siguiente"** — (R-21.1–R-21.5)
   - Glance (D-79), `ObserveNextAlarmUseCase`, `WidgetUpdater`; botón "Hecho".
   - Tests de use case; prueba manual de actualización.
   - ✅ El widget cambia al disparar, marcar, posponer y mover.
+  - _Hecho:_ Glance 1.1.1 (§13, aprobada), `ObserveNextAlarmUseCase` sobre `AlarmItemDao.observeUpcoming()`, `NextAlarmWidget` con "Hecho" y `WidgetRefresher` (D-79, D-92). Textos en español e inglés. 6 tests nuevos (765 en verde). En el emulador: el widget se coloca desde el selector, muestra "Lo siguiente · 23:28 · Paseo · Prueba editar" y, tras "Hecho", pasa a la siguiente alarma.
 - [ ] **T-64 · Verificación v1.4** — (R-13.5)
   - `koverVerify` ≥ 80 %; pasos 29–31 de `manual-test.md` (QR entre dos teléfonos, plan grande, filtro).
   - ✅ Resultados anotados.

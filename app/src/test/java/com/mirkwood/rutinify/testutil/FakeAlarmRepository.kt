@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.testutil
 
+import kotlinx.coroutines.flow.map
+import com.mirkwood.rutinify.domain.model.UpcomingAlarm
 import com.mirkwood.rutinify.domain.model.AlarmEventType
 import com.mirkwood.rutinify.domain.model.AlarmEvent
 import java.time.LocalTime
@@ -67,6 +69,21 @@ class FakeAlarmRepository(
                 alarms[update.alarmId] = it.copy(time = update.time, dayOffset = update.dayOffset, snoozedUntil = update.snoozedUntil)
             }
         }
+    }
+
+    /** Plan name and date for [observeUpcoming]; null when the plan is not ACTIVE. */
+    var upcomingPlans: (orderId: Long) -> Pair<java.time.LocalDate, String>? = { id -> orderDates(id)?.let { it to "Plan $id" } }
+
+    private val changes = kotlinx.coroutines.flow.MutableStateFlow(0)
+
+    /** Call after changing [alarms] directly, to make [observeUpcoming] emit again. */
+    fun notifyChanged() {
+        changes.value++
+    }
+
+    override fun observeUpcoming(): kotlinx.coroutines.flow.Flow<List<UpcomingAlarm>> = changes.map {
+        alarms.values.filter { it.status == AlarmStatus.PENDING }
+            .mapNotNull { alarm -> upcomingPlans(alarm.orderId)?.let { (date, name) -> UpcomingAlarm(alarm, date, name) } }
     }
 
     override suspend fun getEventsByOrder(orderId: Long): List<AlarmEvent> = events.filter { it.orderId == orderId }

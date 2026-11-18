@@ -31,3 +31,10 @@ data class PendingAlarmRow(
     @Embedded val alarm: AlarmItemEntity,
     @ColumnInfo(name = "order_date") val orderDate: LocalDate,
 )
+
+/** A pending alarm of an ACTIVE order with the order's date and name (R-21.1). */
+data class UpcomingAlarmRow(
+    @Embedded val alarm: AlarmItemEntity,
+    @ColumnInfo(name = "order_date") val orderDate: LocalDate,
+    @ColumnInfo(name = "order_name") val orderName: String,
+)

@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.data.local
 
+import kotlinx.coroutines.flow.Flow
 import com.mirkwood.rutinify.domain.model.AlarmEventType
 import java.time.LocalTime
 import androidx.room.Dao
@@ -32,6 +33,18 @@ interface AlarmItemDao {
         """,
     )
     suspend fun getPendingForActiveOrders(): List<PendingAlarmRow>
+
+    /** Same alarms with the plan name, observed for the widget (R-21.1, R-21.4). */
+    @Query(
+        """
+        SELECT a.*, o.date AS order_date, o.name AS order_name
+        FROM alarm_item a
+        INNER JOIN routine_order o ON o.id = a.order_id
+        WHERE a.status = 'PENDING' AND o.status = 'ACTIVE'
+        ORDER BY a.id
+        """,
+    )
+    fun observeUpcoming(): Flow<List<UpcomingAlarmRow>>
 
     @Query("SELECT * FROM alarm_item WHERE order_id = :orderId AND status = 'PENDING' ORDER BY id")
     suspend fun getPendingByOrder(orderId: Long): List<AlarmItemEntity>

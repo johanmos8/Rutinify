@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify
 
+import com.mirkwood.rutinify.ui.widget.WidgetRefresher
 import android.app.Application
 import android.util.Log
 import com.mirkwood.rutinify.data.LOG_TAG
@@ -19,8 +20,11 @@ class RutinifyApp : Application() {
     @Inject @ApplicationScope
     lateinit var scope: CoroutineScope
 
+    @Inject lateinit var widgetRefresher: WidgetRefresher
+
     override fun onCreate() {
         super.onCreate()
+        widgetRefresher.start() // R-21.4
         // Reconcile on every start: "Force stop" drops all alarms without any broadcast (design §7.2, R-12.3)
         scope.launch {
             try {
