@@ -48,6 +48,17 @@
 
                 <data android:mimeType="text/plain" />
             </intent-filter>
+            <!-- Plan shared as a link or QR code (R-19.7, D-75) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="import"
+                    android:scheme="rutinify" />
+            </intent-filter>
         </activity>
 
         <!-- Critical alarm screen (R-15.7): only from the app's full-screen intent; own task, out of recents -->

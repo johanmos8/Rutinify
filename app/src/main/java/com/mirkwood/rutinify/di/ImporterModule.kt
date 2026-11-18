@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.di
 
+import com.mirkwood.rutinify.domain.importer.QrEncoder
+import com.mirkwood.rutinify.data.importer.ZxingQrEncoder
 import com.mirkwood.rutinify.domain.importer.PlanExporter
 import com.mirkwood.rutinify.data.importer.JsonPlanExporter
 import com.mirkwood.rutinify.data.draft.InMemoryDraftStore
@@ -48,4 +50,7 @@ abstract class ImporterModule {
 
     @Binds
     abstract fun bindPlanExporter(impl: JsonPlanExporter): PlanExporter
+
+    @Binds
+    abstract fun bindQrEncoder(impl: ZxingQrEncoder): QrEncoder
 }

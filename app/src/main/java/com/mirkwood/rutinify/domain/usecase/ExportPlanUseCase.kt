@@ -11,8 +11,8 @@ class ExportPlanUseCase @Inject constructor(
     private val alarms: AlarmRepository,
     private val exporter: PlanExporter,
 ) {
-    suspend operator fun invoke(orderId: Long): String? {
+    suspend operator fun invoke(orderId: Long, pretty: Boolean = true): String? {
         val order = orders.getOrder(orderId) ?: return null
-        return exporter.export(order, alarms.getByOrder(orderId))
+        return exporter.export(order, alarms.getByOrder(orderId), pretty)
     }
 }

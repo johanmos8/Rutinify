@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.ui.newroutine
 
+import com.mirkwood.rutinify.domain.usecase.DecodePlanLinkUseCase
 import com.mirkwood.rutinify.domain.importer.Severity
 import com.mirkwood.rutinify.domain.diagnostics.DiagnosticsRecorder
 import com.mirkwood.rutinify.domain.diagnostics.DiagnosticEvent
@@ -81,6 +82,7 @@ class NewRoutineViewModel @Inject constructor(
     private val textSharer: TextSharer,
     private val scenarioStore: TemplateScenarioStore,
     private val diagnostics: DiagnosticsRecorder,
+    private val decodePlanLink: DecodePlanLinkUseCase,
 ) : ViewModel() {
 
     /** Everything except the text, which lives in [savedStateHandle] (R-2.5). */
@@ -127,7 +129,20 @@ class NewRoutineViewModel @Inject constructor(
             effectChannel.trySend(NewRoutineEffect.ShowMessage(UiText.Res(R.string.new_routine_shared_empty)))
             return
         }
-        setText(text)
+        importText(text)
+    }
+
+    /** Shared text, or a plan link from a QR code or another app (R-14.2, R-19.7, R-19.8), then validated. */
+    private fun importText(text: String) {
+        val json = if (decodePlanLink.isLink(text)) {
+            decodePlanLink(text) ?: run {
+                effectChannel.trySend(NewRoutineEffect.ShowMessage(UiText.Res(R.string.import_link_invalid)))
+                return
+            }
+        } else {
+            text
+        }
+        setText(json)
         validate()
     }
 

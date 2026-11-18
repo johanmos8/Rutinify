@@ -1,5 +1,8 @@
 package com.mirkwood.rutinify.ui.orderdetail
 
+import com.mirkwood.rutinify.domain.importer.QrMatrix
+import com.mirkwood.rutinify.domain.usecase.PlanQrResult
+import com.mirkwood.rutinify.domain.usecase.EncodePlanLinkUseCase
 import com.mirkwood.rutinify.domain.usecase.ExportPlanUseCase
 import com.mirkwood.rutinify.ui.common.ActivityForm
 import com.mirkwood.rutinify.domain.importer.DraftItemRules
@@ -105,7 +108,12 @@ data class OrderDetailUiState(
     val editing: EditAlarmUi? = null,
     /** "Compartir plan" options are open (R-19.2). */
     val showShareOptions: Boolean = false,
+    /** "Mostrar QR" result while its dialog is open (R-19.4, R-19.5). */
+    val qrDialog: QrDialogUi? = null,
 )
+
+/** The plan's QR code, or [tooLarge] when it does not fit in one (R-19.5). */
+data class QrDialogUi(val qr: QrMatrix? = null, val tooLarge: Boolean = false)
 
 /** Edit form of one alarm of the plan (R-18.9). */
 data class EditAlarmUi(val alarmId: Long, val form: ActivityForm)
@@ -193,6 +201,11 @@ sealed interface OrderDetailAction {
     data object ShareAsText : OrderDetailAction
 
     data object ShareDismissed : OrderDetailAction
+
+    /** "Mostrar QR" (R-19.4). */
+    data object ShowQr : OrderDetailAction
+
+    data object QrDismissed : OrderDetailAction
 }
 
 sealed interface OrderDetailEffect {
@@ -227,6 +240,7 @@ class OrderDetailViewModel @Inject constructor(
     private val shiftOrderAlarms: ShiftOrderAlarmsUseCase,
     private val updateAlarm: UpdateAlarmUseCase,
     private val exportPlan: ExportPlanUseCase,
+    private val encodePlanLink: EncodePlanLinkUseCase,
     private val zoneProvider: ZoneProvider,
     private val clock: Clock,
 ) : ViewModel() {
@@ -241,6 +255,7 @@ class OrderDetailViewModel @Inject constructor(
     private val shiftDialog = MutableStateFlow<ShiftDialogUi?>(null)
     private val editing = MutableStateFlow<EditAlarmUi?>(null)
     private val shareOptions = MutableStateFlow(false)
+    private val qrDialog = MutableStateFlow<QrDialogUi?>(null)
     private var shiftPreviewJob: Job? = null
 
     /** Set while the order is being deleted, so the screen does not flash "Esta rutina ya no existe". */
@@ -258,15 +273,23 @@ class OrderDetailViewModel @Inject constructor(
 
     val uiState: StateFlow<OrderDetailUiState> =
         combine(
-            combine(observeOrderDetail(orderId), exactAllowed, shareOptions, ::Triple),
+            combine(observeOrderDetail(orderId), exactAllowed, combine(shareOptions, qrDialog, ::Pair), ::Triple),
             dialog,
             duplicateDate,
             shiftDialog,
             editing,
-        ) { (detail, exact, share), dialog, duplicateDate, shift, edit ->
+        ) { (detail, exact, sharing), dialog, duplicateDate, shift, edit ->
+            val (share, qr) = sharing
             val state = when {
                 detail != null -> toUiState(detail, exact)
-                    .copy(dialog = dialog, duplicateDateMillis = duplicateDate, shiftDialog = shift, editing = edit, showShareOptions = share)
+                    .copy(
+                        dialog = dialog,
+                        duplicateDateMillis = duplicateDate,
+                        shiftDialog = shift,
+                        editing = edit,
+                        showShareOptions = share,
+                        qrDialog = qr,
+                    )
                 leaving -> lastShown?.copy(dialog = null) ?: OrderDetailUiState()
                 else -> OrderDetailUiState(isLoading = false, notFound = true)
             }
@@ -305,8 +328,20 @@ class OrderDetailViewModel @Inject constructor(
             OrderDetailAction.EditDismissed -> editing.value = null
             OrderDetailAction.ShareClicked -> shareOptions.value = true
             OrderDetailAction.ShareDismissed -> shareOptions.value = false
+            OrderDetailAction.ShowQr -> {
+                shareOptions.value = false
+                viewModelScope.launch {
+                    qrDialog.value = when (val result = encodePlanLink(orderId)) {
+                        is PlanQrResult.Ok -> QrDialogUi(qr = result.qr)
+                        PlanQrResult.TooLarge -> QrDialogUi(tooLarge = true)
+                        PlanQrResult.NotFound -> null
+                    }
+                }
+            }
+            OrderDetailAction.QrDismissed -> qrDialog.value = null
             OrderDetailAction.ShareAsText -> {
                 shareOptions.value = false
+                qrDialog.value = null
                 viewModelScope.launch { exportPlan(orderId)?.let { effectChannel.send(OrderDetailEffect.SharePlanText(it)) } }
             }
             OrderDetailAction.ShiftDismissed -> {

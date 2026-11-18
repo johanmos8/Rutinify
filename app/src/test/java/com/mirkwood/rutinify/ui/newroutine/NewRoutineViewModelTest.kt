@@ -1,5 +1,8 @@
 package com.mirkwood.rutinify.ui.newroutine
 
+import com.mirkwood.rutinify.testutil.es
+import com.mirkwood.rutinify.domain.importer.PlanLink
+import com.mirkwood.rutinify.domain.usecase.DecodePlanLinkUseCase
 import com.mirkwood.rutinify.domain.diagnostics.DiagnosticEvent
 import com.mirkwood.rutinify.testutil.FakeDiagnosticsRecorder
 import androidx.lifecycle.SavedStateHandle
@@ -54,11 +57,11 @@ class NewRoutineViewModelTest {
     private val diagnostics = FakeDiagnosticsRecorder()
 
     private fun viewModel(handle: SavedStateHandle = savedState) =
-        NewRoutineViewModel(handle, importer, { template }, clipboard, draftStore, inbox, sharer, scenarios, diagnostics)
+        NewRoutineViewModel(handle, importer, { template }, clipboard, draftStore, inbox, sharer, scenarios, diagnostics, DecodePlanLinkUseCase())
 
     /** Each scenario has its own template text. */
     private fun scenarioViewModel() =
-        NewRoutineViewModel(savedState, importer, { "Plantilla ${it.name}" }, clipboard, draftStore, inbox, sharer, scenarios, diagnostics)
+        NewRoutineViewModel(savedState, importer, { "Plantilla ${it.name}" }, clipboard, draftStore, inbox, sharer, scenarios, diagnostics, DecodePlanLinkUseCase())
 
     /** Arguments of `NewRoutineDestination(fromShare = true)`. */
     private fun sharedHandle() = SavedStateHandle(mapOf("fromShare" to true))
@@ -376,5 +379,24 @@ class NewRoutineViewModelTest {
             DiagnosticEvent.ValidationFailed(IssueKind.MISSING_FIELD),
             DiagnosticEvent.ValidationFailed(IssueKind.INVALID_TIME),
         ).inOrder()
+    }
+
+    @Test
+    fun `un enlace de plan recibido se decodifica y se valida`() = runTest { // R-19.7
+        val json = """{"schemaVersion":1,"routine":{"name":"Gato","date":null,"notes":null},"items":[]}"""
+        inbox.put((PlanLink.encode(json) as PlanLink.Encoded.Ok).link)
+        val vm = subscribed(viewModel(sharedHandle()))
+
+        assertThat(vm.uiState.value.text).isEqualTo(json)
+        assertThat(importer.received).containsExactly(json)
+    }
+
+    @Test
+    fun `un enlace daniado avisa que no contiene un plan`() = runTest { // R-19.8
+        inbox.put("rutinify://import?v=1&d=roto")
+
+        viewModel(sharedHandle()).effects.test {
+            assertThat((awaitItem() as NewRoutineEffect.ShowMessage).message.es()).isEqualTo("Este código no contiene un plan de Rutinify")
+        }
     }
 }

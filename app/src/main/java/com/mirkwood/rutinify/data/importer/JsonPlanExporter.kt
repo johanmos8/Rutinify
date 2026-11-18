@@ -19,7 +19,7 @@ import javax.inject.Inject
  */
 class JsonPlanExporter @Inject constructor() : PlanExporter {
 
-    override fun export(order: RoutineOrder, alarms: List<AlarmItem>): String {
+    override fun export(order: RoutineOrder, alarms: List<AlarmItem>, pretty: Boolean): String {
         val root = buildJsonObject {
             put("schemaVersion", 1)
             put(
@@ -49,7 +49,7 @@ class JsonPlanExporter @Inject constructor() : PlanExporter {
                 },
             )
         }
-        return PRETTY.encodeToString(JsonElement.serializer(), root)
+        return (if (pretty) PRETTY else Json).encodeToString(JsonElement.serializer(), root)
     }
 
     private fun text(value: String?): JsonElement = value?.let(::JsonPrimitive) ?: JsonNull

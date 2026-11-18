@@ -1,5 +1,12 @@
 package com.mirkwood.rutinify.ui.orderdetail
 
+import com.mirkwood.rutinify.domain.importer.QrMatrix
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.Canvas
 import com.mirkwood.rutinify.MainActivity
 import androidx.compose.ui.platform.LocalContext
 import android.content.Intent
@@ -156,6 +163,7 @@ fun OrderDetailScreen(
     state.dialog?.let { ConfirmDialog(it, onAction) }
     state.shiftDialog?.let { ShiftDialog(it, onAction) }
     if (state.showShareOptions) ShareOptionsDialog(onAction)
+    state.qrDialog?.let { QrDialog(it, onAction) }
     state.editing?.let { edit ->
         EditActivityDialog(
             form = edit.form,
@@ -241,12 +249,63 @@ private fun ShareOptionsDialog(onAction: (OrderDetailAction) -> Unit) {
         title = { Text(stringResource(R.string.action_share_plan)) },
         text = { Text(stringResource(R.string.share_plan_body)) },
         confirmButton = {
-            TextButton(onClick = { onAction(OrderDetailAction.ShareAsText) }) { Text(stringResource(R.string.action_share_as_text)) }
+            Row {
+                TextButton(onClick = { onAction(OrderDetailAction.ShowQr) }) { Text(stringResource(R.string.action_show_qr)) }
+                TextButton(onClick = { onAction(OrderDetailAction.ShareAsText) }) { Text(stringResource(R.string.action_share_as_text)) }
+            }
         },
         dismissButton = {
             TextButton(onClick = { onAction(OrderDetailAction.ShareDismissed) }) { Text(stringResource(R.string.action_cancel)) }
         },
     )
+}
+
+/** R-19.4: the QR to scan from Rutinify on the other phone; R-19.5: or why it does not fit, with the text option. */
+@Composable
+private fun QrDialog(dialog: QrDialogUi, onAction: (OrderDetailAction) -> Unit) {
+    AlertDialog(
+        onDismissRequest = { onAction(OrderDetailAction.QrDismissed) },
+        title = { Text(stringResource(R.string.action_share_plan)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                dialog.qr?.let { qr ->
+                    QrImage(qr, Modifier.fillMaxWidth().aspectRatio(1f))
+                    Text(stringResource(R.string.qr_hint), style = MaterialTheme.typography.bodyMedium)
+                }
+                if (dialog.tooLarge) Text(stringResource(R.string.qr_too_large), style = MaterialTheme.typography.bodyMedium)
+            }
+        },
+        confirmButton = {
+            if (dialog.tooLarge) {
+                TextButton(onClick = { onAction(OrderDetailAction.ShareAsText) }) { Text(stringResource(R.string.action_share_as_text)) }
+            } else {
+                TextButton(onClick = { onAction(OrderDetailAction.QrDismissed) }) { Text(stringResource(R.string.action_close)) }
+            }
+        },
+        dismissButton = if (dialog.tooLarge) {
+            { TextButton(onClick = { onAction(OrderDetailAction.QrDismissed) }) { Text(stringResource(R.string.action_cancel)) } }
+        } else {
+            null
+        },
+    )
+}
+
+/** Black modules on a white square with a quiet zone, whatever the theme: scanners need that contrast. */
+@Composable
+private fun QrImage(qr: QrMatrix, modifier: Modifier = Modifier) {
+    val description = stringResource(R.string.qr_content_description)
+    Canvas(modifier = modifier.semantics { contentDescription = description }) {
+        val quiet = 4
+        val cell = size.minDimension / (qr.size + 2 * quiet)
+        drawRect(Color.White)
+        for (y in 0 until qr.size) {
+            for (x in 0 until qr.size) {
+                if (qr[x, y]) {
+                    drawRect(Color.Black, topLeft = Offset((x + quiet) * cell, (y + quiet) * cell), size = Size(cell, cell))
+                }
+            }
+        }
+    }
 }
 
 /** R-19.3: one line for the person who receives it, then the JSON in a code block; Rutinify itself is left out. */

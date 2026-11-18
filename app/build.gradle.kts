@@ -92,6 +92,9 @@ dependencies {
 
     // Serialization and coroutines
     implementation(libs.kotlinx.serialization.json)
+
+    // QR codes of shared plans (D-75)
+    implementation(libs.zxing.core)
     implementation(libs.kotlinx.coroutines.android)
 
     // Unit tests (JVM)

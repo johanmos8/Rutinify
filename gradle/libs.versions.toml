@@ -21,8 +21,12 @@ espressoCore = "3.7.0"
 truth = "1.4.4"
 turbine = "1.2.1"
 robolectric = "4.16"
+# v1.4 sharing (D-75, design §13)
+zxingCore = "3.5.3"
 
 [libraries]
+# QR generation (D-75)
+zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxingCore" }
 # AndroidX core / lifecycle
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }

@@ -308,9 +308,10 @@
   - `ExportPlanUseCase`: el JSON exportado vuelve a importarse igual (test de ida y vuelta, también con `assignee` y varios días).
   - ✅ "Compartir como texto" abre el selector con el bloque de código.
   - _Hecho:_ `PlanExporter`/`JsonPlanExporter`, `ExportPlanUseCase` y "Compartir plan" → "Compartir como texto" en el detalle (D-75). Tests de ida y vuelta (con `assignee`, descripción, duración y siete días) y de VM. 4 tests nuevos (723 en verde). En el emulador el selector recibe "Importa este plan en Rutinify" con el JSON en un bloque de código.
-- [ ] **T-59 · Enlace y QR** — (R-19.4, R-19.5, R-19.7, R-19.8)
+- [x] **T-59 · Enlace y QR** — (R-19.4, R-19.5, R-19.7, R-19.8)
   - `EncodePlanLinkUseCase`/`DecodePlanLinkUseCase` (TDD: ida y vuelta, límite de 2.331 bytes, enlace dañado); `intent-filter` `rutinify://import`; QR con ZXing (D-75).
   - ✅ Un plan que no cabe muestra el mensaje de R-19.5.
+  - _Hecho:_ `PlanLink`, `EncodePlanLinkUseCase`, `DecodePlanLinkUseCase`, ZXing `core` (§13, ya aprobada; `CLAUDE.md` §9 actualizado con las dependencias aprobadas) e `intent-filter` `rutinify://import`; "Mostrar QR" en "Compartir plan" y R-19.5 con "Compartir como texto" (D-75). 11 tests nuevos (734 en verde), entre ellos uno que lee el QR generado con el lector de ZXing. En el emulador: el QR del plan se ve; `am start … rutinify://import?…` abre *Revisión* con el plan y un enlace dañado muestra "Este código no contiene un plan de Rutinify".
 - [ ] **T-60 · Escanear QR y filtro por responsable** — (R-19.6, R-19.9, R-19.10)
   - "Escanear QR" con Google code scanner; filtro "Solo las tareas de…" en *Revisión* (D-76).
   - Tests de VM del filtro (con y sin `assignee`, "Todas" restaura).

@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.ui.orderdetail
 
+import com.mirkwood.rutinify.data.importer.ZxingQrEncoder
+import com.mirkwood.rutinify.domain.usecase.EncodePlanLinkUseCase
 import com.mirkwood.rutinify.data.importer.JsonPlanExporter
 import com.mirkwood.rutinify.domain.usecase.ExportPlanUseCase
 import com.mirkwood.rutinify.ui.common.ActivityForm
@@ -92,6 +94,7 @@ class OrderDetailViewModelTest {
         shiftOrderAlarms = ShiftOrderAlarmsUseCase(orders, alarms, scheduler, categories, TriggerTimeCalculator(), { zone }, clock, lock),
         updateAlarm = UpdateAlarmUseCase(alarms, orders, scheduler, publisher, categories, TriggerTimeCalculator(), { zone }, clock, lock),
         exportPlan = ExportPlanUseCase(orders, alarms, JsonPlanExporter()),
+        encodePlanLink = EncodePlanLinkUseCase(ExportPlanUseCase(orders, alarms, JsonPlanExporter()), ZxingQrEncoder()),
         zoneProvider = { zone },
         clock = clock,
     )
@@ -726,5 +729,36 @@ class OrderDetailViewModelTest {
             assertThat(json).contains("\"time\": \"14:00\"")
         }
         assertThat(vm.uiState.value.showShareOptions).isFalse()
+    }
+
+    @Test
+    fun `mostrar QR da el codigo del plan`() = runTest { // R-19.4
+        shiftable()
+        val vm = subscribed(viewModel())
+        vm.onAction(OrderDetailAction.ShareClicked)
+
+        vm.onAction(OrderDetailAction.ShowQr)
+
+        val dialog = requireNotNull(vm.uiState.value.qrDialog)
+        assertThat(dialog.qr).isNotNull()
+        assertThat(dialog.tooLarge).isFalse()
+        assertThat(vm.uiState.value.showShareOptions).isFalse()
+    }
+
+    @Test
+    fun `un plan que no cabe ofrece compartirlo como texto`() = runTest { // R-19.5
+        // Random titles barely compress, so 200 of them cannot fit in one QR code
+        val random = java.util.Random(7)
+        val items = (0 until 200).map {
+            testAlarm(id = 100L + it, time = LocalTime.of(14, 0), title = (0 until 40).map { 'a' + random.nextInt(26) }.joinToString(""))
+        }
+        orders.add(testOrder(id = 1, date = LocalDate.of(2026, 11, 5)))
+        alarms.add(*items.toTypedArray())
+        setOrder(OrderStatus.ACTIVE, *items.toTypedArray())
+        val vm = subscribed(viewModel())
+
+        vm.onAction(OrderDetailAction.ShowQr)
+
+        assertThat(vm.uiState.value.qrDialog).isEqualTo(QrDialogUi(tooLarge = true))
     }
 }

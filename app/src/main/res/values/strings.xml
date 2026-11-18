@@ -301,4 +301,10 @@
     <string name="action_share_as_text">Compartir como texto</string>
     <string name="share_plan_intro">Importa este plan en Rutinify</string>
     <string name="share_plan_chooser">Enviar el plan a…</string>
+    <string name="action_show_qr">Mostrar QR</string>
+    <string name="qr_hint">Escanéalo desde Rutinify en el otro teléfono</string>
+    <string name="qr_content_description">Código QR del plan</string>
+    <string name="qr_too_large">Este plan es demasiado grande para un QR; compártelo como texto</string>
+    <string name="import_link_invalid">Este código no contiene un plan de Rutinify</string>
+    <string name="action_close">Cerrar</string>
 </resources>

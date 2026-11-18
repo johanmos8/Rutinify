@@ -54,6 +54,11 @@ class MainActivity : ComponentActivity() {
 
     private fun handle(intent: Intent, navController: NavHostController, launch: Boolean) {
         when (val incomingIntent = IncomingIntents.classify(intent)) {
+            is IncomingIntent.ImportLink -> {
+                // Same path as shared text: New routine decodes the link and validates it (R-19.7, R-19.8)
+                sharedTextInbox.put(incomingIntent.link)
+                navController.navigate(NewRoutineDestination(fromShare = true)) { popUpTo(HomeDestination) }
+            }
             is IncomingIntent.SharedText -> {
                 sharedTextInbox.put(incomingIntent.text)
                 // A fresh New routine on top of Home, dropping a draft under review (R-14.2, R-14.5)

@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.ui.navigation
 
+import android.net.Uri
 import android.content.Intent
 import androidx.core.net.toUri
 import com.google.common.truth.Truth.assertThat
@@ -41,5 +42,12 @@ class IncomingIntentsTest {
 
         assertThat(IncomingIntents.classify(launcher)).isEqualTo(IncomingIntent.Other)
         assertThat(IncomingIntents.classify(notification)).isEqualTo(IncomingIntent.Other)
+    }
+
+    @Test
+    fun `un enlace rutinify import es un plan para importar`() { // R-19.7
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("rutinify://import?v=1&d=abc"))
+
+        assertThat(IncomingIntents.classify(intent)).isEqualTo(IncomingIntent.ImportLink("rutinify://import?v=1&d=abc"))
     }
 }

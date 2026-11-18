@@ -143,7 +143,8 @@ Reglas de dependencia:
 - Se gestionan **solo** en `gradle/libs.versions.toml`.
 - **No añadir dependencias sin justificar**: cada nueva dependencia necesita una línea en `specs/design.md` §13 (qué aporta, por qué no basta lo existente).
 - Aprobadas por la spec: Hilt (+ hilt-navigation-compose), KSP, Room, kotlinx.serialization, Navigation Compose, lifecycle-runtime-compose,
-  Truth, Turbine, kotlinx-coroutines-test, Robolectric, Kover. Cualquier otra → preguntar.
+  Truth, Turbine, kotlinx-coroutines-test, Robolectric, Kover. Aprobadas el 2026-11-16 para v1.4 (design §13): ZXing `core`,
+  `play-services-code-scanner` y `glance-appwidget`; `genai-prompt` solo si T-65 confirma que no añade `INTERNET`. Cualquier otra → preguntar.
 
 ## 10. Alarmas y notificaciones (reglas duras)
 
