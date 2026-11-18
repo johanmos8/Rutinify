@@ -322,7 +322,7 @@
 - **R-22.4** IF el modelo no está disponible (`UNAVAILABLE`, `DOWNLOADABLE` o `DOWNLOADING`), THEN THE SYSTEM SHALL ocultar la opción y mantener el flujo de copiar y pegar sin cambios.
 - **R-22.5** IF la conversión falla, THEN THE SYSTEM SHALL mostrar "La IA del teléfono no pudo convertir la rutina; usa la plantilla con tu IA de siempre".
 - **R-22.6** IF el texto supera el límite de entrada del modelo (unos 4.000 tokens), THEN THE SYSTEM SHALL no enviarlo y mostrar "El texto es demasiado largo para la IA del teléfono; acórtalo o usa tu IA de siempre".
-- **R-22.7** THE SYSTEM SHALL procesar el texto solo en el teléfono. Si la dependencia exige el permiso `INTERNET`, la compatibilidad con R-13.6 se decide antes de implementar *(D-80, abierta)*.
+- **R-22.7** THE SYSTEM SHALL procesar el texto solo en el teléfono. La dependencia no añade el permiso `INTERNET` (comprobado en T-65), así que R-13.6 se mantiene *(D-80)*.
 
 ## R-23 Schema v2 con repetición sin fin *(v2.0)*
 

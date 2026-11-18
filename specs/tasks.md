@@ -339,9 +339,10 @@
 
 > T-65 decide si R-22 sigue adelante tal como está (D-80, única decisión abierta del roadmap). D-81 aprobada el 2026-11-16. R-23 cambia el contrato: la plantilla y el README se actualizan en la misma tarea que el validador.
 
-- [ ] **T-65 · Spike de Gemini Nano** — (R-22.7)
+- [x] **T-65 · Spike de Gemini Nano** — (R-22.7)
   - Rama de prueba con `genai-prompt`: revisar el manifiesto fusionado (`INTERNET` y otros permisos), tamaño del APK y comportamiento en un dispositivo compatible y en uno no compatible.
   - ✅ Resultado anotado en D-80 y decisión de Johan registrada; la rama no se fusiona.
+  - _Hecho:_ prueba sin commit (no se fusionó nada): `genai-prompt` no añade `INTERNET`, solo el permiso de AICore; +11,4 MB en el APK de depuración. Se cumple la condición que Johan puso el 2026-11-16, así que la dependencia queda aprobada (D-80). Falta probar en un teléfono compatible con Gemini Nano. De paso: `glance-appwidget` (T-63) trae WorkManager con `WAKE_LOCK` y `FOREGROUND_SERVICE`, solo para dibujar el widget; anotado en la checklist de publicación.
 - [ ] **T-66 · Convertir en el teléfono** — (R-22.1–R-22.6)
   - `OnDeviceRoutineImporter`; opción visible solo con `AVAILABLE`; cancelar; límite de entrada; mensajes de error.
   - Tests con un fake del modelo; prueba manual en dispositivo compatible.
