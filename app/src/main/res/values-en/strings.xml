@@ -310,4 +310,31 @@
     <string name="new_routine_scan_failed">The QR scanner could not open</string>
     <string name="review_assignee_filter">Only the tasks of…</string>
     <string name="review_assignee_all">All</string>
+
+    <!-- History (R-20) -->
+    <plurals name="history_done">
+        <item quantity="one">%1$d of %2$d done</item>
+        <item quantity="other">%1$d of %2$d done</item>
+    </plurals>
+    <plurals name="history_skipped">
+        <item quantity="one">%1$d skipped</item>
+        <item quantity="other">%1$d skipped</item>
+    </plurals>
+    <plurals name="history_snoozes">
+        <item quantity="one">%1$d snoozed</item>
+        <item quantity="other">%1$d snoozed</item>
+    </plurals>
+    <string name="history_others">%1$s · %2$s</string>
+    <string name="history_line">%1$s · %2$s · %3$s%4$s%5$s</string>
+    <string name="history_done_at">" · at %1$s"</string>
+    <plurals name="history_line_snoozes">
+        <item quantity="one">" · snoozed %1$d time"</item>
+        <item quantity="other">" · snoozed %1$d times"</item>
+    </plurals>
+    <string name="action_export_history">Export history</string>
+    <string name="history_export_body">Share what was done and when, for example with the vet or the doctor.</string>
+    <string name="history_as_text">Text</string>
+    <string name="history_as_pdf">PDF</string>
+    <string name="history_chooser">Send the history to…</string>
+    <string name="history_pdf_failed">The PDF could not be created; try exporting it as text</string>
 </resources>

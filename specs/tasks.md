@@ -321,9 +321,10 @@
   - Room v4: `alarm_event` con migración que crea eventos desde `done_at` y *Omitidas* (D-77, D-83); escritura en la misma transacción que el estado.
   - ✅ Test de migración y de cada use case que escribe eventos.
   - _Hecho:_ Room v4 con `alarm_event` y `Migration(3, 4)` que rellena desde `done_at` y las *Omitidas*; eventos en la misma transacción que el estado (D-77). 6 tests nuevos (748 en verde): migración, repositorio, cascada al borrar el plan y "Hecho", "+5 min" y reanudar. En el emulador, instalar encima migró la base a la versión 4 con los 20 planes y 28 eventos rellenados.
-- [ ] **T-62 · Resumen y exportación** — (R-20.2–R-20.6)
+- [x] **T-62 · Resumen y exportación** — (R-20.2–R-20.6)
   - `BuildHistoryReportUseCase` (TDD); texto; PDF con `PdfDocument` y `FileProvider` (D-78).
   - ✅ "19 de 21 hechas" correcto con canceladas, omitidas y pospuestas; PDF abre en un visor.
+  - _Hecho:_ `BuildHistoryReportUseCase`, `HistoryText`, `ExportHistoryPdfUseCase` con `PdfDocument` y `FileProvider`; resumen en la cabecera del detalle y "Exportar historial" → "Texto"/"PDF" (D-78). Textos en español e inglés. 11 tests nuevos (759 en verde). En el emulador: "0 de 2 hechas · 1 omitida · 0 pospuestas" en el detalle; "PDF" crea `historial.pdf` (31 KB), el selector lo ofrece y el PDF se lee con el plan, el resumen y cada alarma.
 - [ ] **T-63 · Widget "Lo siguiente"** — (R-21.1–R-21.5)
   - Glance (D-79), `ObserveNextAlarmUseCase`, `WidgetUpdater`; botón "Hecho".
   - Tests de use case; prueba manual de actualización.

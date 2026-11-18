@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.ui.orderdetail
 
+import com.mirkwood.rutinify.domain.usecase.ExportHistoryPdfUseCase
+import com.mirkwood.rutinify.domain.usecase.BuildHistoryReportUseCase
 import com.mirkwood.rutinify.domain.importer.QrMatrix
 import com.mirkwood.rutinify.domain.usecase.PlanQrResult
 import com.mirkwood.rutinify.domain.usecase.EncodePlanLinkUseCase
@@ -110,6 +112,12 @@ data class OrderDetailUiState(
     val showShareOptions: Boolean = false,
     /** "Mostrar QR" result while its dialog is open (R-19.4, R-19.5). */
     val qrDialog: QrDialogUi? = null,
+    /** "19 de 21 hechas" (R-20.2). */
+    val historyDone: UiText? = null,
+    /** "2 omitidas · 3 pospuestas", only when there are any (R-20.2). */
+    val historyOthers: UiText? = null,
+    /** "Exportar historial" options are open (R-20.3). */
+    val showExportOptions: Boolean = false,
 )
 
 /** The plan's QR code, or [tooLarge] when it does not fit in one (R-19.5). */
@@ -206,6 +214,17 @@ sealed interface OrderDetailAction {
     data object ShowQr : OrderDetailAction
 
     data object QrDismissed : OrderDetailAction
+
+    /** "Exportar historial" (R-20.3). */
+    data object ExportClicked : OrderDetailAction
+
+    data object ExportDismissed : OrderDetailAction
+
+    /** "Texto" (true) or "PDF" (false) (R-20.4, R-20.5). */
+    data class ExportChosen(val asText: Boolean) : OrderDetailAction
+
+    /** The screen resolved the history lines for the PDF (R-20.5). */
+    data class PdfLinesReady(val title: String, val lines: List<String>) : OrderDetailAction
 }
 
 sealed interface OrderDetailEffect {
@@ -222,6 +241,12 @@ sealed interface OrderDetailEffect {
 
     /** Android chooser with the plan JSON (R-19.3); the screen adds the line "Importa este plan en Rutinify". */
     data class SharePlanText(val json: String) : OrderDetailEffect
+
+    /** The history to share as text, or to resolve and send back for the PDF (R-20.4, R-20.5). */
+    data class ExportHistory(val title: String, val lines: List<UiText>, val asText: Boolean) : OrderDetailEffect
+
+    /** Android chooser with the PDF (R-20.5). */
+    data class SharePdf(val uri: String) : OrderDetailEffect
 }
 
 @HiltViewModel
@@ -241,6 +266,8 @@ class OrderDetailViewModel @Inject constructor(
     private val updateAlarm: UpdateAlarmUseCase,
     private val exportPlan: ExportPlanUseCase,
     private val encodePlanLink: EncodePlanLinkUseCase,
+    private val buildHistoryReport: BuildHistoryReportUseCase,
+    private val exportHistoryPdf: ExportHistoryPdfUseCase,
     private val zoneProvider: ZoneProvider,
     private val clock: Clock,
 ) : ViewModel() {
@@ -256,6 +283,7 @@ class OrderDetailViewModel @Inject constructor(
     private val editing = MutableStateFlow<EditAlarmUi?>(null)
     private val shareOptions = MutableStateFlow(false)
     private val qrDialog = MutableStateFlow<QrDialogUi?>(null)
+    private val exportOptions = MutableStateFlow(false)
     private var shiftPreviewJob: Job? = null
 
     /** Set while the order is being deleted, so the screen does not flash "Esta rutina ya no existe". */
@@ -273,13 +301,19 @@ class OrderDetailViewModel @Inject constructor(
 
     val uiState: StateFlow<OrderDetailUiState> =
         combine(
-            combine(observeOrderDetail(orderId), exactAllowed, combine(shareOptions, qrDialog, ::Pair), ::Triple),
+            combine(
+                combine(observeOrderDetail(orderId), buildHistoryReport.observeSummary(orderId), ::Pair),
+                exactAllowed,
+                combine(shareOptions, qrDialog, exportOptions, ::Triple),
+                ::Triple,
+            ),
             dialog,
             duplicateDate,
             shiftDialog,
             editing,
-        ) { (detail, exact, sharing), dialog, duplicateDate, shift, edit ->
-            val (share, qr) = sharing
+        ) { (detailAndSummary, exact, sharing), dialog, duplicateDate, shift, edit ->
+            val (detail, summary) = detailAndSummary
+            val (share, qr, export) = sharing
             val state = when {
                 detail != null -> toUiState(detail, exact)
                     .copy(
@@ -289,6 +323,9 @@ class OrderDetailViewModel @Inject constructor(
                         editing = edit,
                         showShareOptions = share,
                         qrDialog = qr,
+                        historyDone = summary?.let(HistoryText::done),
+                        historyOthers = summary?.let(HistoryText::others),
+                        showExportOptions = export,
                     )
                 leaving -> lastShown?.copy(dialog = null) ?: OrderDetailUiState()
                 else -> OrderDetailUiState(isLoading = false, notFound = true)
@@ -339,6 +376,21 @@ class OrderDetailViewModel @Inject constructor(
                 }
             }
             OrderDetailAction.QrDismissed -> qrDialog.value = null
+            OrderDetailAction.ExportClicked -> exportOptions.value = true
+            OrderDetailAction.ExportDismissed -> exportOptions.value = false
+            is OrderDetailAction.ExportChosen -> {
+                exportOptions.value = false
+                viewModelScope.launch {
+                    val report = buildHistoryReport(orderId) ?: return@launch
+                    effectChannel.send(OrderDetailEffect.ExportHistory(report.order.name, HistoryText.lines(report), action.asText))
+                }
+            }
+            is OrderDetailAction.PdfLinesReady -> viewModelScope.launch {
+                val uri = exportHistoryPdf(action.title, action.lines)
+                effectChannel.send(
+                    if (uri != null) OrderDetailEffect.SharePdf(uri) else OrderDetailEffect.ShowMessage(UiText.Res(R.string.history_pdf_failed)),
+                )
+            }
             OrderDetailAction.ShareAsText -> {
                 shareOptions.value = false
                 qrDialog.value = null

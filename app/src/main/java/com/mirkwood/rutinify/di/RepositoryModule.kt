@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.di
 
+import com.mirkwood.rutinify.domain.system.DocumentExporter
+import com.mirkwood.rutinify.data.system.AndroidDocumentExporter
 import com.mirkwood.rutinify.domain.system.AppInfo
 import com.mirkwood.rutinify.data.system.AndroidAppInfo
 import com.mirkwood.rutinify.domain.diagnostics.DiagnosticsRepository
@@ -41,4 +43,7 @@ abstract class RepositoryModule {
 
     @Binds
     abstract fun bindAppInfo(impl: AndroidAppInfo): AppInfo
+
+    @Binds
+    abstract fun bindDocumentExporter(impl: AndroidDocumentExporter): DocumentExporter
 }

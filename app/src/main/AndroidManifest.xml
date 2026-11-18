@@ -80,6 +80,17 @@
             android:theme="@style/Theme.Rutinify"
             android:turnScreenOn="true" />
 
+        <!-- History PDFs shared with other apps (R-20.5, D-78) -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
         <!-- Only reached through the app's own explicit PendingIntent (design §7) -->
         <receiver
             android:name=".data.receiver.AlarmReceiver"

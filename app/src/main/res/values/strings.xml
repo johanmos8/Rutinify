@@ -311,4 +311,32 @@
     <string name="new_routine_scan_failed">No se pudo abrir el escáner de QR</string>
     <string name="review_assignee_filter">Solo las tareas de…</string>
     <string name="review_assignee_all">Todas</string>
+
+    <!-- History (T-62, R-20) -->
+    <plurals name="history_done">
+        <item quantity="one">%1$d de %2$d hecha</item>
+        <item quantity="other">%1$d de %2$d hechas</item>
+    </plurals>
+    <plurals name="history_skipped">
+        <item quantity="one">%1$d omitida</item>
+        <item quantity="other">%1$d omitidas</item>
+    </plurals>
+    <plurals name="history_snoozes">
+        <item quantity="one">%1$d pospuesta</item>
+        <item quantity="other">%1$d pospuestas</item>
+    </plurals>
+    <string name="history_others">%1$s · %2$s</string>
+    <!-- "06:00 · Amoxicilina · Hecha · a las 06:04 · pospuesta 1 vez"; the last two parts start with " · " or are empty -->
+    <string name="history_line">%1$s · %2$s · %3$s%4$s%5$s</string>
+    <string name="history_done_at">" · a las %1$s"</string>
+    <plurals name="history_line_snoozes">
+        <item quantity="one">" · pospuesta %1$d vez"</item>
+        <item quantity="other">" · pospuesta %1$d veces"</item>
+    </plurals>
+    <string name="action_export_history">Exportar historial</string>
+    <string name="history_export_body">Comparte qué se hizo y cuándo, por ejemplo con el veterinario o el médico.</string>
+    <string name="history_as_text">Texto</string>
+    <string name="history_as_pdf">PDF</string>
+    <string name="history_chooser">Enviar el historial a…</string>
+    <string name="history_pdf_failed">No se pudo crear el PDF; prueba a exportarlo como texto</string>
 </resources>

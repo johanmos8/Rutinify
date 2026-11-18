@@ -1,5 +1,8 @@
 package com.mirkwood.rutinify.ui.orderdetail
 
+import com.mirkwood.rutinify.domain.system.DocumentExporter
+import com.mirkwood.rutinify.domain.usecase.ExportHistoryPdfUseCase
+import com.mirkwood.rutinify.domain.usecase.BuildHistoryReportUseCase
 import com.mirkwood.rutinify.data.importer.ZxingQrEncoder
 import com.mirkwood.rutinify.domain.usecase.EncodePlanLinkUseCase
 import com.mirkwood.rutinify.data.importer.JsonPlanExporter
@@ -70,6 +73,11 @@ class OrderDetailViewModelTest {
     private val publisher = FakeNotificationPublisher()
     private val lock = AlarmMutationLock()
     private val drafts = InMemoryDraftStore()
+    private val documents = object : DocumentExporter {
+        var uri: String? = "content://pdf"
+        var lines: List<String> = emptyList()
+        override suspend fun writePdf(title: String, lines: List<String>): String? = uri.also { this.lines = lines }
+    }
 
     private fun handle(highlightAlarmId: Long? = null, scheduledCount: Int? = null) = SavedStateHandle(
         buildMap {
@@ -95,6 +103,8 @@ class OrderDetailViewModelTest {
         updateAlarm = UpdateAlarmUseCase(alarms, orders, scheduler, publisher, categories, TriggerTimeCalculator(), { zone }, clock, lock),
         exportPlan = ExportPlanUseCase(orders, alarms, JsonPlanExporter()),
         encodePlanLink = EncodePlanLinkUseCase(ExportPlanUseCase(orders, alarms, JsonPlanExporter()), ZxingQrEncoder()),
+        buildHistoryReport = BuildHistoryReportUseCase(orders, alarms) { zone },
+        exportHistoryPdf = ExportHistoryPdfUseCase(documents),
         zoneProvider = { zone },
         clock = clock,
     )
@@ -760,5 +770,75 @@ class OrderDetailViewModelTest {
         vm.onAction(OrderDetailAction.ShowQr)
 
         assertThat(vm.uiState.value.qrDialog).isEqualTo(QrDialogUi(tooLarge = true))
+    }
+
+    // ---- History (T-62) ----
+
+    @Test
+    fun `el detalle resume hechas omitidas y pospuestas`() = runTest { // R-20.2
+        val items = arrayOf(
+            testAlarm(id = 1, time = LocalTime.of(6, 0), status = AlarmStatus.DONE),
+            testAlarm(id = 2, time = LocalTime.of(8, 0), status = AlarmStatus.SKIPPED),
+            testAlarm(id = 3, time = LocalTime.of(14, 0)),
+            testAlarm(id = 4, time = LocalTime.of(15, 0), status = AlarmStatus.CANCELLED),
+        )
+        orders.add(testOrder(id = 1))
+        alarms.add(*items)
+        alarms.snooze(3, clock.instant())
+        setOrder(OrderStatus.ACTIVE, *items)
+
+        val state = subscribed(viewModel()).uiState.value
+
+        assertThat(state.historyDone?.es()).isEqualTo("1 de 3 hechas")
+        assertThat(state.historyOthers?.es()).isEqualTo("1 omitida · 1 pospuesta")
+    }
+
+    @Test
+    fun `sin omitidas ni pospuestas solo dice las hechas`() = runTest { // R-20.2
+        shiftable()
+
+        val state = subscribed(viewModel()).uiState.value
+
+        assertThat(state.historyDone?.es()).isEqualTo("0 de 2 hechas")
+        assertThat(state.historyOthers).isNull()
+    }
+
+    @Test
+    fun `exportar como texto da las lineas del historial`() = runTest { // R-20.4
+        shiftable()
+        val vm = subscribed(viewModel())
+        vm.onAction(OrderDetailAction.ExportClicked)
+
+        vm.effects.test {
+            vm.onAction(OrderDetailAction.ExportChosen(asText = true))
+
+            val effect = awaitItem() as OrderDetailEffect.ExportHistory
+            assertThat(effect.title).isEqualTo("Cachorro")
+            assertThat(effect.asText).isTrue()
+            assertThat(effect.lines.map { it.es() }).containsExactly(
+                "jueves 5 de noviembre de 2026",
+                "0 de 2 hechas",
+                "",
+                "jueves 5 de noviembre de 2026",
+                "14:00 · Siesta · Pendiente",
+                "18:00 · Siesta · Pendiente",
+            ).inOrder()
+        }
+    }
+
+    @Test
+    fun `el PDF se comparte o avisa si no se pudo crear`() = runTest { // R-20.5, R-20.6
+        shiftable()
+        val vm = subscribed(viewModel())
+
+        vm.effects.test {
+            vm.onAction(OrderDetailAction.PdfLinesReady("Cachorro", listOf("línea")))
+            assertThat(awaitItem()).isEqualTo(OrderDetailEffect.SharePdf("content://pdf"))
+
+            documents.uri = null
+            vm.onAction(OrderDetailAction.PdfLinesReady("Cachorro", listOf("línea")))
+            assertThat((awaitItem() as OrderDetailEffect.ShowMessage).message.es())
+                .isEqualTo("No se pudo crear el PDF; prueba a exportarlo como texto")
+        }
     }
 }

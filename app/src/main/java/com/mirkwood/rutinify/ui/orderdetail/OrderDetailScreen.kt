@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.ui.orderdetail
 
+import androidx.core.net.toUri
 import com.mirkwood.rutinify.domain.importer.QrMatrix
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
@@ -108,6 +109,15 @@ fun OrderDetailRoute(
                     OrderDetailEffect.NavigateBack -> onBack()
                     is OrderDetailEffect.NavigateToReview -> onNavigateToReview(effect.draftId)
                     is OrderDetailEffect.SharePlanText -> sharePlanText(context, effect.json)
+                    is OrderDetailEffect.ExportHistory -> {
+                        val lines = effect.lines.map { it.resolve(resources) }
+                        if (effect.asText) {
+                            shareText(context, (listOf(effect.title) + lines).joinToString("\n"), R.string.history_chooser)
+                        } else {
+                            viewModel.onAction(OrderDetailAction.PdfLinesReady(effect.title, lines))
+                        }
+                    }
+                    is OrderDetailEffect.SharePdf -> sharePdf(context, effect.uri)
                     is OrderDetailEffect.ShowMessage ->
                         snackbarHostState.showSnackbar(effect.message.resolve(resources), duration = SnackbarDuration.Short)
                     is OrderDetailEffect.ShowUndo -> {
@@ -164,6 +174,7 @@ fun OrderDetailScreen(
     state.shiftDialog?.let { ShiftDialog(it, onAction) }
     if (state.showShareOptions) ShareOptionsDialog(onAction)
     state.qrDialog?.let { QrDialog(it, onAction) }
+    if (state.showExportOptions) ExportOptionsDialog(onAction)
     state.editing?.let { edit ->
         EditActivityDialog(
             form = edit.form,
@@ -206,6 +217,13 @@ private fun OverflowMenu(canDuplicate: Boolean, canShare: Boolean, onAction: (Or
                     onClick = {
                         expanded = false
                         onAction(OrderDetailAction.ShareClicked)
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.action_export_history)) },
+                    onClick = {
+                        expanded = false
+                        onAction(OrderDetailAction.ExportClicked)
                     },
                 )
             }
@@ -306,6 +324,39 @@ private fun QrImage(qr: QrMatrix, modifier: Modifier = Modifier) {
             }
         }
     }
+}
+
+/** "Exportar historial" (R-20.3): "Texto" or "PDF". */
+@Composable
+private fun ExportOptionsDialog(onAction: (OrderDetailAction) -> Unit) {
+    AlertDialog(
+        onDismissRequest = { onAction(OrderDetailAction.ExportDismissed) },
+        title = { Text(stringResource(R.string.action_export_history)) },
+        text = { Text(stringResource(R.string.history_export_body)) },
+        confirmButton = {
+            Row {
+                TextButton(onClick = { onAction(OrderDetailAction.ExportChosen(asText = true)) }) { Text(stringResource(R.string.history_as_text)) }
+                TextButton(onClick = { onAction(OrderDetailAction.ExportChosen(asText = false)) }) { Text(stringResource(R.string.history_as_pdf)) }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = { onAction(OrderDetailAction.ExportDismissed) }) { Text(stringResource(R.string.action_cancel)) }
+        },
+    )
+}
+
+private fun shareText(context: Context, text: String, chooserTitle: Int) {
+    val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
+    context.startActivity(Intent.createChooser(send, context.getString(chooserTitle)))
+}
+
+/** R-20.5: the PDF as a file, readable by the app that receives it. */
+private fun sharePdf(context: Context, uri: String) {
+    val send = Intent(Intent.ACTION_SEND)
+        .setType("application/pdf")
+        .putExtra(Intent.EXTRA_STREAM, uri.toUri())
+        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    context.startActivity(Intent.createChooser(send, context.getString(R.string.history_chooser)))
 }
 
 /** R-19.3: one line for the person who receives it, then the JSON in a code block; Rutinify itself is left out. */
@@ -424,6 +475,15 @@ private fun Header(state: OrderDetailUiState, onAction: (OrderDetailAction) -> U
         )
         state.notes?.let {
             Text(stringResource(R.string.order_detail_notes, it), style = MaterialTheme.typography.bodyMedium)
+        }
+        // R-20.2: what was done so far
+        state.historyDone?.let { done ->
+            val others = state.historyOthers?.asString()
+            Text(
+                text = listOfNotNull(done.asString(), others).joinToString(" · "),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
         if (state.pauseAction != null || state.canCancelAll || state.canShift) {
             FlowRow(
