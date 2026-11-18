@@ -279,6 +279,7 @@
 - [ ] **T-53 · Checklist de publicación** — (sin requisito de producto; D-68, D-69)
   - `specs/release-checklist.md`: ficha, política de privacidad, seguridad de datos, declaraciones de permisos, clasificación de contenido, `targetSdk`.
   - ✅ Checklist completa y revisada por Johan.
+  - _Avance (2026-11-18):_ `specs/release-checklist.md` preparada: cuenta, compilación de release, ficha en los dos idiomas, política de privacidad propuesta, formulario de seguridad de datos, declaraciones de permisos (`USE_FULL_SCREEN_INTENT`, `USE_EXACT_ALARM` solo para T-54), clasificación y lo que hay que comprobar antes de cada subida. Marca como **Decisión** lo que depende de Johan (R8, correo público, dónde publicar la política, cómo presentar "medicación"). Falta su revisión: la casilla sigue sin marcar.
 - [ ] **T-54 · Prueba cerrada** — (sin requisito de producto)
   - Pista cerrada con al menos 12 testers aceptados durante 14 días seguidos (cuenta personal posterior al 13-11-2023), con margen de testers.
   - Métrica: porcentaje de testers que programan un segundo plan; recoger diagnósticos exportados voluntarios.
