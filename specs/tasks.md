@@ -251,10 +251,11 @@
   - Sin `USE_EXACT_ALARM` en el manifiesto de v1.2.
   - ✅ Tests de VM de la petición y de la tarjeta; previews claro/oscuro; manifiesto sin `USE_EXACT_ALARM`.
   - _Hecho:_ `ExactAlarmsCardUseCase` y tarjeta "Activa las alarmas exactas" en Inicio con "Ahora no" y "Activar"; sustituye al banner cuando solo faltan las exactas (D-89). `ManifestPermissionsTest` comprueba que no hay `USE_EXACT_ALARM` ni `INTERNET`. 11 tests nuevos (661 en verde), previews claro/oscuro. En el emulador, sin el permiso: la tarjeta aparece sobre los planes, "Activar" abre "Alarmas y recordatorios" y al conceder desaparece.
-- [ ] **T-49 · Interfaz en inglés** — (R-13.3)
+- [x] **T-49 · Interfaz en inglés** — (R-13.3)
   - `values-en/`, `raw-en/` (cinco plantillas), patrones de fecha en recursos (D-71); lint `MissingTranslation` como error.
   - Tests de `SpanLabels`/`DateFormats` con locale `en`; los existentes en `es` siguen en verde.
   - ✅ Con el teléfono en inglés no queda ningún texto en español.
+  - _Hecho:_ `values-en/strings.xml` con los 204 textos y plurales, cinco plantillas en `raw-en/`, patrones de fecha por idioma en recursos y `UiText.Date` (D-71). `MissingTranslation` es error de lint. `TestTexts` resuelve `UiText` en español o inglés en los tests de VM. 7 tests nuevos (668 en verde). En el emulador, con la app en inglés: Inicio ("Wednesday, November 18, 2026", "Pending: 0 of 1", "Finished") y *Nueva rutina* con la plantilla de medicación en inglés.
 - [ ] **T-50 · Verificación v1.2** — (R-13.5)
   - `koverVerify` ≥ 80 %; pasos 19–28 de `manual-test.md` en dispositivo real con Android 14+ (bloqueo, "No molestar", reinicio, sin pantalla completa, ChatGPT y Gemini).
   - README: Roadmap y capturas actualizados.

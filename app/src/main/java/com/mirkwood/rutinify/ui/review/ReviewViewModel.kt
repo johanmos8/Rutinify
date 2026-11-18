@@ -95,7 +95,7 @@ data class ReviewUiState(
     val draftLost: Boolean = false,
     val name: String = "",
     val notes: String? = null,
-    val dateLabel: String = "",
+    val dateLabel: UiText = UiText.Plain(""),
     /** UTC midnight of the chosen date, as the date picker expects. */
     val dateMillisUtc: Long = 0,
     /** "No venía fecha; elegí {fecha}" while the app-chosen date is kept (R-4.5). */
@@ -260,7 +260,7 @@ class ReviewViewModel @Inject constructor(
     private fun toUiState(m: Model): ReviewUiState {
         val draft = m.draft ?: return ReviewUiState(draftLost = true)
         val preview = preview(m, draft)
-        val dateLabel = m.date.format(DATE_FORMAT)
+        val dateLabel = SpanLabels.fullDate(m.date)
         return ReviewUiState(
             name = draft.name,
             notes = draft.notes,
@@ -491,7 +491,6 @@ class ReviewViewModel @Inject constructor(
         /** Property name of `ReviewDestination.draftId` (type-safe navigation stores it under that key). */
         const val KEY_DRAFT_ID = "draftId"
         val TIME_FORMAT: DateTimeFormatter = DateFormats.TIME
-        val DATE_FORMAT: DateTimeFormatter = DateFormats.LONG_DATE
         val ITEM_ORDER = compareBy<DraftItem>({ it.dayOffset }, { it.time }, { it.key })
     }
 }

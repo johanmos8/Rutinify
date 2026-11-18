@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.ui.review
 
+import com.mirkwood.rutinify.testutil.es
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
@@ -138,7 +139,7 @@ class ReviewViewModelTest {
     fun `usa la fecha del JSON sin aviso`() = runTest { // R-4.4
         val vm = subscribed(viewModel())
 
-        assertThat(vm.state.dateLabel).isEqualTo("jueves 5 de noviembre de 2026")
+        assertThat(vm.state.dateLabel.es()).isEqualTo("jueves 5 de noviembre de 2026")
         assertThat(vm.state.dateMillisUtc).isEqualTo(utcMillis(today))
         assertThat(vm.state.dateNotice).isNull()
     }
@@ -147,8 +148,8 @@ class ReviewViewModelTest {
     fun `sin fecha en el JSON elige una y lo avisa`() = runTest { // R-4.5
         val vm = subscribed(viewModel(draft.copy(date = null)))
 
-        assertThat(vm.state.dateLabel).isEqualTo("jueves 5 de noviembre de 2026")
-        assertThat(vm.state.dateNotice).isEqualTo(UiText.Res(R.string.review_date_defaulted, listOf("jueves 5 de noviembre de 2026")))
+        assertThat(vm.state.dateLabel.es()).isEqualTo("jueves 5 de noviembre de 2026")
+        assertThat(vm.state.dateNotice?.es()).isEqualTo("No venía fecha; elegí jueves 5 de noviembre de 2026")
     }
 
     @Test
@@ -200,12 +201,7 @@ class ReviewViewModelTest {
         },
     )
 
-    private fun dayHeader(day: Int, date: String) = UiText.Res(R.string.review_day_header, listOf(day, date))
-
-    private fun multiDaySummary(alarms: Int, days: Int, range: UiText) = UiText.Res(
-        R.string.review_summary_days,
-        listOf(UiText.Plural(R.plurals.review_alarm_count, alarms, listOf(alarms)), UiText.Plural(R.plurals.review_day_count, days, listOf(days)), range),
-    )
+    private fun dayHeader(day: Int, date: String) = "Día $day · $date"
 
     @Test
     fun `una rutina de un dia no tiene cabeceras y conserva el sufijo del dia siguiente`() = runTest { // R-4.13
@@ -219,7 +215,7 @@ class ReviewViewModelTest {
     fun `una rutina de varios dias agrupa por dia sin sufijo en las horas`() = runTest { // R-4.13
         val vm = subscribed(viewModel(treatment))
 
-        assertThat(vm.state.days.map { it.title }).containsExactly(
+        assertThat(vm.state.days.map { it.title.es() }).containsExactly(
             dayHeader(1, "jueves 5 de noviembre"),
             dayHeader(2, "viernes 6 de noviembre"),
             dayHeader(3, "sábado 7 de noviembre"),
@@ -234,9 +230,7 @@ class ReviewViewModelTest {
     fun `el resumen de varios dias da alarmas dias y rango con dia de la semana`() = runTest { // R-4.14
         val vm = subscribed(viewModel(treatment))
 
-        assertThat(vm.state.summary).isEqualTo(
-            multiDaySummary(8, 3, UiText.Res(R.string.date_range, listOf("jueves 5", "sábado 7 de noviembre"))),
-        )
+        assertThat(vm.state.summary?.es()).isEqualTo("8 alarmas en 3 días, del jueves 5 al sábado 7 de noviembre")
     }
 
     @Test
@@ -245,9 +239,7 @@ class ReviewViewModelTest {
 
         listOf(1, 2, 3, 4, 5).forEach { vm.onAction(ReviewAction.ToggleIncluded(it)) }
 
-        assertThat(vm.state.summary).isEqualTo(
-            multiDaySummary(3, 1, UiText.Res(R.string.date_single, listOf("sábado 7 de noviembre"))),
-        )
+        assertThat(vm.state.summary?.es()).isEqualTo("3 alarmas en 1 día, el sábado 7 de noviembre")
     }
 
     @Test
@@ -256,14 +248,12 @@ class ReviewViewModelTest {
 
         vm.onAction(ReviewAction.DateSelected(utcMillis(LocalDate.of(2026, 11, 30))))
 
-        assertThat(vm.state.days.map { it.title }).containsExactly(
+        assertThat(vm.state.days.map { it.title.es() }).containsExactly(
             dayHeader(1, "lunes 30 de noviembre"),
             dayHeader(2, "martes 1 de diciembre"),
             dayHeader(3, "miércoles 2 de diciembre"),
         ).inOrder()
-        assertThat(vm.state.summary).isEqualTo(
-            multiDaySummary(9, 3, UiText.Res(R.string.date_range, listOf("lunes 30 de noviembre", "miércoles 2 de diciembre"))),
-        )
+        assertThat(vm.state.summary?.es()).isEqualTo("9 alarmas en 3 días, del lunes 30 de noviembre al miércoles 2 de diciembre")
     }
 
     @Test
@@ -318,7 +308,7 @@ class ReviewViewModelTest {
 
         vm.onAction(ReviewAction.DateSelected(utcMillis(today.plusDays(1))))
 
-        assertThat(vm.state.dateLabel).isEqualTo("viernes 6 de noviembre de 2026")
+        assertThat(vm.state.dateLabel.es()).isEqualTo("viernes 6 de noviembre de 2026")
         assertThat(vm.state.items.none { it.isPast }).isTrue()
         assertThat(vm.state.dateNotice).isNull()
     }
@@ -330,7 +320,7 @@ class ReviewViewModelTest {
 
         vm.onAction(ReviewAction.UseTomorrow)
 
-        assertThat(vm.state.dateLabel).isEqualTo("viernes 6 de noviembre de 2026")
+        assertThat(vm.state.dateLabel.es()).isEqualTo("viernes 6 de noviembre de 2026")
         assertThat(vm.state.suggestTomorrow).isFalse()
         assertThat(vm.state.canSchedule).isTrue()
     }
@@ -492,7 +482,7 @@ class ReviewViewModelTest {
     }
 
     /** A single-day order on [today] as the conflict dialog shows it. */
-    private fun sameDay(name: String) = ConflictOrderUi(name, UiText.Plain("5 de noviembre"))
+    private fun sameDay(name: String) = ConflictOrderUi(name, UiText.Date(today, R.string.date_pattern_short))
 
     @Test
     fun `un tratamiento que sigue en esa fecha muestra su rango y el aviso de reemplazo`() = runTest { // R-6.6, R-6.7
@@ -504,7 +494,18 @@ class ReviewViewModelTest {
 
         assertThat(vm.state.dialog).isEqualTo(
             ReviewDialog.Conflict(
-                listOf(ConflictOrderUi("Antibiótico", UiText.Res(R.string.date_range, listOf("3", "9 de noviembre")))),
+                listOf(
+                    ConflictOrderUi(
+                        "Antibiótico",
+                        UiText.Res(
+                            R.string.date_range,
+                            listOf(
+                                UiText.Date(today.minusDays(2), R.string.date_pattern_start_same_month),
+                                UiText.Date(today.plusDays(4), R.string.date_pattern_end_same_month),
+                            ),
+                        ),
+                    ),
+                ),
                 showsRanges = true,
             ),
         )
@@ -519,7 +520,7 @@ class ReviewViewModelTest {
         vm.onAction(ReviewAction.ScheduleClicked)
 
         assertThat(vm.state.dialog).isEqualTo(
-            ReviewDialog.Conflict(listOf(ConflictOrderUi("Gato", UiText.Plain("8 de noviembre"))), showsRanges = true),
+            ReviewDialog.Conflict(listOf(ConflictOrderUi("Gato", UiText.Date(today.plusDays(3), R.string.date_pattern_short))), showsRanges = true),
         )
     }
 

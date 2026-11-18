@@ -54,7 +54,7 @@ internal object PreviewData {
     val reviewState = ReviewUiState(
         name = "Cachorro",
         notes = "Llevar bolsas y agua",
-        dateLabel = "jueves 5 de noviembre de 2026",
+        dateLabel = UiText.Plain("jueves 5 de noviembre de 2026"),
         dateMillisUtc = 1_762_300_800_000,
         dateNotice = UiText.Res(R.string.review_date_defaulted, listOf("jueves 5 de noviembre de 2026")),
         items = listOf(
@@ -85,7 +85,7 @@ internal object PreviewData {
         }
         ReviewUiState(
             name = "Antibiótico de Luna",
-            dateLabel = "sábado 14 de noviembre de 2026",
+            dateLabel = UiText.Plain("sábado 14 de noviembre de 2026"),
             dateMillisUtc = 1_763_078_400_000,
             items = days.flatMap { it.items },
             days = days,

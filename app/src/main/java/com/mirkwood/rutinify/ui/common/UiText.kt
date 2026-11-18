@@ -6,6 +6,8 @@ import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.platform.LocalResources
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 /**
  * Text to show, described by resource id and arguments so it can be built outside composables (VMs,
@@ -20,10 +22,14 @@ sealed interface UiText {
 
     data class Plural(@param:PluralsRes val id: Int, val quantity: Int, val args: List<Any> = emptyList()) : UiText
 
+    /** [date] formatted with the pattern in [patternId] and the locale of the current configuration (D-71). */
+    data class Date(val date: LocalDate, @param:StringRes val patternId: Int) : UiText
+
     fun resolve(resources: Resources): String = when (this) {
         is Res -> resources.getString(id, *resolveArgs(args, resources))
         is Plain -> value
         is Plural -> resources.getQuantityString(id, quantity, *resolveArgs(args, resources))
+        is Date -> date.format(DateTimeFormatter.ofPattern(resources.getString(patternId), resources.configuration.locales[0]))
     }
 
     private fun resolveArgs(args: List<Any>, resources: Resources): Array<Any> =

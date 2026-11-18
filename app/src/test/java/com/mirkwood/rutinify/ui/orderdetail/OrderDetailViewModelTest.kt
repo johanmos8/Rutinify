@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.ui.orderdetail
 
+import com.mirkwood.rutinify.testutil.es
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
@@ -118,7 +119,7 @@ class OrderDetailViewModelTest {
 
         assertThat(state.isLoading).isFalse()
         assertThat(state.name).isEqualTo("Cachorro")
-        assertThat(state.dateLabel).isEqualTo(UiText.Plain("jueves 5 de noviembre de 2026"))
+        assertThat(state.dateLabel.es()).isEqualTo("jueves 5 de noviembre de 2026")
         assertThat(state.status).isEqualTo(OrderDisplayStatus.ACTIVE)
         assertThat(state.pending).isEqualTo(2)
         assertThat(state.total).isEqualTo(3)
@@ -159,13 +160,13 @@ class OrderDetailViewModelTest {
 
         val state = subscribed(viewModel()).uiState.value
 
-        assertThat(state.dateLabel).isEqualTo(UiText.Res(R.string.date_range, listOf("jueves 5", "sábado 7 de noviembre de 2026")))
-        assertThat(state.timeline.map { it.dayTitle }).containsExactly(
-            UiText.Res(R.string.review_day_header, listOf(1, "jueves 5 de noviembre")),
+        assertThat(state.dateLabel.es()).isEqualTo("del jueves 5 al sábado 7 de noviembre de 2026")
+        assertThat(state.timeline.map { it.dayTitle?.es() }).containsExactly(
+            "Día 1 · jueves 5 de noviembre",
             null,
-            UiText.Res(R.string.review_day_header, listOf(2, "viernes 6 de noviembre")),
+            "Día 2 · viernes 6 de noviembre",
             null,
-            UiText.Res(R.string.review_day_header, listOf(3, "sábado 7 de noviembre")),
+            "Día 3 · sábado 7 de noviembre",
             null,
         ).inOrder()
         assertThat(state.timeline.none { it.nextDay }).isTrue()

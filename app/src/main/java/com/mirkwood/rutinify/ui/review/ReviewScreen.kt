@@ -204,7 +204,7 @@ private fun Header(state: ReviewUiState, onChangeDate: () -> Unit, onUseTomorrow
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(stringResource(R.string.review_date_label), style = MaterialTheme.typography.labelMedium)
-                Text(state.dateLabel, style = MaterialTheme.typography.titleMedium)
+                Text(state.dateLabel.asString(), style = MaterialTheme.typography.titleMedium)
             }
             OutlinedButton(onClick = onChangeDate) { Text(stringResource(R.string.action_change_date)) }
         }

@@ -1,0 +1,259 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- English texts (R-13.3, D-71). Spanish in values/ stays the default language -->
+    <string name="app_name">Rutinify</string>
+
+    <!-- Common actions -->
+    <string name="action_back">Back</string>
+    <string name="action_new_routine">New routine</string>
+
+    <!-- Screen titles -->
+    <string name="new_routine_title">New routine</string>
+    <string name="review_title">Review</string>
+    <string name="order_detail_title">Plan details</string>
+    <string name="permissions_title">Permissions</string>
+    <string name="permissions_intro">Rutinify needs these permissions so every alarm rings on time and shows its buttons.</string>
+    <string name="permissions_all_granted">All set: alarms will ring on time.</string>
+    <string name="permissions_notifications_title">Notifications</string>
+    <string name="permissions_notifications_description">To show each reminder with its “Done” and “+5 min” buttons. Without it, alarms are marked as fired but you see nothing.</string>
+    <string name="permissions_exact_title">Exact alarms</string>
+    <string name="permissions_exact_description">So each reminder arrives at its exact time. Without it, Android may delay it a few minutes.</string>
+    <string name="permissions_granted">Granted</string>
+    <string name="permissions_full_screen_title">Full-screen alarms</string>
+    <string name="permissions_full_screen_description">So critical alarms turn the screen on and show over the lock screen. Without it they still ring, but as a pop-up notification.</string>
+    <string name="permissions_enabled">On</string>
+    <string name="permissions_disabled">Off</string>
+    <string name="permissions_missing">Missing</string>
+    <string name="permissions_battery_note">Some manufacturers close background apps to save battery. If an alarm does not ring, look up your model on dontkillmyapp.com and follow its steps.</string>
+    <string name="action_fix">Fix</string>
+    <string name="home_exact_card_title">Turn on exact alarms</string>
+    <string name="home_exact_card_body">Android has exact alarms turned off for Rutinify, so each reminder may arrive a few minutes late. Turn them on so they ring on time.</string>
+    <string name="action_enable">Turn on</string>
+    <string name="home_permissions_banner">Permissions missing: alarms may not ring on time or may not show.</string>
+    <string name="action_review_permissions">Review</string>
+    <string name="review_notifications_title">On-screen reminders</string>
+    <string name="review_notifications_body">To show each alarm with its “Done” and “+5 min” buttons, Rutinify needs permission to show notifications. Android will ask you now.</string>
+    <string name="review_exact_title">Exact alarms are off</string>
+    <string name="review_exact_body">Without the exact alarms permission, Android may delay each reminder a few minutes. You can turn it on in settings or schedule anyway.</string>
+    <string name="action_continue">Continue</string>
+    <string name="action_not_now">Not now</string>
+    <string name="action_open_settings">Open settings</string>
+    <string name="action_continue_without_exact">Continue without exact</string>
+
+    <!-- Import validation messages (R-3.3–R-3.22). Item prefix: "Activity 3 (“Nap”)" -->
+    <string name="issue_prefix_title">Activity %1$d (“%2$s”)</string>
+    <string name="issue_prefix_time">Activity %1$d (at %2$s)</string>
+    <string name="issue_prefix">Activity %1$d</string>
+    <string name="issue_prefix_routine">Routine</string>
+
+    <string name="issue_no_json">I could not find valid JSON in the text. Make sure you paste the AI’s full answer.</string>
+    <string name="issue_version_received">Unsupported format version (expected 1); received “%1$s”</string>
+    <string name="issue_version_missing">Unsupported format version (expected 1); the schemaVersion field is missing</string>
+    <string name="issue_no_routine">The routine field with the routine details is missing</string>
+    <string name="issue_no_name">The routine has no name (routine.name field)</string>
+    <!-- A date example, not a range -->
+    <string name="issue_invalid_date" tools:ignore="TypographyDashes">The date “%1$s” is not valid; use the format 2026-11-05</string>
+    <string name="issue_no_items">The routine has no activities (items field)</string>
+    <string name="issue_too_many_items">Too many activities (%1$s); the maximum is 200</string>
+    <string name="issue_too_many_repeated_items">Too many activities (%1$s counting repetitions); the maximum is 200</string>
+    <string name="issue_input_too_long">The text is too long (%1$s KB); the maximum is %2$d KB</string>
+    <string name="issue_too_many_categories">Too many different categories (%1$s); the maximum is %2$d</string>
+    <string name="issue_missing_field">The %1$s field is missing</string>
+    <string name="issue_wrong_type">The %1$s field must be %2$s</string>
+    <string name="issue_wrong_type_received">The %1$s field must be %2$s (received “%3$s”)</string>
+    <!-- Limits are always 30 or more, never singular -->
+    <string name="issue_text_too_long" tools:ignore="PluralsCandidate">The %1$s field is longer than the maximum of %2$d characters</string>
+
+    <string name="issue_invalid_time">%1$s: the time “%2$s” is not valid; use the 24-hour format, for example 06:45</string>
+    <string name="issue_item_missing_time">%1$s: the time is missing; use the 24-hour format, for example 06:45</string>
+    <string name="issue_item_missing_title">%1$s: the title is missing</string>
+    <string name="issue_item_missing_field">%1$s: the %2$s field is missing</string>
+    <string name="issue_title_truncated">%1$s: the title was longer than 80 characters and was shortened</string>
+    <string name="issue_day_offset">%1$s: dayOffset must be a whole number between 0 and 30 (days after the routine date)</string>
+    <string name="issue_repeat_days">repeatDays must be a whole number between 1 and 30 (days the routine repeats)</string>
+    <string name="issue_repeat_with_day_offset">%1$s: with repeatDays only dayOffset 0 or 1 is allowed; for days that differ, write each day without repeatDays</string>
+    <string name="issue_duration">%1$s: durationMin must be a number of minutes between 1 and 1440</string>
+    <string name="issue_item_wrong_type">%1$s: the %2$s field must be %3$s</string>
+    <string name="issue_item_wrong_type_received">%1$s: the %2$s field must be %3$s (received “%4$s”)</string>
+    <string name="issue_item_wrong_shape">%1$s: must be %2$s</string>
+    <string name="issue_item_wrong_shape_received">%1$s: must be %2$s (received “%3$s”)</string>
+    <string name="issue_item_text_too_long" tools:ignore="PluralsCandidate">%1$s: the %2$s field is longer than the maximum of %3$d characters</string>
+
+    <!-- Expected value types, in non-technical words (R-3.13) -->
+    <string name="issue_type_text">a text in quotes</string>
+    <string name="issue_type_whole_number">a whole number</string>
+    <string name="issue_type_object">a block in braces { }</string>
+    <string name="issue_type_list">a list in brackets [ ]</string>
+
+    <plurals name="issue_more">
+        <item quantity="one">and %1$d more error</item>
+        <item quantity="other">and %1$d more errors</item>
+    </plurals>
+
+    <!-- Notifications (design §8) -->
+    <string name="notification_group_routines">Routines</string>
+    <string name="notification_channel_critical">Critical alarms</string>
+    <string name="notification_channel_critical_silent">Silenced critical alarms</string>
+    <string name="notification_action_done">Done</string>
+    <string name="notification_action_snooze">+5 min</string>
+    <string name="notification_action_silence">Silence</string>
+
+    <!-- New routine screen (R-1, R-2) -->
+    <string name="new_routine_template_hint">Copy the template, paste it into your AI with your routine and bring back the JSON it returns.</string>
+    <string name="action_copy_template">Copy template</string>
+    <string name="action_open_in_ai">Open in AI</string>
+    <string name="new_routine_scenario_label">Template for</string>
+    <string name="template_scenario_puppy">Puppy</string>
+    <string name="template_scenario_medication">Medication</string>
+    <string name="template_scenario_baby">Baby</string>
+    <string name="template_scenario_study">Study</string>
+    <string name="template_scenario_generic">General</string>
+    <string name="new_routine_share_template_title">Send the template to…</string>
+    <string name="new_routine_no_share_apps">No apps can receive the template; I copied it to the clipboard</string>
+    <string name="action_show_template">Show template</string>
+    <string name="action_hide_template">Hide template</string>
+    <string name="new_routine_json_label">Routine JSON</string>
+    <string name="new_routine_json_placeholder">Paste the JSON your AI gave you here</string>
+    <string name="action_paste">Paste from clipboard</string>
+    <string name="action_validate">Validate</string>
+    <string name="new_routine_validating">Validating…</string>
+    <string name="new_routine_issues_title">The JSON needs fixing:</string>
+    <string name="new_routine_issue_bullet">• %1$s</string>
+    <string name="new_routine_template_copied">Template copied</string>
+    <string name="new_routine_clipboard_empty">The clipboard is empty</string>
+    <string name="new_routine_shared_empty">No text arrived to import</string>
+    <string name="clipboard_label_template">Rutinify template</string>
+
+    <!-- Review screen (R-4, R-5.6, R-5.7, R-5.10, R-6) -->
+    <string name="review_date_label">Date</string>
+    <string name="action_change_date">Change date</string>
+    <string name="review_date_defaulted">No date was given; I chose %1$s</string>
+    <string name="review_notes_title">Notes</string>
+    <string name="review_warnings_title">Warnings</string>
+    <string name="review_past">Already past</string>
+    <string name="review_time_next_day">%1$s (+1 day)</string>
+    <plurals name="review_summary">
+        <item quantity="one">%1$d alarm, at %2$s</item>
+        <item quantity="other">%1$d alarms, from %2$s to %3$s</item>
+    </plurals>
+    <!-- "21 alarms over 7 days, from Saturday, November 14 to Friday 20" (R-4.14) -->
+    <string name="review_summary_days">%1$s over %2$s, %3$s</string>
+    <plurals name="review_alarm_count">
+        <item quantity="one">%1$d alarm</item>
+        <item quantity="other">%1$d alarms</item>
+    </plurals>
+    <plurals name="review_day_count">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <!-- "Day 3 · Monday, November 16" (R-4.13) -->
+    <string name="review_day_header">Day %1$d · %2$s</string>
+    <string name="review_nothing_to_schedule">There are no future activities to schedule</string>
+    <string name="review_suggest_tomorrow">The chosen date has passed, and so have all the activities.</string>
+    <string name="action_use_tomorrow">Change to tomorrow</string>
+    <string name="action_schedule">Schedule alarms</string>
+    <string name="review_scheduling">Scheduling…</string>
+    <string name="review_include_item">Include “%1$s”</string>
+    <string name="review_edit_item">Edit “%1$s”</string>
+    <string name="review_remove_item">Remove “%1$s”</string>
+    <string name="review_item_removed">Activity removed</string>
+    <string name="action_undo">Undo</string>
+    <string name="review_edit_title">Edit activity</string>
+    <string name="review_field_time">Time (24 h)</string>
+    <string name="review_field_title">Title</string>
+    <string name="review_field_category">Category</string>
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="review_error_time">Use the 24-hour format, for example 06:45</string>
+    <string name="review_error_title_blank">The title is missing</string>
+    <!-- The three numbers below are fixed limits (30, 10, 80): always plural, so no <plurals> needed -->
+    <string name="review_error_category_long" tools:ignore="PluralsCandidate">Up to %1$d characters</string>
+    <string name="review_error_too_many_categories" tools:ignore="PluralsCandidate">Up to %1$d categories per routine</string>
+    <string name="review_title_truncated" tools:ignore="PluralsCandidate">The title was shortened to %1$d characters</string>
+    <string name="review_conflict_title">There are routines on that day</string>
+    <string name="review_conflict_body">On that date you already have: %1$s. What do you want to do?</string>
+    <string name="review_conflict_title_range">There are routines on those dates</string>
+    <string name="review_conflict_body_range">They overlap with: %1$s. What do you want to do?</string>
+    <string name="review_conflict_order_range">%1$s (%2$s)</string>
+    <string name="review_conflict_replace_whole">“Replace the previous one” cancels each whole routine, not just the overlapping days.</string>
+    <string name="date_range">from %1$s to %2$s</string>
+    <string name="date_single">on %1$s</string>
+    <!-- Date patterns (java.time) per language, by role in the labels (D-71) -->
+    <string name="date_pattern_short">MMMM d</string>
+    <string name="date_pattern_short_year">MMMM d, yyyy</string>
+    <string name="date_pattern_start_same_month">MMMM d</string>
+    <string name="date_pattern_end_same_month">d</string>
+    <string name="date_pattern_weekday">EEEE, MMMM d</string>
+    <string name="date_pattern_weekday_year">EEEE, MMMM d, yyyy</string>
+    <string name="date_pattern_weekday_start_same_month">EEEE, MMMM d</string>
+    <string name="date_pattern_weekday_end_same_month">EEEE d</string>
+    <string name="date_pattern_weekday_end_same_month_year">EEEE d, yyyy</string>
+    <string name="action_replace">Replace the previous one</string>
+    <string name="action_keep_both">Keep both</string>
+    <plurals name="review_too_many_alarms">
+        <item quantity="one">Cannot schedule %1$d alarm: it would exceed the maximum of 500 pending alarms (%2$d already scheduled)</item>
+        <item quantity="other">Cannot schedule %1$d alarms: it would exceed the maximum of 500 pending alarms (%2$d already scheduled)</item>
+    </plurals>
+    <string name="review_storage_failure">The routine could not be saved</string>
+    <string name="action_retry">Retry</string>
+    <string name="review_draft_lost">The draft was lost; validate again</string>
+
+    <!-- Home screen (R-8) -->
+    <string name="home_empty_title">You have no routines yet</string>
+    <string name="home_empty_intro">Creating one takes three steps:</string>
+    <string name="home_empty_step_1">1. Tap “New routine” and copy the template.</string>
+    <string name="home_empty_step_2">2. Paste it into your AI with your routine, written however you like.</string>
+    <string name="home_empty_step_3">3. Copy the JSON it returns and paste it into Rutinify.</string>
+    <string name="home_order_pending">Pending: %1$d of %2$d</string>
+    <string name="order_status_active">Active</string>
+    <string name="order_status_paused">Paused</string>
+    <string name="order_status_cancelled">Cancelled</string>
+    <string name="order_status_finished">Finished</string>
+
+    <!-- Order detail screen (R-9, R-5.4, R-5.6) -->
+    <plurals name="order_detail_scheduled">
+        <item quantity="one">%1$d alarm scheduled</item>
+        <item quantity="other">%1$d alarms scheduled</item>
+    </plurals>
+    <string name="order_detail_windowed_warning">Alarms may be a few minutes late (exact alarms permission is off)</string>
+    <string name="order_detail_not_found">This routine no longer exists</string>
+    <string name="order_detail_notes">Notes: %1$s</string>
+    <string name="order_detail_next">Next</string>
+    <string name="order_detail_next_day">+1 day</string>
+    <string name="order_detail_mark_done">Mark “%1$s” as done</string>
+    <string name="order_detail_delete_alarm">Delete “%1$s”</string>
+    <string name="order_detail_alarm_deleted">Alarm deleted</string>
+    <string name="action_more_options">More options</string>
+    <string name="action_cancel_all">Delete all alarms</string>
+    <string name="action_pause">Pause</string>
+    <string name="action_resume">Resume</string>
+    <plurals name="order_detail_resumed_skipped">
+        <item quantity="one">Routine resumed. %1$d alarm whose time had passed was skipped</item>
+        <item quantity="other">Routine resumed. %1$d alarms whose time had passed were skipped</item>
+    </plurals>
+    <string name="action_delete_order">Delete plan</string>
+    <string name="action_duplicate_order">Duplicate for another date</string>
+    <string name="action_duplicate">Duplicate</string>
+    <string name="action_delete">Delete</string>
+    <string name="cancel_all_title">Delete all alarms?</string>
+    <plurals name="cancel_all_body">
+        <item quantity="one">%1$d pending alarm will be cancelled and the plan will be cancelled. Done and fired alarms are kept.</item>
+        <item quantity="other">%1$d pending alarms will be cancelled and the plan will be cancelled. Done and fired alarms are kept.</item>
+    </plurals>
+    <string name="cancel_all_body_none">There are no pending alarms left; the plan will be cancelled. Done and fired alarms are kept.</string>
+    <string name="delete_order_title">Delete the plan?</string>
+    <string name="delete_order_body">“%1$s” and all its alarms will be deleted, including the history. This cannot be undone.</string>
+    <string name="alarm_status_pending">Pending</string>
+    <string name="alarm_status_fired">Fired</string>
+    <string name="alarm_status_done">Done</string>
+    <string name="alarm_status_skipped">Skipped</string>
+    <string name="alarm_status_cancelled">Cancelled</string>
+
+    <!-- Settings (R-15) -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_critical_section">Critical alarms</string>
+    <string name="settings_critical_description">Alarms in these categories ring like an alarm clock until you respond, also with “Do Not Disturb” if it lets alarms through. Android shows them as the next alarm in the status bar.</string>
+    <string name="settings_critical_empty">No categories yet. They will show up here when you schedule a plan.</string>
+    <string name="settings_critical_exact_warning">Critical alarms need the exact alarms permission to ring on time</string>
+    <string name="settings_exact_dialog_title">Exact alarms permission</string>
+    <string name="settings_exact_dialog_body">A critical alarm has to ring on time. Without the exact alarms permission, Android may delay it a few minutes. You can turn it on in settings.</string>
+</resources>

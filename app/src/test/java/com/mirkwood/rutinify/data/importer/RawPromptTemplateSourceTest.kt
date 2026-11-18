@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.data.importer
 
+import org.robolectric.annotation.Config
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.mirkwood.rutinify.domain.model.TemplateScenario
@@ -30,5 +31,14 @@ class RawPromptTemplateSourceTest {
                 .isEqualTo(File("src/main/res/raw/prompt_template_$name.txt").readText(Charsets.UTF_8))
         }
         assertThat(files.keys).containsExactlyElementsIn(TemplateScenario.entries)
+    }
+
+    @Test
+    @Config(qualifiers = "en")
+    fun `con el telefono en ingles carga la plantilla inglesa`() = runTest { // R-13.3, D-71
+        val source = RawPromptTemplateSource(ApplicationProvider.getApplicationContext(), StandardTestDispatcher(testScheduler))
+
+        assertThat(source.load(TemplateScenario.MEDICATION))
+            .isEqualTo(File("src/main/res/raw-en/prompt_template_medication.txt").readText(Charsets.UTF_8))
     }
 }

@@ -76,4 +76,37 @@ class PromptTemplateTest {
             assertThat(template(it)).contains("dayOffset: 0, 1, 2")
         }
     }
+
+    // ---- English (T-49, R-13.3) ----
+
+    private fun english(scenario: String): String =
+        File("src/main/res/raw-en/prompt_template_$scenario.txt").readText(Charsets.UTF_8)
+
+    @Test
+    fun `hay las mismas plantillas en ingles`() { // R-13.3, D-71
+        val files = File("src/main/res/raw-en").list().orEmpty().filter { it.startsWith("prompt_template") }
+
+        assertThat(files).containsExactlyElementsIn(scenarios.map { "prompt_template_$it.txt" })
+    }
+
+    @Test
+    fun `las plantillas inglesas piden el mismo contrato y su ejemplo parsea`() { // R-13.3, R-16.4
+        val rules = english("generic").substringAfter("Instructions:").substringBefore("\n\n")
+        assertThat(rules).contains("schemaVersion: always the number 1")
+
+        scenarios.forEach { scenario ->
+            val text = english(scenario)
+            assertThat(text).contains(rules)
+            assertThat(text.trimEnd()).endsWith("[PASTE YOUR ROUTINE HERE]")
+            assertThat(text).contains("dayOffset: 0, 1, 2")
+            val result = RoutineJsonParser().parse(requireNotNull(JsonExtractor().extract(text)).json, draftId = "d")
+            assertThat(result).isInstanceOf(ImportResult.Success::class.java)
+            assertThat((result as ImportResult.Success).warnings).isEmpty()
+        }
+    }
+
+    @Test
+    fun `la de medicacion en ingles tambien pide no proponer dosis`() { // R-16.5
+        assertThat(english("medication")).contains("Use only the times and doses I write. Do not suggest doses, do not change the schedule")
+    }
 }

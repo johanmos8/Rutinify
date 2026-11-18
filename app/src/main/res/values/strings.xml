@@ -178,6 +178,16 @@
     <string name="review_conflict_replace_whole">«Reemplazar la anterior» cancela cada rutina completa, no solo los días que coinciden.</string>
     <string name="date_range">del %1$s al %2$s</string>
     <string name="date_single">el %1$s</string>
+    <!-- Date patterns (java.time) per language, by role in the labels (D-71). Words in quotes are literal -->
+    <string name="date_pattern_short">"d 'de' MMMM"</string>
+    <string name="date_pattern_short_year">"d 'de' MMMM 'de' yyyy"</string>
+    <string name="date_pattern_start_same_month">d</string>
+    <string name="date_pattern_end_same_month">"d 'de' MMMM"</string>
+    <string name="date_pattern_weekday">"EEEE d 'de' MMMM"</string>
+    <string name="date_pattern_weekday_year">"EEEE d 'de' MMMM 'de' yyyy"</string>
+    <string name="date_pattern_weekday_start_same_month">EEEE d</string>
+    <string name="date_pattern_weekday_end_same_month">"EEEE d 'de' MMMM"</string>
+    <string name="date_pattern_weekday_end_same_month_year">"EEEE d 'de' MMMM 'de' yyyy"</string>
     <string name="action_replace">Reemplazar la anterior</string>
     <string name="action_keep_both">Mantener ambas</string>
     <plurals name="review_too_many_alarms">

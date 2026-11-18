@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.ui.home
 
+import com.mirkwood.rutinify.testutil.es
 import app.cash.turbine.test
 import com.mirkwood.rutinify.testutil.FakePermissionPromptStore
 import com.mirkwood.rutinify.domain.usecase.ExactAlarmsCardUseCase
@@ -89,7 +90,7 @@ class HomeViewModelTest {
             OrderCardUi(
                 id = 7,
                 name = "Cachorro",
-                dateLabel = UiText.Plain("jueves 5 de noviembre de 2026"),
+                dateLabel = UiText.Date(LocalDate.of(2026, 11, 5), R.string.date_pattern_weekday_year),
                 pending = 3,
                 total = 5,
                 status = OrderDisplayStatus.ACTIVE,
@@ -173,8 +174,8 @@ class HomeViewModelTest {
     fun `una orden de un dia con madrugada muestra solo su fecha`() = runTest { // R-8.2
         orders.summaries.value = listOf(summary(1, maxDayOffset = 1))
 
-        assertThat(subscribed(viewModel()).uiState.value.orders.single().dateLabel)
-            .isEqualTo(UiText.Plain("jueves 5 de noviembre de 2026"))
+        assertThat(subscribed(viewModel()).uiState.value.orders.single().dateLabel.es())
+            .isEqualTo("jueves 5 de noviembre de 2026")
     }
 
     @Test
@@ -185,10 +186,10 @@ class HomeViewModelTest {
             summary(3, date = LocalDate.of(2026, 12, 29), maxDayOffset = 5),
         )
 
-        assertThat(subscribed(viewModel()).uiState.value.orders.map { it.dateLabel }).containsExactly(
-            UiText.Res(R.string.date_range, listOf("sábado 14", "viernes 20 de noviembre de 2026")),
-            UiText.Res(R.string.date_range, listOf("sábado 28 de noviembre", "viernes 4 de diciembre de 2026")),
-            UiText.Res(R.string.date_range, listOf("martes 29 de diciembre de 2026", "domingo 3 de enero de 2027")),
+        assertThat(subscribed(viewModel()).uiState.value.orders.map { it.dateLabel.es() }).containsExactly(
+            "del sábado 14 al viernes 20 de noviembre de 2026",
+            "del sábado 28 de noviembre al viernes 4 de diciembre de 2026",
+            "del martes 29 de diciembre de 2026 al domingo 3 de enero de 2027",
         ).inOrder()
     }
 

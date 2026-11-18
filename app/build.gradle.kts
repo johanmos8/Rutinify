@@ -43,6 +43,10 @@ android {
     buildFeatures {
         compose = true
     }
+    lint {
+        // Every visible text exists in Spanish and English (R-13.3, D-71)
+        error += "MissingTranslation"
+    }
     testOptions {
         unitTests {
             // Robolectric needs Android resources in JVM tests

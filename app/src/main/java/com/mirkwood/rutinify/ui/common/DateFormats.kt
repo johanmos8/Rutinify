@@ -1,15 +1,10 @@
 package com.mirkwood.rutinify.ui.common
 
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 
-/** Presentation formats shared by screens; UI texts are Spanish (CLAUDE.md §4). */
+/** Presentation formats with no words in them; dates with words use [UiText.Date] and resource patterns (D-71). */
 internal object DateFormats {
-    private val SPANISH: Locale = Locale.forLanguageTag("es-ES")
 
-    /** "jueves 5 de noviembre de 2026". */
-    val LONG_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE d 'de' MMMM 'de' yyyy", SPANISH)
-
-    /** "06:45". */
+    /** "06:45": 24-hour time, the same in every language of the app. */
     val TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 }
