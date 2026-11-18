@@ -300,9 +300,10 @@
   - Tests de VM; previews claro/oscuro.
   - ✅ Acción visible solo en planes *Activos* o *Pausados*.
   - _Hecho:_ botón "Voy tarde" en la cabecera y diálogo "Mover las alarmas" con "Retrasar"/"Adelantar", minutos, vista previa y errores; snackbar "{n} alarmas movidas" (D-91). Textos en español e inglés. 6 tests nuevos (706 en verde), preview del diálogo. En el emulador: "1 alarma; la próxima pasa de las 23:21 a las 23:51" y, tras "Mover", la alarma queda a las 23:51.
-- [ ] **T-57 · Editar una alarma** — (R-18.9, R-18.10)
+- [x] **T-57 · Editar una alarma** — (R-18.9, R-18.10)
   - `UpdateAlarmUseCase` (D-74); formulario reutilizado de Revisión.
   - ✅ Solo *Pendientes*; hora pasada rechazada con su mensaje.
+  - _Hecho:_ `UpdateAlarmUseCase` con las reglas de Revisión y "Esa hora ya pasó; elige una hora futura"; `AlarmRepository.getByOrder` y `updateDetails`; icono de editar en cada pendiente y `EditActivityDialog` compartido con Revisión (D-74). 13 tests nuevos (719 en verde). En el emulador, el icono abre "Editar actividad" con la hora, el título y la categoría de la alarma.
 - [ ] **T-58 · Exportar el plan como texto** — (R-19.1–R-19.3)
   - `ExportPlanUseCase`: el JSON exportado vuelve a importarse igual (test de ida y vuelta, también con `assignee` y varios días).
   - ✅ "Compartir como texto" abre el selector con el bloque de código.

@@ -68,6 +68,19 @@ interface AlarmItemDao {
     )
     suspend fun updateSchedule(id: Long, time: LocalTime, dayOffset: Int, snoozedUntil: Instant?)
 
+    @Query("SELECT * FROM alarm_item WHERE order_id = :orderId ORDER BY id")
+    suspend fun getByOrder(orderId: Long): List<AlarmItemEntity>
+
+    /** Edit from the detail: only a PENDING alarm changes (R-18.9, D-74). */
+    @Query(
+        """
+        UPDATE alarm_item
+        SET time = :time, title = :title, category = :category, snoozed_until = NULL
+        WHERE id = :id AND status = 'PENDING'
+        """,
+    )
+    suspend fun updateDetails(id: Long, time: LocalTime, title: String, category: String)
+
     @Query("DELETE FROM alarm_item WHERE id = :id")
     suspend fun delete(id: Long)
 }

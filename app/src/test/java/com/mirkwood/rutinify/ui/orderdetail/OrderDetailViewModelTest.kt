@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.ui.orderdetail
 
+import com.mirkwood.rutinify.ui.common.ActivityForm
+import com.mirkwood.rutinify.domain.usecase.UpdateAlarmUseCase
 import com.mirkwood.rutinify.domain.usecase.ShiftOrderAlarmsUseCase
 import com.mirkwood.rutinify.testutil.es
 import androidx.lifecycle.SavedStateHandle
@@ -86,6 +88,7 @@ class OrderDetailViewModelTest {
         resumeOrder = ResumeOrderUseCase(orders, alarms, scheduler, categories, TriggerTimeCalculator(), { zone }, clock, lock),
         duplicateOrder = DuplicateOrderUseCase(orders, drafts),
         shiftOrderAlarms = ShiftOrderAlarmsUseCase(orders, alarms, scheduler, categories, TriggerTimeCalculator(), { zone }, clock, lock),
+        updateAlarm = UpdateAlarmUseCase(alarms, orders, scheduler, publisher, categories, TriggerTimeCalculator(), { zone }, clock, lock),
         zoneProvider = { zone },
         clock = clock,
     )
@@ -648,5 +651,57 @@ class OrderDetailViewModelTest {
 
         assertThat(vm.uiState.value.shiftDialog).isNull()
         assertThat(alarms.alarms.getValue(1).time).isEqualTo(LocalTime.of(14, 0))
+    }
+
+    // ---- Edit an alarm (T-57) ----
+
+    @Test
+    fun `solo las pendientes se pueden editar`() = runTest { // R-18.9
+        setOrder(
+            OrderStatus.ACTIVE,
+            testAlarm(id = 1, time = LocalTime.of(14, 0)),
+            testAlarm(id = 2, time = LocalTime.of(6, 0), status = AlarmStatus.DONE),
+        )
+
+        val timeline = subscribed(viewModel()).uiState.value.timeline
+
+        assertThat(timeline.associate { it.id to it.canEdit }).containsExactly(1L, true, 2L, false)
+    }
+
+    @Test
+    fun `editar abre el formulario con la hora titulo y categoria`() = runTest { // R-18.9
+        shiftable()
+        val vm = subscribed(viewModel())
+
+        vm.onAction(OrderDetailAction.EditClicked(1))
+
+        assertThat(vm.uiState.value.editing).isEqualTo(EditAlarmUi(1, ActivityForm("14:00", "Siesta", "siesta")))
+    }
+
+    @Test
+    fun `guardar una hora pasada muestra el error y no cierra`() = runTest { // R-18.10
+        shiftable()
+        val vm = subscribed(viewModel())
+        vm.onAction(OrderDetailAction.EditClicked(1))
+
+        vm.onAction(OrderDetailAction.EditChanged("06:00", "Siesta", "siesta"))
+        vm.onAction(OrderDetailAction.EditSaved)
+
+        assertThat(vm.uiState.value.editing?.form?.timeError?.es()).isEqualTo("Esa hora ya pasó; elige una hora futura")
+        assertThat(alarms.alarms.getValue(1).time).isEqualTo(LocalTime.of(14, 0))
+    }
+
+    @Test
+    fun `guardar bien cierra el formulario y cambia la alarma`() = runTest { // R-18.9
+        shiftable()
+        val vm = subscribed(viewModel())
+        vm.onAction(OrderDetailAction.EditClicked(1))
+
+        vm.onAction(OrderDetailAction.EditChanged("15:00", "Paseo", "paseo"))
+        vm.onAction(OrderDetailAction.EditSaved)
+
+        assertThat(vm.uiState.value.editing).isNull()
+        assertThat(alarms.alarms.getValue(1).time).isEqualTo(LocalTime.of(15, 0))
+        assertThat(alarms.alarms.getValue(1).title).isEqualTo("Paseo")
     }
 }

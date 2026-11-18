@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.testutil
 
+import java.time.LocalTime
 import com.mirkwood.rutinify.domain.model.AlarmItem
 import com.mirkwood.rutinify.domain.model.AlarmScheduleUpdate
 import com.mirkwood.rutinify.domain.model.AlarmStatus
@@ -53,6 +54,14 @@ class FakeAlarmRepository(
             alarms[update.alarmId]?.takeIf { it.status == AlarmStatus.PENDING }?.let {
                 alarms[update.alarmId] = it.copy(time = update.time, dayOffset = update.dayOffset, snoozedUntil = update.snoozedUntil)
             }
+        }
+    }
+
+    override suspend fun getByOrder(orderId: Long): List<AlarmItem> = alarms.values.filter { it.orderId == orderId }
+
+    override suspend fun updateDetails(alarmId: Long, time: LocalTime, title: String, category: String) {
+        alarms[alarmId]?.takeIf { it.status == AlarmStatus.PENDING }?.let {
+            alarms[alarmId] = it.copy(time = time, title = title, category = category, snoozedUntil = null)
         }
     }
 

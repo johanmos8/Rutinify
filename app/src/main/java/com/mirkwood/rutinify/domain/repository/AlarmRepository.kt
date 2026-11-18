@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.domain.repository
 
+import java.time.LocalTime
 import com.mirkwood.rutinify.domain.model.AlarmScheduleUpdate
 import com.mirkwood.rutinify.domain.model.AlarmItem
 import com.mirkwood.rutinify.domain.model.AlarmStatus
@@ -23,6 +24,12 @@ interface AlarmRepository {
 
     /** Rewrites time, day and snooze of pending alarms in one transaction; non-pending ones are left alone (D-73). */
     suspend fun updateSchedules(updates: List<AlarmScheduleUpdate>)
+
+    /** Every alarm of [orderId], in any status. */
+    suspend fun getByOrder(orderId: Long): List<AlarmItem>
+
+    /** Edits a PENDING alarm; its snooze is dropped because the new time replaces it (R-18.9, D-74). */
+    suspend fun updateDetails(alarmId: Long, time: LocalTime, title: String, category: String)
 
     /** Deletes the alarm (R-9.3). */
     suspend fun delete(alarmId: Long)

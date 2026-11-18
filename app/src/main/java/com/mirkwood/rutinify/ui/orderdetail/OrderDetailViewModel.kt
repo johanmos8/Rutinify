@@ -1,5 +1,9 @@
 package com.mirkwood.rutinify.ui.orderdetail
 
+import com.mirkwood.rutinify.ui.common.ActivityForm
+import com.mirkwood.rutinify.domain.importer.DraftItemRules
+import com.mirkwood.rutinify.domain.usecase.UpdateAlarmResult
+import com.mirkwood.rutinify.domain.usecase.UpdateAlarmUseCase
 import kotlinx.coroutines.Job
 import com.mirkwood.rutinify.domain.usecase.ShiftResult
 import com.mirkwood.rutinify.domain.usecase.ShiftOrderAlarmsUseCase
@@ -59,6 +63,8 @@ data class TimelineItemUi(
     val isNext: Boolean,
     /** Opened from this alarm's notification (R-7.6). */
     val isHighlighted: Boolean,
+    /** "Editar" on a PENDING alarm of an ACTIVE or PAUSED plan (R-18.9). */
+    val canEdit: Boolean = false,
     /** "Marcar como hecha" is offered for PENDING and FIRED alarms (R-9.5). */
     val canMarkDone: Boolean = status == AlarmStatus.PENDING || status == AlarmStatus.FIRED,
     /** "Día 3 · lunes 16 de noviembre" above the first alarm of each day of a multi-day order (R-9.6). */
@@ -94,7 +100,12 @@ data class OrderDetailUiState(
     val canShift: Boolean = false,
     /** Non-null while the "Voy tarde" dialog is open (R-18.2). */
     val shiftDialog: ShiftDialogUi? = null,
+    /** Non-null while an alarm is being edited (R-18.9). */
+    val editing: EditAlarmUi? = null,
 )
+
+/** Edit form of one alarm of the plan (R-18.9). */
+data class EditAlarmUi(val alarmId: Long, val form: ActivityForm)
 
 enum class PauseAction { PAUSE, RESUME }
 
@@ -163,6 +174,14 @@ sealed interface OrderDetailAction {
     data object ShiftConfirmed : OrderDetailAction
 
     data object ShiftDismissed : OrderDetailAction
+
+    data class EditClicked(val alarmId: Long) : OrderDetailAction
+
+    data class EditChanged(val time: String, val title: String, val category: String) : OrderDetailAction
+
+    data object EditSaved : OrderDetailAction
+
+    data object EditDismissed : OrderDetailAction
 }
 
 sealed interface OrderDetailEffect {
@@ -192,6 +211,7 @@ class OrderDetailViewModel @Inject constructor(
     private val resumeOrder: ResumeOrderUseCase,
     private val duplicateOrder: DuplicateOrderUseCase,
     private val shiftOrderAlarms: ShiftOrderAlarmsUseCase,
+    private val updateAlarm: UpdateAlarmUseCase,
     private val zoneProvider: ZoneProvider,
     private val clock: Clock,
 ) : ViewModel() {
@@ -204,11 +224,15 @@ class OrderDetailViewModel @Inject constructor(
     private val dialog = MutableStateFlow<OrderDetailDialog?>(null)
     private val duplicateDate = MutableStateFlow<Long?>(null)
     private val shiftDialog = MutableStateFlow<ShiftDialogUi?>(null)
+    private val editing = MutableStateFlow<EditAlarmUi?>(null)
     private var shiftPreviewJob: Job? = null
 
     /** Set while the order is being deleted, so the screen does not flash "Esta rutina ya no existe". */
     private var leaving = false
     private var lastShown: OrderDetailUiState? = null
+
+    /** The plan as last shown, to fill the edit form with the stored wall-clock time (R-18.9). */
+    private var lastDetail: OrderDetail? = null
 
     /** Deleted alarms that can still be restored, by id; only lives while the screen does. */
     private val deleted = mutableMapOf<Long, AlarmItem>()
@@ -217,9 +241,16 @@ class OrderDetailViewModel @Inject constructor(
     val effects: Flow<OrderDetailEffect> = effectChannel.receiveAsFlow()
 
     val uiState: StateFlow<OrderDetailUiState> =
-        combine(observeOrderDetail(orderId), exactAllowed, dialog, duplicateDate, shiftDialog) { detail, exact, dialog, duplicateDate, shift ->
+        combine(
+            combine(observeOrderDetail(orderId), exactAllowed, ::Pair),
+            dialog,
+            duplicateDate,
+            shiftDialog,
+            editing,
+        ) { (detail, exact), dialog, duplicateDate, shift, edit ->
             val state = when {
-                detail != null -> toUiState(detail, exact).copy(dialog = dialog, duplicateDateMillis = duplicateDate, shiftDialog = shift)
+                detail != null -> toUiState(detail, exact)
+                    .copy(dialog = dialog, duplicateDateMillis = duplicateDate, shiftDialog = shift, editing = edit)
                 leaving -> lastShown?.copy(dialog = null) ?: OrderDetailUiState()
                 else -> OrderDetailUiState(isLoading = false, notFound = true)
             }
@@ -251,6 +282,11 @@ class OrderDetailViewModel @Inject constructor(
             is OrderDetailAction.ShiftMinutesChanged ->
                 shiftDialog.value?.let { updateShift(it.copy(minutes = action.text.filter(Char::isDigit).take(MINUTES_DIGITS))) }
             OrderDetailAction.ShiftConfirmed -> confirmShift()
+            is OrderDetailAction.EditClicked -> startEdit(action.alarmId)
+            is OrderDetailAction.EditChanged ->
+                editing.value = editing.value?.let { it.copy(form = it.form.copy(time = action.time, title = action.title, category = action.category)) }
+            OrderDetailAction.EditSaved -> saveEdit()
+            OrderDetailAction.EditDismissed -> editing.value = null
             OrderDetailAction.ShiftDismissed -> {
                 shiftPreviewJob?.cancel()
                 shiftDialog.value = null
@@ -327,6 +363,7 @@ class OrderDetailViewModel @Inject constructor(
     }
 
     private fun toUiState(detail: OrderDetail, exactAllowed: Boolean): OrderDetailUiState {
+        lastDetail = detail
         val highlighted = highlightAlarmId?.takeIf { id -> detail.timeline.any { it.alarm.id == id } }
         val multiDay = detail.span.isMultiDay
         var lastDay: LocalDate? = null
@@ -384,8 +421,47 @@ class OrderDetailViewModel @Inject constructor(
             status = alarm.status,
             isNext = alarm.id == detail.nextAlarmId,
             isHighlighted = alarm.id == highlighted,
+            canEdit = alarm.status == AlarmStatus.PENDING &&
+                (detail.order.status == OrderStatus.ACTIVE || detail.order.status == OrderStatus.PAUSED),
             dayTitle = dayTitle,
         )
+    }
+
+    private fun startEdit(alarmId: Long) {
+        val alarm = lastDetail?.timeline?.firstOrNull { it.alarm.id == alarmId }?.alarm ?: return
+        editing.value = EditAlarmUi(alarmId, ActivityForm(alarm.time.format(DateFormats.TIME), alarm.title, alarm.category))
+    }
+
+    /** Review rules (R-4.2) plus "Esa hora ya pasó" (R-18.10). */
+    private fun saveEdit() {
+        val edit = editing.value ?: return
+        viewModelScope.launch {
+            val form = edit.form
+            when (val result = updateAlarm(edit.alarmId, form.time, form.title, form.category)) {
+                is UpdateAlarmResult.Updated -> {
+                    editing.value = null
+                    if (result.titleTruncated) {
+                        effectChannel.send(
+                            OrderDetailEffect.ShowMessage(UiText.Res(R.string.review_title_truncated, listOf(DraftItemRules.MAX_TITLE_LENGTH))),
+                        )
+                    }
+                }
+                is UpdateAlarmResult.Invalid -> editing.value = edit.copy(
+                    form = form.copy(
+                        timeError = if (result.timeInvalid) UiText.Res(R.string.review_error_time) else null,
+                        titleError = if (result.titleBlank) UiText.Res(R.string.review_error_title_blank) else null,
+                        categoryError = when {
+                            result.categoryTooLong -> UiText.Res(R.string.review_error_category_long, listOf(DraftItemRules.MAX_CATEGORY_LENGTH))
+                            result.tooManyCategories -> UiText.Res(R.string.review_error_too_many_categories, listOf(DraftItemRules.MAX_CATEGORIES))
+                            else -> null
+                        },
+                    ),
+                )
+                UpdateAlarmResult.PastTime ->
+                    editing.value = edit.copy(form = form.copy(timeError = UiText.Res(R.string.alarm_edit_past), titleError = null, categoryError = null))
+                UpdateAlarmResult.NotEditable -> editing.value = null
+            }
+        }
     }
 
     /** Shows [dialog] at once, then fills in the preview for its minutes (R-18.2). */

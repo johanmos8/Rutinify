@@ -290,4 +290,7 @@
         <item quantity="one">%1$d alarm moved</item>
         <item quantity="other">%1$d alarms moved</item>
     </plurals>
+
+    <!-- Edit an alarm (R-18.9, R-18.10) -->
+    <string name="alarm_edit_past">That time has passed; choose a future time</string>
 </resources>

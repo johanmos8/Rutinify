@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.ui.orderdetail
 
+import com.mirkwood.rutinify.ui.common.EditActivityDialog
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.OutlinedTextField
@@ -147,6 +148,14 @@ fun OrderDetailScreen(
     }
     state.dialog?.let { ConfirmDialog(it, onAction) }
     state.shiftDialog?.let { ShiftDialog(it, onAction) }
+    state.editing?.let { edit ->
+        EditActivityDialog(
+            form = edit.form,
+            onChange = { time, title, category -> onAction(OrderDetailAction.EditChanged(time, title, category)) },
+            onSave = { onAction(OrderDetailAction.EditSaved) },
+            onDismiss = { onAction(OrderDetailAction.EditDismissed) },
+        )
+    }
     state.duplicateDateMillis?.let { millis ->
         RoutineDatePickerDialog(
             initialMillis = millis,
@@ -293,6 +302,7 @@ private fun Timeline(state: OrderDetailUiState, onAction: (OrderDetailAction) ->
                     item = item,
                     onMarkDone = { onAction(OrderDetailAction.MarkDone(item.id)) },
                     onDelete = { onAction(OrderDetailAction.Delete(item.id)) },
+                    onEdit = { onAction(OrderDetailAction.EditClicked(item.id)) },
                 )
             }
         }
@@ -373,6 +383,7 @@ private fun TimelineCard(
     item: TimelineItemUi,
     onMarkDone: () -> Unit,
     onDelete: () -> Unit,
+    onEdit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -411,6 +422,11 @@ private fun TimelineCard(
                 }
             }
             Row {
+                if (item.canEdit) {
+                    IconButton(onClick = onEdit) {
+                        Icon(painterResource(R.drawable.ic_edit), contentDescription = stringResource(R.string.review_edit_item, item.title))
+                    }
+                }
                 if (item.canMarkDone) {
                     IconButton(onClick = onMarkDone) {
                         Icon(painterResource(R.drawable.ic_check), contentDescription = stringResource(R.string.order_detail_mark_done, item.title))

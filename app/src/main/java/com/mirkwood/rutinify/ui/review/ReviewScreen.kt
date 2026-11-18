@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.ui.review
 
+import com.mirkwood.rutinify.ui.common.EditActivityDialog
+import com.mirkwood.rutinify.ui.common.ActivityForm
 import com.mirkwood.rutinify.ui.permissions.openExactAlarmSettings
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.compose.ui.platform.LocalContext
@@ -328,34 +330,11 @@ private fun DraftLost(onBack: () -> Unit, modifier: Modifier = Modifier) {
 
 @Composable
 private fun EditItemDialog(form: EditItemUi, onAction: (ReviewAction) -> Unit) {
-    fun changed(time: String = form.time, title: String = form.title, category: String = form.category) =
-        onAction(ReviewAction.EditChanged(time, title, category))
-
-    AlertDialog(
-        onDismissRequest = { onAction(ReviewAction.DismissEdit) },
-        title = { Text(stringResource(R.string.review_edit_title)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                FormField(form.time, { changed(time = it) }, R.string.review_field_time, form.timeError)
-                FormField(form.title, { changed(title = it) }, R.string.review_field_title, form.titleError)
-                FormField(form.category, { changed(category = it) }, R.string.review_field_category, form.categoryError)
-            }
-        },
-        confirmButton = { TextButton(onClick = { onAction(ReviewAction.SaveEdit) }) { Text(stringResource(R.string.action_save)) } },
-        dismissButton = { TextButton(onClick = { onAction(ReviewAction.DismissEdit) }) { Text(stringResource(R.string.action_cancel)) } },
-    )
-}
-
-@Composable
-private fun FormField(value: String, onValueChange: (String) -> Unit, label: Int, error: UiText?, modifier: Modifier = Modifier) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(stringResource(label)) },
-        isError = error != null,
-        supportingText = error?.let { { Text(it.asString()) } },
-        singleLine = true,
-        modifier = modifier.fillMaxWidth(),
+    EditActivityDialog(
+        form = ActivityForm(form.time, form.title, form.category, form.timeError, form.titleError, form.categoryError),
+        onChange = { time, title, category -> onAction(ReviewAction.EditChanged(time, title, category)) },
+        onSave = { onAction(ReviewAction.SaveEdit) },
+        onDismiss = { onAction(ReviewAction.DismissEdit) },
     )
 }
 

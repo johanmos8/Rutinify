@@ -291,4 +291,7 @@
         <item quantity="one">%1$d alarma movida</item>
         <item quantity="other">%1$d alarmas movidas</item>
     </plurals>
+
+    <!-- Edit an alarm (T-57, R-18.9, R-18.10) -->
+    <string name="alarm_edit_past">Esa hora ya pasó; elige una hora futura</string>
 </resources>

@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.data.repository
 
+import java.time.LocalTime
 import com.mirkwood.rutinify.domain.model.AlarmScheduleUpdate
 import com.mirkwood.rutinify.data.local.RutinifyDatabase
 import androidx.room.withTransaction
@@ -40,6 +41,11 @@ class AlarmRepositoryImpl @Inject constructor(
             updates.forEach { alarmDao.updateSchedule(it.alarmId, it.time, it.dayOffset, it.snoozedUntil) }
         }
     }
+
+    override suspend fun getByOrder(orderId: Long): List<AlarmItem> = alarmDao.getByOrder(orderId).map { it.toDomain() }
+
+    override suspend fun updateDetails(alarmId: Long, time: LocalTime, title: String, category: String) =
+        alarmDao.updateDetails(alarmId, time, title, category)
 
     override suspend fun delete(alarmId: Long) = alarmDao.delete(alarmId)
 
