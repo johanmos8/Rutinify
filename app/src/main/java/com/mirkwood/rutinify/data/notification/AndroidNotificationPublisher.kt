@@ -51,7 +51,10 @@ class AndroidNotificationPublisher @Inject constructor(
         if (!canNotify()) return false
         if (notification.critical) ensureCriticalChannels() else ensureChannels(listOf(notification.category))
         return try {
-            manager.notify(TAG, notification.alarmId.toInt(), build(notification))
+            val built = build(notification)
+            manager.notify(TAG, notification.alarmId.toInt(), built)
+            // After the alarm, so it is already in the group when the summary appears (K-13)
+            postSummary(built.channelId)
             true
         } catch (e: SecurityException) {
             // Permission revoked between the check and the call (R-7.8)
@@ -62,12 +65,36 @@ class AndroidNotificationPublisher @Inject constructor(
 
     override fun cancel(alarmId: Long) {
         manager.cancel(TAG, alarmId.toInt())
+        removeSummaryIfEmpty()
     }
 
     override fun cancelForOrder(orderId: Long) {
         manager.activeNotifications
             .filter { it.tag == TAG && it.notification.extras.getLong(EXTRA_ORDER_ID, NO_ORDER) == orderId }
             .forEach { manager.cancel(TAG, it.id) }
+        removeSummaryIfEmpty()
+    }
+
+    /**
+     * K-13, D-87: Android 16 groups two or more ungrouped notifications of an app by itself and marks them silent,
+     * so a second alarm would not ring. Our own group with a summary keeps the system from regrouping them; the
+     * summary never alerts (`GROUP_ALERT_CHILDREN`) and each alarm rings on its own channel.
+     */
+    private fun postSummary(channelId: String) {
+        val summary = NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(context.getString(R.string.app_name))
+            .setGroup(ALARM_GROUP)
+            .setGroupSummary(true)
+            .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_CHILDREN)
+            .setOnlyAlertOnce(true)
+            .setAutoCancel(true)
+            .build()
+        manager.notify(TAG_SUMMARY, SUMMARY_ID, summary)
+    }
+
+    private fun removeSummaryIfEmpty() {
+        if (manager.activeNotifications.none { it.tag == TAG }) manager.cancel(TAG_SUMMARY, SUMMARY_ID)
     }
 
     private fun canNotify(): Boolean = notificationsAllowed(context, manager)
@@ -132,6 +159,8 @@ class AndroidNotificationPublisher @Inject constructor(
             .addAction(NotificationCompat.Action.Builder(null, done, pendingIntents.done(n.alarmId)).build())
             .addAction(NotificationCompat.Action.Builder(null, snooze, pendingIntents.snooze(n.alarmId)).build())
             .addExtras(Bundle().apply { putLong(EXTRA_ORDER_ID, n.orderId) })
+            .setGroup(ALARM_GROUP)
+            .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_CHILDREN)
         if (ringing) {
             val silence = context.getString(R.string.notification_action_silence)
             builder
@@ -149,6 +178,11 @@ class AndroidNotificationPublisher @Inject constructor(
         /** Notification id = alarm id, with this tag (design §6.1). */
         const val TAG = "alarm"
         const val GROUP_ID = "routines"
+
+        /** Notification group of every alarm, with one summary (K-13, D-87); not the channel group [GROUP_ID]. */
+        const val ALARM_GROUP = "com.mirkwood.rutinify.ALARMS"
+        const val TAG_SUMMARY = "alarm_summary"
+        const val SUMMARY_ID = 0
         const val CHANNEL_CRITICAL = "alarm_critical"
         const val CHANNEL_CRITICAL_SILENT = "alarm_critical_silent"
         const val EXTRA_ORDER_ID = "com.mirkwood.rutinify.extra.ORDER_ID"

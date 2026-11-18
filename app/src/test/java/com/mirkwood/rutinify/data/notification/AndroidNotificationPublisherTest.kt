@@ -301,6 +301,63 @@ class AndroidNotificationPublisherTest {
         assertThat(notification.flags and Notification.FLAG_INSISTENT).isEqualTo(0)
         assertThat(notification.fullScreenIntent).isNull()
         assertThat(notification.actions.map { it.title.toString() }).containsExactly("Hecho", "+5 min").inOrder()
-        assertThat(shadowManager.allNotifications).hasSize(1)
+        // Replaced in place: still one alarm notification (plus the group summary, D-87)
+        assertThat(shadowManager.allNotifications.count { it.flags and Notification.FLAG_GROUP_SUMMARY == 0 }).isEqualTo(1)
+    }
+
+    private fun summary(): Notification? = shadowManager.getNotification("alarm_summary", 0)
+
+    @Test
+    fun `cada alarma va en el grupo propio de Rutinify y deja sonar a cada una`() { // K-13, D-87
+        publisher.publish(siesta)
+        publisher.publish(siesta.copy(alarmId = 43L, critical = true))
+
+        listOf(42L, 43L).forEach { id ->
+            val child = requireNotNull(shown(id))
+            assertThat(child.group).isEqualTo("com.mirkwood.rutinify.ALARMS")
+            assertThat(child.groupAlertBehavior).isEqualTo(Notification.GROUP_ALERT_CHILDREN)
+            assertThat(child.flags and Notification.FLAG_GROUP_SUMMARY).isEqualTo(0)
+        }
+    }
+
+    @Test
+    fun `publica un resumen mudo del grupo para que Android no lo agrupe por su cuenta`() { // K-13, D-87
+        publisher.publish(siesta)
+
+        val summary = requireNotNull(summary())
+        assertThat(summary.group).isEqualTo("com.mirkwood.rutinify.ALARMS")
+        assertThat(summary.flags and Notification.FLAG_GROUP_SUMMARY).isNotEqualTo(0)
+        // The summary never alerts: only the alarms themselves ring
+        assertThat(summary.groupAlertBehavior).isEqualTo(Notification.GROUP_ALERT_CHILDREN)
+        assertThat(summary.flags and Notification.FLAG_INSISTENT).isEqualTo(0)
+    }
+
+    @Test
+    fun `al quitar la ultima alarma quita tambien el resumen`() { // K-13, R-7.4
+        publisher.publish(siesta)
+        publisher.publish(siesta.copy(alarmId = 43L))
+
+        publisher.cancel(42L)
+        assertThat(summary()).isNotNull()
+
+        publisher.cancel(43L)
+        assertThat(summary()).isNull()
+    }
+
+    @Test
+    fun `cancelar un plan entero quita el resumen si no queda ninguna alarma`() { // K-13, R-10.2
+        publisher.publish(siesta)
+        publisher.publish(siesta.copy(alarmId = 43L))
+
+        publisher.cancelForOrder(3L)
+
+        assertThat(shadowManager.allNotifications).isEmpty()
+    }
+
+    @Test
+    fun `cancelar sin nada mostrado no deja un resumen huerfano`() { // K-13
+        publisher.cancel(42L)
+
+        assertThat(summary()).isNull()
     }
 }

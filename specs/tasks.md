@@ -240,6 +240,7 @@
   - Tests de VM y de receiver; previews claro/oscuro.
   - ✅ "Silenciar" deja la alarma *Disparada* con notificación muda; a los 10 min se silencia sola.
   - _Hecho:_ `AlarmActivity` + `AlarmViewModel` (hora, título, descripción, plan y los tres botones); `SilenceAlarmUseCase` vuelve a publicar en `alarm_critical_silent`; el corte lo programa `HandleAlarmFiredUseCase` y lo cancelan "Hecho", "+5 min" y "Silenciar"; `SilencedAlarms` cierra la pantalla si se silencia desde fuera (D-86). 25 tests nuevos (639 en verde), previews claro/oscuro. En el emulador, con la pantalla apagada: la pantalla se encendió con la alarma; "Silenciar" la cerró y dejó la notificación muda con dos botones; sin tocar nada, a los 10 min pasó sola al canal mudo. Encontrado K-13: con otra notificación de la app en la bandeja, Android 16 la agrupa y no suena.
+  - _Arreglo K-13:_ grupo de notificaciones propio con resumen mudo (D-87); 5 tests nuevos (644 en verde).
 - [ ] **T-47 · Permiso de pantalla completa y fallback** — (R-15.11)
   - `USE_FULL_SCREEN_INTENT` (ya declarado en T-46, D-86); `canUseFullScreenIntent()` en cada disparo; fila en *Permisos* con `ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT` (D-68).
   - Tests de `PermissionChecker` y del publicador con y sin permiso.
