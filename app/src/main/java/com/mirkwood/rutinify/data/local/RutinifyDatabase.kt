@@ -6,9 +6,9 @@ import androidx.room.TypeConverters
 
 /** Local database: source of truth for orders and alarms (design §1, §5). Schema in `app/schemas/`. */
 @Database(
-    entities = [RoutineOrderEntity::class, AlarmItemEntity::class, CategorySettingEntity::class, DiagnosticCounterEntity::class],
+    entities = [RoutineOrderEntity::class, AlarmItemEntity::class, CategorySettingEntity::class, DiagnosticCounterEntity::class, AlarmEventEntity::class],
     // Versions and their migrations: design D-83 and `Migrations`
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)

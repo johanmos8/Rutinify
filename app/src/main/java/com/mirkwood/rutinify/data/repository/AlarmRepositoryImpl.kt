@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.data.repository
 
+import com.mirkwood.rutinify.domain.model.AlarmEventType
+import com.mirkwood.rutinify.domain.model.AlarmEvent
 import java.time.LocalTime
 import com.mirkwood.rutinify.domain.model.AlarmScheduleUpdate
 import com.mirkwood.rutinify.data.local.RutinifyDatabase
@@ -29,11 +31,28 @@ class AlarmRepositoryImpl @Inject constructor(
 
     override suspend fun updateStatus(alarmIds: List<Long>, status: AlarmStatus) {
         if (alarmIds.isEmpty()) return
-        alarmDao.updateStatus(alarmIds, status, clock.instant())
+        val now = clock.instant()
+        val event = when (status) {
+            AlarmStatus.DONE -> AlarmEventType.DONE
+            AlarmStatus.SKIPPED -> AlarmEventType.SKIPPED
+            else -> null
+        }
+        db.withTransaction {
+            alarmDao.updateStatus(alarmIds, status, now)
+            if (event != null) alarmDao.insertEvents(alarmIds, event, now)
+        }
     }
 
-    override suspend fun snooze(alarmId: Long, until: Instant) =
-        alarmDao.snooze(alarmId, until, clock.instant())
+    override suspend fun snooze(alarmId: Long, until: Instant) {
+        val now = clock.instant()
+        db.withTransaction {
+            alarmDao.snooze(alarmId, until, now)
+            alarmDao.insertEvents(listOf(alarmId), AlarmEventType.SNOOZED, now)
+        }
+    }
+
+    override suspend fun getEventsByOrder(orderId: Long): List<AlarmEvent> =
+        alarmDao.getEventsByOrder(orderId).map { AlarmEvent(it.alarmId, it.orderId, it.type, it.at) }
 
     override suspend fun updateSchedules(updates: List<AlarmScheduleUpdate>) {
         if (updates.isEmpty()) return

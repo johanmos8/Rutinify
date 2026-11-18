@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.domain.repository
 
+import com.mirkwood.rutinify.domain.model.AlarmEvent
 import java.time.LocalTime
 import com.mirkwood.rutinify.domain.model.AlarmScheduleUpdate
 import com.mirkwood.rutinify.domain.model.AlarmItem
@@ -16,14 +17,20 @@ interface AlarmRepository {
 
     suspend fun getPendingByOrder(orderId: Long): List<AlarmItem>
 
-    /** Changes the status of several alarms at once, using the current time as the change time. */
+    /**
+     * Changes the status of several alarms at once, using the current time as the change time. DONE and SKIPPED also
+     * write their history event in the same transaction (R-20.1, D-77).
+     */
     suspend fun updateStatus(alarmIds: List<Long>, status: AlarmStatus)
 
-    /** Back to PENDING with an absolute trigger instant (R-7.5, D-12). */
+    /** Back to PENDING with an absolute trigger instant (R-7.5, D-12), and a SNOOZED event (R-20.1). */
     suspend fun snooze(alarmId: Long, until: Instant)
 
     /** Rewrites time, day and snooze of pending alarms in one transaction; non-pending ones are left alone (D-73). */
     suspend fun updateSchedules(updates: List<AlarmScheduleUpdate>)
+
+    /** History of [orderId], oldest first (R-20.1). */
+    suspend fun getEventsByOrder(orderId: Long): List<AlarmEvent>
 
     /** Every alarm of [orderId], in any status. */
     suspend fun getByOrder(orderId: Long): List<AlarmItem>

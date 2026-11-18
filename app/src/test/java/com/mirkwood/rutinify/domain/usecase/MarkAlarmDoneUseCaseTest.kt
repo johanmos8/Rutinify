@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.domain.usecase
 
+import com.mirkwood.rutinify.domain.model.AlarmEventType
 import com.google.common.truth.Truth.assertThat
 import com.mirkwood.rutinify.domain.model.AlarmStatus
 import com.mirkwood.rutinify.domain.scheduler.AlarmNotification
@@ -102,5 +103,14 @@ class MarkAlarmDoneUseCaseTest {
         markDone(10L)
 
         assertThat(scheduler.silences).isEmpty()
+    }
+
+    @Test
+    fun `Hecho deja su evento en el historial`() = runTest { // R-20.1
+        alarms.add(testAlarm(id = 10L, status = AlarmStatus.FIRED))
+
+        markDone(10L)
+
+        assertThat(alarms.events.map { it.type }).containsExactly(AlarmEventType.DONE)
     }
 }

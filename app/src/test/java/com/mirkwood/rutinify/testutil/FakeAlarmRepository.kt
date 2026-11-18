@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.testutil
 
+import com.mirkwood.rutinify.domain.model.AlarmEventType
+import com.mirkwood.rutinify.domain.model.AlarmEvent
 import java.time.LocalTime
 import com.mirkwood.rutinify.domain.model.AlarmItem
 import com.mirkwood.rutinify.domain.model.AlarmScheduleUpdate
@@ -18,6 +20,9 @@ class FakeAlarmRepository(
 
     val alarms = linkedMapOf<Long, AlarmItem>()
 
+    /** History written by [updateStatus] and [snooze], like the real repository (D-77). */
+    val events = mutableListOf<AlarmEvent>()
+
     fun add(vararg items: AlarmItem) = items.forEach { alarms[it.id] = it }
 
     override suspend fun getById(alarmId: Long): AlarmItem? = alarms[alarmId]
@@ -31,6 +36,12 @@ class FakeAlarmRepository(
 
     override suspend fun updateStatus(alarmIds: List<Long>, status: AlarmStatus) {
         val now = clock.instant()
+        val type = when (status) {
+            AlarmStatus.DONE -> AlarmEventType.DONE
+            AlarmStatus.SKIPPED -> AlarmEventType.SKIPPED
+            else -> null
+        }
+        if (type != null) alarmIds.mapNotNull { alarms[it] }.forEach { events += AlarmEvent(it.id, it.orderId, type, now) }
         alarmIds.forEach { id ->
             alarms[id]?.let { alarm ->
                 alarms[id] = alarm.copy(
@@ -44,6 +55,7 @@ class FakeAlarmRepository(
     }
 
     override suspend fun snooze(alarmId: Long, until: Instant) {
+        alarms[alarmId]?.let { events += AlarmEvent(it.id, it.orderId, AlarmEventType.SNOOZED, clock.instant()) }
         alarms[alarmId]?.let {
             alarms[alarmId] = it.copy(status = AlarmStatus.PENDING, snoozedUntil = until, statusChangedAt = clock.instant())
         }
@@ -56,6 +68,8 @@ class FakeAlarmRepository(
             }
         }
     }
+
+    override suspend fun getEventsByOrder(orderId: Long): List<AlarmEvent> = events.filter { it.orderId == orderId }
 
     override suspend fun getByOrder(orderId: Long): List<AlarmItem> = alarms.values.filter { it.orderId == orderId }
 

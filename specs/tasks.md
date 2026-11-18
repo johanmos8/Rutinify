@@ -317,9 +317,10 @@
   - Tests de VM del filtro (con y sin `assignee`, "Todas" restaura).
   - ✅ El manifiesto no gana `CAMERA` ni `INTERNET`.
   - _Hecho:_ "Escanear QR" en *Nueva rutina* con Google code scanner (sin `CAMERA`; el `INTERNET` que trae la librería se quita del manifiesto, D-75) y filtro "Solo las tareas de…" en *Revisión* (D-76). 8 tests nuevos (742 en verde), preview del filtro. En el emulador, "Escanear QR" abre el escáner de Google ("Scanned by Google on behalf of Rutinify").
-- [ ] **T-61 · Eventos del historial** — (R-20.1)
+- [x] **T-61 · Eventos del historial** — (R-20.1)
   - Room v4: `alarm_event` con migración que crea eventos desde `done_at` y *Omitidas* (D-77, D-83); escritura en la misma transacción que el estado.
   - ✅ Test de migración y de cada use case que escribe eventos.
+  - _Hecho:_ Room v4 con `alarm_event` y `Migration(3, 4)` que rellena desde `done_at` y las *Omitidas*; eventos en la misma transacción que el estado (D-77). 6 tests nuevos (748 en verde): migración, repositorio, cascada al borrar el plan y "Hecho", "+5 min" y reanudar. En el emulador, instalar encima migró la base a la versión 4 con los 20 planes y 28 eventos rellenados.
 - [ ] **T-62 · Resumen y exportación** — (R-20.2–R-20.6)
   - `BuildHistoryReportUseCase` (TDD); texto; PDF con `PdfDocument` y `FileProvider` (D-78).
   - ✅ "19 de 21 hechas" correcto con canceladas, omitidas y pospuestas; PDF abre en un visor.

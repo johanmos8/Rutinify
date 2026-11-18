@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.data.local
 
+import com.mirkwood.rutinify.domain.model.AlarmEventType
 import androidx.room.TypeConverter
 import com.mirkwood.rutinify.domain.model.AlarmStatus
 import com.mirkwood.rutinify.domain.model.OrderStatus
@@ -10,6 +11,12 @@ import java.time.format.DateTimeFormatter
 
 /** Room type converters (design §5). ISO dates sort correctly as text. */
 class Converters {
+
+    @TypeConverter
+    fun alarmEventTypeToString(value: AlarmEventType?): String? = value?.name
+
+    @TypeConverter
+    fun stringToAlarmEventType(value: String?): AlarmEventType? = value?.let(AlarmEventType::valueOf)
 
     @TypeConverter
     fun localDateToString(value: LocalDate?): String? = value?.toString()

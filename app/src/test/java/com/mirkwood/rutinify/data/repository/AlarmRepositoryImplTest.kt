@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.data.repository
 
+import com.mirkwood.rutinify.domain.model.AlarmEventType
+import com.mirkwood.rutinify.domain.model.AlarmEvent
 import java.time.LocalTime
 import com.mirkwood.rutinify.domain.model.AlarmScheduleUpdate
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -140,5 +142,33 @@ class AlarmRepositoryImplTest {
         assertThat(moved.dayOffset).isEqualTo(1)
         assertThat(moved.snoozedUntil).isEqualTo(until)
         assertThat(repository.getById(done)?.dayOffset).isEqualTo(0)
+    }
+
+    @Test
+    fun `hecho omitida y pospuesta dejan su evento con la hora del reloj`() = runTest { // R-20.1, D-77
+        val (done, skipped, snoozed, fired) = insertOrderWithAlarms(AlarmStatus.PENDING, AlarmStatus.PENDING, AlarmStatus.FIRED, AlarmStatus.PENDING)
+        val orderId = requireNotNull(repository.getById(done)).orderId
+
+        repository.updateStatus(listOf(done), AlarmStatus.DONE)
+        repository.updateStatus(listOf(skipped), AlarmStatus.SKIPPED)
+        repository.snooze(snoozed, now.plusSeconds(300))
+        repository.updateStatus(listOf(fired), AlarmStatus.FIRED)
+
+        assertThat(repository.getEventsByOrder(orderId)).containsExactly(
+            AlarmEvent(done, orderId, AlarmEventType.DONE, now),
+            AlarmEvent(skipped, orderId, AlarmEventType.SKIPPED, now),
+            AlarmEvent(snoozed, orderId, AlarmEventType.SNOOZED, now),
+        ).inOrder()
+    }
+
+    @Test
+    fun `borrar el plan borra su historial`() = runTest { // D-77
+        val id = insertOrderWithAlarms(AlarmStatus.PENDING).single()
+        val orderId = requireNotNull(repository.getById(id)).orderId
+        repository.updateStatus(listOf(id), AlarmStatus.DONE)
+
+        db.orderDao().delete(orderId)
+
+        assertThat(repository.getEventsByOrder(orderId)).isEmpty()
     }
 }

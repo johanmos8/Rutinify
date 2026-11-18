@@ -93,7 +93,7 @@ class MigrationsTest {
     @Test
     fun `de 1 a la ultima version los planes siguen igual`() = runTest { // D-83
         createV1()
-        helper.runMigrationsAndValidate(dbName, 3, true, *Migrations.ALL).close()
+        helper.runMigrationsAndValidate(dbName, 4, true, *Migrations.ALL).close()
 
         val db = Room.databaseBuilder(ApplicationProvider.getApplicationContext(), RutinifyDatabase::class.java, dbName)
             .addMigrations(*Migrations.ALL)
@@ -106,6 +106,35 @@ class MigrationsTest {
             assertThat(db.diagnosticCounterDao().getAll()).isEmpty()
         } finally {
             db.close()
+        }
+    }
+
+    @Test
+    fun `de 3 a 4 crea el historial con las hechas y las omitidas`() { // R-20.1, D-77, D-83
+        helper.createDatabase(dbName, 3).use { db ->
+            db.execSQL(
+                "INSERT INTO routine_order (id, name, date, notes, status, schema_version, raw_json, created_at, updated_at) " +
+                    "VALUES (1, 'Cachorro', '2026-11-16', NULL, 'ACTIVE', 1, NULL, 0, 0)",
+            )
+            listOf(
+                "(10, 1, 0, '06:00', 0, 'Pis', NULL, NULL, 'paseo', NULL, 'DONE', NULL, 100, 200, 200)",
+                "(11, 1, 1, '07:00', 0, 'Comida', NULL, NULL, 'comida', NULL, 'SKIPPED', NULL, NULL, NULL, 300)",
+                "(12, 1, 2, '08:00', 0, 'Siesta', NULL, NULL, 'siesta', NULL, 'PENDING', NULL, NULL, NULL, 0)",
+            ).forEach { row ->
+                db.execSQL(
+                    "INSERT INTO alarm_item (id, order_id, position, time, day_offset, title, description, duration_min, category, " +
+                        "assignee, status, snoozed_until, fired_at, done_at, status_changed_at) VALUES $row",
+                )
+            }
+        }
+
+        helper.runMigrationsAndValidate(dbName, 4, true, Migrations.MIGRATION_3_4).use { db ->
+            db.query("SELECT alarm_id, type, at FROM alarm_event ORDER BY alarm_id").use { cursor ->
+                val rows = buildList {
+                    while (cursor.moveToNext()) add(Triple(cursor.getLong(0), cursor.getString(1), cursor.getLong(2)))
+                }
+                assertThat(rows).containsExactly(Triple(10L, "DONE", 200L), Triple(11L, "SKIPPED", 300L)).inOrder()
+            }
         }
     }
 }

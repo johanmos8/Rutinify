@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.data.local
 
+import com.mirkwood.rutinify.domain.model.AlarmEventType
 import java.time.LocalTime
 import androidx.room.Dao
 import androidx.room.Insert
@@ -80,6 +81,13 @@ interface AlarmItemDao {
         """,
     )
     suspend fun updateDetails(id: Long, time: LocalTime, title: String, category: String)
+
+    /** One event per alarm in [ids], with its plan (R-20.1, D-77). */
+    @Query("INSERT INTO alarm_event (alarm_id, order_id, type, at) SELECT id, order_id, :type, :at FROM alarm_item WHERE id IN (:ids)")
+    suspend fun insertEvents(ids: List<Long>, type: AlarmEventType, at: Instant)
+
+    @Query("SELECT * FROM alarm_event WHERE order_id = :orderId ORDER BY at, id")
+    suspend fun getEventsByOrder(orderId: Long): List<AlarmEventEntity>
 
     @Query("DELETE FROM alarm_item WHERE id = :id")
     suspend fun delete(id: Long)

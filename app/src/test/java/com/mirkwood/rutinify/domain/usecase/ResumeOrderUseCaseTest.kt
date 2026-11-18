@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.domain.usecase
 
+import com.mirkwood.rutinify.domain.model.AlarmEventType
 import com.mirkwood.rutinify.domain.scheduler.CriticalAlarm
 import com.google.common.truth.Truth.assertThat
 import com.mirkwood.rutinify.domain.model.AlarmStatus
@@ -132,5 +133,15 @@ class ResumeOrderUseCaseTest {
 
         assertThat(scheduler.critical).containsExactly(11L, CriticalAlarm(orderId = 1L))
         assertThat(scheduler.scheduled.keys).containsExactly(11L, 12L)
+    }
+
+    @Test
+    fun `las omitidas al reanudar quedan en el historial`() = runTest { // R-20.1, R-10.6
+        orders.add(testOrder(id = 1, date = date, status = OrderStatus.PAUSED))
+        alarms.add(testAlarm(id = 10, time = LocalTime.of(6, 0)), testAlarm(id = 11, time = LocalTime.of(9, 0)))
+
+        resume(1)
+
+        assertThat(alarms.events.map { it.alarmId to it.type }).containsExactly(10L to AlarmEventType.SKIPPED)
     }
 }

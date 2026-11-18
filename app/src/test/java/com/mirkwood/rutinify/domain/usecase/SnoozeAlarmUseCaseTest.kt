@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.domain.usecase
 
+import com.mirkwood.rutinify.domain.model.AlarmEventType
 import com.mirkwood.rutinify.domain.scheduler.CriticalAlarm
 import com.google.common.truth.Truth.assertThat
 import com.mirkwood.rutinify.domain.model.AlarmStatus
@@ -148,5 +149,15 @@ class SnoozeAlarmUseCaseTest {
         snooze(10L)
 
         assertThat(scheduler.silences).isEmpty()
+    }
+
+    @Test
+    fun `posponer deja su evento en el historial`() = runTest { // R-20.1
+        orders.add(testOrder(id = 1L))
+        alarms.add(testAlarm(id = 10L, orderId = 1L, status = AlarmStatus.FIRED))
+
+        snooze(10L)
+
+        assertThat(alarms.events.map { it.type }).containsExactly(AlarmEventType.SNOOZED)
     }
 }
