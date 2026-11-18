@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.domain.usecase
 
+import com.mirkwood.rutinify.domain.diagnostics.DiagnosticEvent
+import com.mirkwood.rutinify.testutil.FakeDiagnosticsRecorder
 import com.mirkwood.rutinify.domain.scheduler.CriticalAlarm
 import com.google.common.truth.Truth.assertThat
 import com.mirkwood.rutinify.domain.model.AlarmStatus
@@ -38,6 +40,7 @@ class ScheduleOrderUseCaseTest {
     private val alarms = FakeAlarmRepository(clock) { orders.activeDate(it) }.also { orders.alarmRepository = it }
     private val scheduler = FakeAlarmScheduler()
     private val categories = FakeCategorySettingsRepository()
+    private val diagnostics = FakeDiagnosticsRecorder()
     private val publisher = FakeNotificationPublisher()
     private val scheduleOrder = ScheduleOrderUseCase(
         orders = orders,
@@ -50,6 +53,7 @@ class ScheduleOrderUseCaseTest {
         zoneProvider = { bogota },
         clock = clock,
         lock = AlarmMutationLock(),
+        diagnostics = diagnostics,
     )
 
     /** 06:45 (already past at 12:00), 13:00 paseo, 18:00, 22:30 and 02:00 (+1 day). Keys 0..4. */
@@ -281,5 +285,19 @@ class ScheduleOrderUseCaseTest {
         val paseo = newOrderAlarms(result.orderId).single { it.category == "paseo" }
         assertThat(scheduler.critical).containsExactly(paseo.id, CriticalAlarm(result.orderId))
         assertThat(result.scheduledCount).isEqualTo(4)
+    }
+
+    @Test
+    fun `al programar cuenta el paso y el plan creado`() = runTest { // R-17.2, R-17.3
+        schedule()
+
+        assertThat(diagnostics.events).containsExactly(DiagnosticEvent.Step.SCHEDULED, DiagnosticEvent.PlanCreated).inOrder()
+    }
+
+    @Test
+    fun `si no se programa nada no cuenta`() = runTest { // R-17.3
+        schedule(excluded = setOf(0, 1, 2, 3, 4))
+
+        assertThat(diagnostics.events).isEmpty()
     }
 }

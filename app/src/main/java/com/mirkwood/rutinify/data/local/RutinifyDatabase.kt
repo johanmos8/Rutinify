@@ -6,9 +6,9 @@ import androidx.room.TypeConverters
 
 /** Local database: source of truth for orders and alarms (design §1, §5). Schema in `app/schemas/`. */
 @Database(
-    entities = [RoutineOrderEntity::class, AlarmItemEntity::class, CategorySettingEntity::class],
+    entities = [RoutineOrderEntity::class, AlarmItemEntity::class, CategorySettingEntity::class, DiagnosticCounterEntity::class],
     // Versions and their migrations: design D-83 and `Migrations`
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -19,6 +19,8 @@ abstract class RutinifyDatabase : RoomDatabase() {
     abstract fun alarmItemDao(): AlarmItemDao
 
     abstract fun categorySettingDao(): CategorySettingDao
+
+    abstract fun diagnosticCounterDao(): DiagnosticCounterDao
 
     companion object {
         const val NAME = "rutinify.db"

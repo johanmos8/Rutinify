@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.domain.usecase
 
+import com.mirkwood.rutinify.domain.diagnostics.DiagnosticsRecorder
+import com.mirkwood.rutinify.domain.diagnostics.DiagnosticEvent
 import com.mirkwood.rutinify.domain.model.AlarmStatus
 import com.mirkwood.rutinify.domain.model.NewAlarm
 import com.mirkwood.rutinify.domain.model.NewOrder
@@ -52,6 +54,7 @@ class ScheduleOrderUseCase @Inject constructor(
     private val zoneProvider: ZoneProvider,
     private val clock: Clock,
     private val lock: AlarmMutationLock,
+    private val diagnostics: DiagnosticsRecorder,
 ) {
 
     suspend operator fun invoke(
@@ -106,6 +109,9 @@ class ScheduleOrderUseCase @Inject constructor(
             .filter { it.status == AlarmStatus.PENDING }
             .map { scheduler.schedule(it.id, calculator.triggerAt(date, it.time, it.dayOffset, zone), it.criticalIn(critical)) }
 
+        // R-17.2, R-17.3: no-op unless the user turned diagnostics on
+        diagnostics.record(DiagnosticEvent.Step.SCHEDULED)
+        diagnostics.record(DiagnosticEvent.PlanCreated)
         ScheduleOrderResult.Scheduled(
             orderId = created.order.id,
             scheduledCount = modes.size,

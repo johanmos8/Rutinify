@@ -77,4 +77,35 @@ class MigrationsTest {
             db.close()
         }
     }
+
+    @Test
+    fun `de 2 a 3 crea la tabla de diagnostico vacia`() { // R-17.2, D-72, D-83
+        helper.createDatabase(dbName, 2).close()
+
+        helper.runMigrationsAndValidate(dbName, 3, true, Migrations.MIGRATION_2_3).use { db ->
+            db.query("SELECT COUNT(*) FROM diagnostic_counter").use { cursor ->
+                cursor.moveToFirst()
+                assertThat(cursor.getInt(0)).isEqualTo(0)
+            }
+        }
+    }
+
+    @Test
+    fun `de 1 a la ultima version los planes siguen igual`() = runTest { // D-83
+        createV1()
+        helper.runMigrationsAndValidate(dbName, 3, true, *Migrations.ALL).close()
+
+        val db = Room.databaseBuilder(ApplicationProvider.getApplicationContext(), RutinifyDatabase::class.java, dbName)
+            .addMigrations(*Migrations.ALL)
+            .allowMainThreadQueries()
+            .build()
+        try {
+            val row = requireNotNull(db.orderDao().observeWithAlarms(1).first())
+            assertThat(row.order.name).isEqualTo("Antibiótico")
+            assertThat(row.alarms.single().status).isEqualTo(AlarmStatus.PENDING)
+            assertThat(db.diagnosticCounterDao().getAll()).isEmpty()
+        } finally {
+            db.close()
+        }
+    }
 }

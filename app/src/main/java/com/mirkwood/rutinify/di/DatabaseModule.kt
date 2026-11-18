@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.di
 
+import com.mirkwood.rutinify.data.local.DiagnosticCounterDao
 import android.content.Context
 import androidx.room.Room
 import com.mirkwood.rutinify.data.local.AlarmItemDao
@@ -33,4 +34,7 @@ object DatabaseModule {
 
     @Provides
     fun provideCategorySettingDao(db: RutinifyDatabase): CategorySettingDao = db.categorySettingDao()
+
+    @Provides
+    fun provideDiagnosticCounterDao(db: RutinifyDatabase): DiagnosticCounterDao = db.diagnosticCounterDao()
 }

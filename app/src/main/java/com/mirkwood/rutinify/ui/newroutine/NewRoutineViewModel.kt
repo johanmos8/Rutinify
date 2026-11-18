@@ -1,5 +1,8 @@
 package com.mirkwood.rutinify.ui.newroutine
 
+import com.mirkwood.rutinify.domain.importer.Severity
+import com.mirkwood.rutinify.domain.diagnostics.DiagnosticsRecorder
+import com.mirkwood.rutinify.domain.diagnostics.DiagnosticEvent
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -77,6 +80,7 @@ class NewRoutineViewModel @Inject constructor(
     private val sharedTextInbox: SharedTextInbox,
     private val textSharer: TextSharer,
     private val scenarioStore: TemplateScenarioStore,
+    private val diagnostics: DiagnosticsRecorder,
 ) : ViewModel() {
 
     /** Everything except the text, which lives in [savedStateHandle] (R-2.5). */
@@ -89,6 +93,7 @@ class NewRoutineViewModel @Inject constructor(
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NewRoutineUiState(text = currentText()))
 
     init {
+        viewModelScope.launch { diagnostics.record(DiagnosticEvent.Step.NEW_ROUTINE) } // R-17.2
         showScenario(scenarioStore.last() ?: TemplateScenario.GENERIC)
         receiveSharedText()
     }
@@ -180,14 +185,19 @@ class NewRoutineViewModel @Inject constructor(
         if (text.isBlank() || local.value.isValidating) return
         local.update { it.copy(isValidating = true, issues = emptyList()) }
         viewModelScope.launch {
+            diagnostics.record(DiagnosticEvent.Step.VALIDATE)
             when (val result = importer.import(text)) {
                 is ImportResult.Success -> {
                     draftStore.put(DraftEntry(result.draft, result.warnings))
                     local.update { it.copy(isValidating = false) }
                     effectChannel.send(NewRoutineEffect.NavigateToReview(result.draft.id))
                 }
-                is ImportResult.Failure ->
+                is ImportResult.Failure -> {
                     local.update { it.copy(isValidating = false, issues = ErrorMessages.list(result.issues)) }
+                    // R-17.2: once per kind of error in this validation
+                    result.issues.filter { it.severity == Severity.ERROR }.map { it.kind }.distinct()
+                        .forEach { diagnostics.record(DiagnosticEvent.ValidationFailed(it)) }
+                }
             }
         }
     }

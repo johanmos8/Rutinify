@@ -266,10 +266,11 @@
 
 > Sin funciones nuevas de producto salvo el diagnóstico opcional. Mide si el foco de D-62 funciona.
 
-- [ ] **T-51 · Contadores de diagnóstico** — (R-17.1–R-17.4, R-17.7)
+- [x] **T-51 · Contadores de diagnóstico** — (R-17.1–R-17.4, R-17.7)
   - Room v3: `diagnostic_counter` con migración y test (D-72, D-83); `DiagnosticsRecorder` y su uso en VMs y `ScheduleOrderUseCase`.
   - Tests: no cuenta con el interruptor apagado; cuenta cada `IssueKind`; desactivar borra.
   - ✅ El manifiesto sigue sin `INTERNET`.
+  - _Hecho:_ Room v3 con `diagnostic_counter` y `Migration(2, 3)` (tests 2→3 y 1→3); `DiagnosticsRepositoryImpl` (apagado por defecto, apagar borra); registro en *Nueva rutina*, *Revisión* y `ScheduleOrderUseCase` (D-72). `ManifestPermissionsTest` sigue comprobando que no hay `INTERNET`. 12 tests nuevos (680 en verde).
 - [ ] **T-52 · Exportar y borrar diagnóstico** — (R-17.5, R-17.6)
   - Sección en *Ajustes*; `ExportDiagnosticsUseCase` con texto legible y versión de la app.
   - Tests de use case y VM; previews.

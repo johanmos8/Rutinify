@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.ui.review
 
+import com.mirkwood.rutinify.domain.diagnostics.DiagnosticsRecorder
+import com.mirkwood.rutinify.domain.diagnostics.DiagnosticEvent
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -176,6 +178,7 @@ class ReviewViewModel @Inject constructor(
     private val rescheduleAll: RescheduleAllUseCase,
     private val clock: Clock,
     private val zoneProvider: ZoneProvider,
+    private val diagnostics: DiagnosticsRecorder,
 ) : ViewModel() {
 
     /** Everything the screen is built from; the draft only lives in memory (D-10). */
@@ -207,6 +210,7 @@ class ReviewViewModel @Inject constructor(
             Model(draftId, entry.draft, entry.warnings, default.date, default.chosenByApp)
         }
         model = MutableStateFlow(initial)
+        if (entry != null) viewModelScope.launch { diagnostics.record(DiagnosticEvent.Step.REVIEW) } // R-17.2
     }
 
     val uiState: StateFlow<ReviewUiState> = model
@@ -226,7 +230,10 @@ class ReviewViewModel @Inject constructor(
             }
             ReviewAction.SaveEdit -> saveEdit()
             ReviewAction.DismissEdit -> model.update { it.copy(editing = null) }
-            ReviewAction.ScheduleClicked -> startScheduling()
+            ReviewAction.ScheduleClicked -> {
+                viewModelScope.launch { diagnostics.record(DiagnosticEvent.Step.SCHEDULE_TAP) } // R-17.2
+                startScheduling()
+            }
             ReviewAction.NotificationsRationaleAccepted -> {
                 permissions.markNotificationsExplained()
                 model.update { it.copy(dialog = null) }

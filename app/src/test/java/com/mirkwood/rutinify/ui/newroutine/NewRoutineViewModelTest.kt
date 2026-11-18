@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.ui.newroutine
 
+import com.mirkwood.rutinify.domain.diagnostics.DiagnosticEvent
+import com.mirkwood.rutinify.testutil.FakeDiagnosticsRecorder
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
@@ -49,13 +51,14 @@ class NewRoutineViewModelTest {
     private val sharer = FakeTextSharer()
 
     private val scenarios = FakeTemplateScenarioStore()
+    private val diagnostics = FakeDiagnosticsRecorder()
 
     private fun viewModel(handle: SavedStateHandle = savedState) =
-        NewRoutineViewModel(handle, importer, { template }, clipboard, draftStore, inbox, sharer, scenarios)
+        NewRoutineViewModel(handle, importer, { template }, clipboard, draftStore, inbox, sharer, scenarios, diagnostics)
 
     /** Each scenario has its own template text. */
     private fun scenarioViewModel() =
-        NewRoutineViewModel(savedState, importer, { "Plantilla ${it.name}" }, clipboard, draftStore, inbox, sharer, scenarios)
+        NewRoutineViewModel(savedState, importer, { "Plantilla ${it.name}" }, clipboard, draftStore, inbox, sharer, scenarios, diagnostics)
 
     /** Arguments of `NewRoutineDestination(fromShare = true)`. */
     private fun sharedHandle() = SavedStateHandle(mapOf("fromShare" to true))
@@ -350,5 +353,28 @@ class NewRoutineViewModelTest {
             assertThat(awaitItem()).isEqualTo(NewRoutineEffect.ShareTemplate("Plantilla STUDY"))
         }
         assertThat(clipboard.text).isEqualTo("Plantilla STUDY")
+    }
+
+    @Test
+    fun `cuenta abrir la pantalla validar y cada tipo de error una vez`() = runTest { // R-17.2, D-72
+        importer.result = ImportResult.Failure(
+            listOf(
+                ValidationIssue(field = "routine.name", kind = IssueKind.MISSING_FIELD),
+                ValidationIssue(itemIndex = 1, field = "time", kind = IssueKind.MISSING_FIELD),
+                ValidationIssue(itemIndex = 2, field = "time", kind = IssueKind.INVALID_TIME, received = "25:00"),
+                ValidationIssue(itemIndex = 3, kind = IssueKind.TITLE_TRUNCATED, severity = Severity.WARNING),
+            ),
+        )
+        val vm = subscribed(viewModel())
+        vm.onAction(NewRoutineAction.TextChanged("{}"))
+
+        vm.onAction(NewRoutineAction.ValidateClicked)
+
+        assertThat(diagnostics.events).containsExactly(
+            DiagnosticEvent.Step.NEW_ROUTINE,
+            DiagnosticEvent.Step.VALIDATE,
+            DiagnosticEvent.ValidationFailed(IssueKind.MISSING_FIELD),
+            DiagnosticEvent.ValidationFailed(IssueKind.INVALID_TIME),
+        ).inOrder()
     }
 }

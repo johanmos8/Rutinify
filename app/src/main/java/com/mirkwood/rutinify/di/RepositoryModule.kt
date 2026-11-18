@@ -1,5 +1,8 @@
 package com.mirkwood.rutinify.di
 
+import com.mirkwood.rutinify.domain.diagnostics.DiagnosticsRepository
+import com.mirkwood.rutinify.domain.diagnostics.DiagnosticsRecorder
+import com.mirkwood.rutinify.data.repository.DiagnosticsRepositoryImpl
 import com.mirkwood.rutinify.data.repository.AlarmRepositoryImpl
 import com.mirkwood.rutinify.data.repository.CategorySettingsRepositoryImpl
 import com.mirkwood.rutinify.data.repository.OrderRepositoryImpl
@@ -27,4 +30,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindCategorySettingsRepository(impl: CategorySettingsRepositoryImpl): CategorySettingsRepository
+
+    @Binds
+    abstract fun bindDiagnosticsRepository(impl: DiagnosticsRepositoryImpl): DiagnosticsRepository
+
+    @Binds
+    abstract fun bindDiagnosticsRecorder(impl: DiagnosticsRepositoryImpl): DiagnosticsRecorder
 }

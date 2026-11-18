@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.ui.review
 
+import com.mirkwood.rutinify.domain.diagnostics.DiagnosticEvent
+import com.mirkwood.rutinify.testutil.FakeDiagnosticsRecorder
 import com.mirkwood.rutinify.testutil.es
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
@@ -67,6 +69,7 @@ class ReviewViewModelTest {
     private val alarms = FakeAlarmRepository(clock) { orders.activeDate(it) }.also { orders.alarmRepository = it }
     private val scheduler = FakeAlarmScheduler()
     private val categories = FakeCategorySettingsRepository()
+    private val diagnostics = FakeDiagnosticsRecorder()
     private val publisher = FakeNotificationPublisher()
     private val lock = AlarmMutationLock()
     private val buildPreview = BuildSchedulePreviewUseCase(calculator)
@@ -96,7 +99,7 @@ class ReviewViewModelTest {
             defaultDatePolicy = DefaultDatePolicy(calculator),
             buildPreview = buildPreview,
             findConflicts = FindConflictingOrdersUseCase(orders),
-            scheduleOrder = ScheduleOrderUseCase(orders, alarms, scheduler, categories, publisher, buildPreview, calculator, { bogota }, clock, lock),
+            scheduleOrder = ScheduleOrderUseCase(orders, alarms, scheduler, categories, publisher, buildPreview, calculator, { bogota }, clock, lock, diagnostics),
             permissions = SchedulingPermissionsUseCase(checker, prompts),
             rescheduleAll = RescheduleAllUseCase(
                 alarms = alarms,
@@ -110,6 +113,7 @@ class ReviewViewModelTest {
             ),
             clock = clock,
             zoneProvider = { bogota },
+            diagnostics = diagnostics,
         )
     }
 
@@ -763,5 +767,21 @@ class ReviewViewModelTest {
             vm.onAction(ReviewAction.ConflictKeepBoth)
             assertThat(awaitItem()).isInstanceOf(ReviewEffect.NavigateToOrder::class.java)
         }
+    }
+
+    @Test
+    fun `cuenta abrir Revision y pulsar Programar alarmas`() = runTest { // R-17.2, D-72
+        val vm = subscribed(viewModel())
+
+        vm.onAction(ReviewAction.ScheduleClicked)
+
+        assertThat(diagnostics.events.take(2)).containsExactly(DiagnosticEvent.Step.REVIEW, DiagnosticEvent.Step.SCHEDULE_TAP).inOrder()
+    }
+
+    @Test
+    fun `sin borrador no cuenta Revision`() = runTest { // R-17.2
+        subscribed(viewModel(routine = null))
+
+        assertThat(diagnostics.events).isEmpty()
     }
 }
