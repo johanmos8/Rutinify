@@ -1,5 +1,8 @@
 package com.mirkwood.rutinify.ui.orderdetail
 
+import kotlinx.coroutines.Job
+import com.mirkwood.rutinify.domain.usecase.ShiftResult
+import com.mirkwood.rutinify.domain.usecase.ShiftOrderAlarmsUseCase
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -87,9 +90,22 @@ data class OrderDetailUiState(
     /** Non-null while the date picker of [OrderDetailAction.DuplicateClicked] is open: its preselected date as UTC-midnight millis. */
     val duplicateDateMillis: Long? = null,
     val dialog: OrderDetailDialog? = null,
+    /** "Voy tarde" in the header: an ACTIVE or PAUSED plan with pending alarms (R-18.1). */
+    val canShift: Boolean = false,
+    /** Non-null while the "Voy tarde" dialog is open (R-18.2). */
+    val shiftDialog: ShiftDialogUi? = null,
 )
 
 enum class PauseAction { PAUSE, RESUME }
+
+/** "Voy tarde" dialog: direction, minutes as typed, and the preview or the reason it cannot move (R-18.2, R-18.5, R-18.6). */
+data class ShiftDialogUi(
+    val delay: Boolean = true,
+    val minutes: String = "",
+    val message: UiText? = null,
+    val isError: Boolean = false,
+    val canConfirm: Boolean = false,
+)
 
 /** Confirmations before destructive order actions. */
 sealed interface OrderDetailDialog {
@@ -135,6 +151,18 @@ sealed interface OrderDetailAction {
 
     data object ConfirmDialog : OrderDetailAction
     data object DismissDialog : OrderDetailAction
+
+    /** "Voy tarde" (R-18.1). */
+    data object ShiftClicked : OrderDetailAction
+
+    /** "Retrasar" (true) or "Adelantar" (false). */
+    data class ShiftDirectionChanged(val delay: Boolean) : OrderDetailAction
+
+    data class ShiftMinutesChanged(val text: String) : OrderDetailAction
+
+    data object ShiftConfirmed : OrderDetailAction
+
+    data object ShiftDismissed : OrderDetailAction
 }
 
 sealed interface OrderDetailEffect {
@@ -163,6 +191,7 @@ class OrderDetailViewModel @Inject constructor(
     private val pauseOrder: PauseOrderUseCase,
     private val resumeOrder: ResumeOrderUseCase,
     private val duplicateOrder: DuplicateOrderUseCase,
+    private val shiftOrderAlarms: ShiftOrderAlarmsUseCase,
     private val zoneProvider: ZoneProvider,
     private val clock: Clock,
 ) : ViewModel() {
@@ -174,6 +203,8 @@ class OrderDetailViewModel @Inject constructor(
     private val exactAllowed = MutableStateFlow(canScheduleExactAlarms())
     private val dialog = MutableStateFlow<OrderDetailDialog?>(null)
     private val duplicateDate = MutableStateFlow<Long?>(null)
+    private val shiftDialog = MutableStateFlow<ShiftDialogUi?>(null)
+    private var shiftPreviewJob: Job? = null
 
     /** Set while the order is being deleted, so the screen does not flash "Esta rutina ya no existe". */
     private var leaving = false
@@ -186,9 +217,9 @@ class OrderDetailViewModel @Inject constructor(
     val effects: Flow<OrderDetailEffect> = effectChannel.receiveAsFlow()
 
     val uiState: StateFlow<OrderDetailUiState> =
-        combine(observeOrderDetail(orderId), exactAllowed, dialog, duplicateDate) { detail, exact, dialog, duplicateDate ->
+        combine(observeOrderDetail(orderId), exactAllowed, dialog, duplicateDate, shiftDialog) { detail, exact, dialog, duplicateDate, shift ->
             val state = when {
-                detail != null -> toUiState(detail, exact).copy(dialog = dialog, duplicateDateMillis = duplicateDate)
+                detail != null -> toUiState(detail, exact).copy(dialog = dialog, duplicateDateMillis = duplicateDate, shiftDialog = shift)
                 leaving -> lastShown?.copy(dialog = null) ?: OrderDetailUiState()
                 else -> OrderDetailUiState(isLoading = false, notFound = true)
             }
@@ -215,6 +246,15 @@ class OrderDetailViewModel @Inject constructor(
             OrderDetailAction.DismissDuplicate -> duplicateDate.value = null
             OrderDetailAction.ConfirmDialog -> confirm()
             OrderDetailAction.DismissDialog -> dialog.value = null
+            OrderDetailAction.ShiftClicked -> updateShift(ShiftDialogUi())
+            is OrderDetailAction.ShiftDirectionChanged -> shiftDialog.value?.let { updateShift(it.copy(delay = action.delay)) }
+            is OrderDetailAction.ShiftMinutesChanged ->
+                shiftDialog.value?.let { updateShift(it.copy(minutes = action.text.filter(Char::isDigit).take(MINUTES_DIGITS))) }
+            OrderDetailAction.ShiftConfirmed -> confirmShift()
+            OrderDetailAction.ShiftDismissed -> {
+                shiftPreviewJob?.cancel()
+                shiftDialog.value = null
+            }
         }
     }
 
@@ -315,6 +355,8 @@ class OrderDetailViewModel @Inject constructor(
             windowedWarning = !exactAllowed && detail.nextAlarmId != null,
             canCancelAll = detail.order.status != OrderStatus.CANCELLED,
             canDuplicate = detail.total > 0,
+            canShift = detail.pending > 0 &&
+                (detail.order.status == OrderStatus.ACTIVE || detail.order.status == OrderStatus.PAUSED),
             pauseAction = when (detail.displayStatus) {
                 OrderDisplayStatus.ACTIVE -> PauseAction.PAUSE
                 OrderDisplayStatus.PAUSED -> PauseAction.RESUME
@@ -346,7 +388,76 @@ class OrderDetailViewModel @Inject constructor(
         )
     }
 
+    /** Shows [dialog] at once, then fills in the preview for its minutes (R-18.2). */
+    private fun updateShift(dialog: ShiftDialogUi) {
+        shiftPreviewJob?.cancel()
+        val minutes = signedMinutes(dialog)
+        if (minutes == null) {
+            val invalid = dialog.minutes.isNotEmpty()
+            shiftDialog.value = dialog.copy(
+                message = if (invalid) UiText.Res(R.string.shift_minutes_invalid) else null,
+                isError = invalid,
+                canConfirm = false,
+            )
+            return
+        }
+        shiftDialog.value = dialog.copy(canConfirm = false)
+        shiftPreviewJob = viewModelScope.launch {
+            val preview = shiftOrderAlarms.preview(orderId, minutes)
+            shiftDialog.value = shiftDialog.value?.takeIf { it.minutes == dialog.minutes && it.delay == dialog.delay }
+                ?.withResult(preview) ?: return@launch
+        }
+    }
+
+    private fun confirmShift() {
+        val dialog = shiftDialog.value ?: return
+        val minutes = signedMinutes(dialog) ?: return
+        if (!dialog.canConfirm) return
+        shiftPreviewJob?.cancel()
+        viewModelScope.launch {
+            when (val result = shiftOrderAlarms(orderId, minutes)) {
+                is ShiftResult.Ok -> {
+                    shiftDialog.value = null
+                    effectChannel.send(
+                        OrderDetailEffect.ShowMessage(UiText.Plural(R.plurals.shift_done, result.count, listOf(result.count))),
+                    )
+                }
+                // The plan changed since the preview: show why instead of closing (R-18.5, R-18.6)
+                else -> shiftDialog.value = shiftDialog.value?.withResult(result)
+            }
+        }
+    }
+
+    /** Minutes with their sign (negative = earlier), or null outside 1..720 (R-18.2). */
+    private fun signedMinutes(dialog: ShiftDialogUi): Int? {
+        val value = dialog.minutes.toIntOrNull()?.takeIf { it in SHIFT_MINUTES } ?: return null
+        return if (dialog.delay) value else -value
+    }
+
+    private fun ShiftDialogUi.withResult(result: ShiftResult): ShiftDialogUi = when (result) {
+        is ShiftResult.Ok -> if (result.count == 0 || result.nextFrom == null || result.nextTo == null) {
+            copy(message = UiText.Res(R.string.shift_nothing), isError = true, canConfirm = false)
+        } else {
+            copy(
+                message = UiText.Plural(
+                    R.plurals.shift_preview,
+                    result.count,
+                    listOf(result.count, result.nextFrom.format(DateFormats.TIME), result.nextTo.format(DateFormats.TIME)),
+                ),
+                isError = false,
+                canConfirm = true,
+            )
+        }
+        is ShiftResult.InPast -> copy(message = UiText.Plural(R.plurals.shift_in_past, result.count, listOf(result.count)), isError = true, canConfirm = false)
+        ShiftResult.OutOfRange -> copy(message = UiText.Res(R.string.shift_out_of_range), isError = true, canConfirm = false)
+        ShiftResult.NotAllowed -> copy(message = UiText.Res(R.string.shift_nothing), isError = true, canConfirm = false)
+    }
+
     private companion object {
+        /** R-18.2: from 1 minute to 12 hours. */
+        val SHIFT_MINUTES = 1..720
+        const val MINUTES_DIGITS = 3
+
         const val KEY_ORDER_ID = "orderId"
         const val KEY_HIGHLIGHT_ALARM_ID = "highlightAlarmId"
         const val KEY_SCHEDULED_COUNT = "scheduledCount"

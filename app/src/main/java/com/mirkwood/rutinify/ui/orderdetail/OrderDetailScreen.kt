@@ -1,5 +1,9 @@
 package com.mirkwood.rutinify.ui.orderdetail
 
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.FilterChip
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.FlowRow
@@ -142,6 +146,7 @@ fun OrderDetailScreen(
         }
     }
     state.dialog?.let { ConfirmDialog(it, onAction) }
+    state.shiftDialog?.let { ShiftDialog(it, onAction) }
     state.duplicateDateMillis?.let { millis ->
         RoutineDatePickerDialog(
             initialMillis = millis,
@@ -198,6 +203,55 @@ private fun ConfirmDialog(dialog: OrderDetailDialog, onAction: (OrderDetailActio
         },
         dismissButton = {
             TextButton(onClick = { onAction(OrderDetailAction.DismissDialog) }) { Text(stringResource(R.string.action_cancel)) }
+        },
+    )
+}
+
+/** "Voy tarde" (R-18.2): direction, minutes and a live preview; "Mover" only when the change is possible. */
+@Composable
+private fun ShiftDialog(dialog: ShiftDialogUi, onAction: (OrderDetailAction) -> Unit) {
+    AlertDialog(
+        onDismissRequest = { onAction(OrderDetailAction.ShiftDismissed) },
+        title = { Text(stringResource(R.string.shift_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = dialog.delay,
+                        onClick = { onAction(OrderDetailAction.ShiftDirectionChanged(true)) },
+                        label = { Text(stringResource(R.string.shift_delay)) },
+                    )
+                    FilterChip(
+                        selected = !dialog.delay,
+                        onClick = { onAction(OrderDetailAction.ShiftDirectionChanged(false)) },
+                        label = { Text(stringResource(R.string.shift_advance)) },
+                    )
+                }
+                OutlinedTextField(
+                    value = dialog.minutes,
+                    onValueChange = { onAction(OrderDetailAction.ShiftMinutesChanged(it)) },
+                    label = { Text(stringResource(R.string.shift_minutes_label)) },
+                    singleLine = true,
+                    isError = dialog.isError,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                dialog.message?.let {
+                    Text(
+                        text = it.asString(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (dialog.isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onAction(OrderDetailAction.ShiftConfirmed) }, enabled = dialog.canConfirm) {
+                Text(stringResource(R.string.action_move))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = { onAction(OrderDetailAction.ShiftDismissed) }) { Text(stringResource(R.string.action_cancel)) }
         },
     )
 }
@@ -260,7 +314,7 @@ private fun Header(state: OrderDetailUiState, onAction: (OrderDetailAction) -> U
         state.notes?.let {
             Text(stringResource(R.string.order_detail_notes, it), style = MaterialTheme.typography.bodyMedium)
         }
-        if (state.pauseAction != null || state.canCancelAll) {
+        if (state.pauseAction != null || state.canCancelAll || state.canShift) {
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.padding(top = 8.dp),
@@ -273,6 +327,11 @@ private fun Header(state: OrderDetailUiState, onAction: (OrderDetailAction) -> U
                         Text(stringResource(R.string.action_resume))
                     }
                     null -> Unit
+                }
+                if (state.canShift) {
+                    OutlinedButton(onClick = { onAction(OrderDetailAction.ShiftClicked) }) {
+                        Text(stringResource(R.string.action_shift))
+                    }
                 }
                 if (state.canCancelAll) {
                     OutlinedButton(onClick = { onAction(OrderDetailAction.CancelAllClicked) }) {
@@ -413,4 +472,24 @@ private fun OrderDetailScreenMultiDayPreview() {
 @Composable
 private fun OrderDetailScreenNotFoundPreview() {
     RutinifyTheme { OrderDetailScreen(state = OrderDetailUiState(isLoading = false, notFound = true), onAction = {}, onBack = {}) }
+}
+
+@ThemePreviews
+@Composable
+private fun OrderDetailShiftDialogPreview() {
+    RutinifyTheme {
+        OrderDetailScreen(
+            state = PreviewData.orderDetailState.copy(
+                canShift = true,
+                shiftDialog = ShiftDialogUi(
+                    delay = true,
+                    minutes = "30",
+                    message = UiText.Plural(R.plurals.shift_preview, 3, listOf(3, "14:00", "14:30")),
+                    canConfirm = true,
+                ),
+            ),
+            onAction = {},
+            onBack = {},
+        )
+    }
 }

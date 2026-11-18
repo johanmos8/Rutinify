@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.ui.orderdetail
 
+import com.mirkwood.rutinify.domain.usecase.ShiftOrderAlarmsUseCase
 import com.mirkwood.rutinify.testutil.es
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
@@ -84,6 +85,7 @@ class OrderDetailViewModelTest {
         pauseOrder = PauseOrderUseCase(orders, alarms, scheduler, lock),
         resumeOrder = ResumeOrderUseCase(orders, alarms, scheduler, categories, TriggerTimeCalculator(), { zone }, clock, lock),
         duplicateOrder = DuplicateOrderUseCase(orders, drafts),
+        shiftOrderAlarms = ShiftOrderAlarmsUseCase(orders, alarms, scheduler, categories, TriggerTimeCalculator(), { zone }, clock, lock),
         zoneProvider = { zone },
         clock = clock,
     )
@@ -559,5 +561,92 @@ class OrderDetailViewModelTest {
 
         setOrder(OrderStatus.ACTIVE)
         assertThat(vm.uiState.value.canDuplicate).isFalse()
+    }
+
+    // ---- "Voy tarde" (T-56) ----
+
+    /** Active order 1 on 2026-11-05 (07:00 now) with alarms at 14:00 and 18:00, in the fake repository too. */
+    private fun shiftable(status: OrderStatus = OrderStatus.ACTIVE) {
+        val items = arrayOf(testAlarm(id = 1, time = LocalTime.of(14, 0)), testAlarm(id = 2, time = LocalTime.of(18, 0)))
+        orders.add(testOrder(id = 1, date = LocalDate.of(2026, 11, 5), status = status))
+        alarms.add(*items)
+        setOrder(status, *items)
+    }
+
+    @Test
+    fun `Voy tarde solo aparece en planes activos o pausados con pendientes`() = runTest { // R-18.1
+        shiftable()
+        assertThat(subscribed(viewModel()).uiState.value.canShift).isTrue()
+
+        setOrder(OrderStatus.CANCELLED, testAlarm(id = 1, time = LocalTime.of(14, 0)))
+        assertThat(subscribed(viewModel()).uiState.value.canShift).isFalse()
+    }
+
+    @Test
+    fun `la vista previa dice cuantas y como cambia la proxima`() = runTest { // R-18.2
+        shiftable()
+        val vm = subscribed(viewModel())
+
+        vm.onAction(OrderDetailAction.ShiftClicked)
+        vm.onAction(OrderDetailAction.ShiftMinutesChanged("30"))
+
+        val dialog = requireNotNull(vm.uiState.value.shiftDialog)
+        assertThat(dialog.message?.es()).isEqualTo("2 alarmas; la próxima pasa de las 14:00 a las 14:30")
+        assertThat(dialog.canConfirm).isTrue()
+    }
+
+    @Test
+    fun `minutos fuera de 1 a 720 no dejan mover`() = runTest { // R-18.2
+        shiftable()
+        val vm = subscribed(viewModel())
+        vm.onAction(OrderDetailAction.ShiftClicked)
+
+        vm.onAction(OrderDetailAction.ShiftMinutesChanged("721"))
+
+        val dialog = requireNotNull(vm.uiState.value.shiftDialog)
+        assertThat(dialog.message?.es()).isEqualTo("Escribe entre 1 y 720 minutos")
+        assertThat(dialog.canConfirm).isFalse()
+    }
+
+    @Test
+    fun `adelantar demasiado avisa de las que quedarian en el pasado`() = runTest { // R-18.5
+        shiftable()
+        val vm = subscribed(viewModel())
+        vm.onAction(OrderDetailAction.ShiftClicked)
+        vm.onAction(OrderDetailAction.ShiftDirectionChanged(delay = false))
+
+        vm.onAction(OrderDetailAction.ShiftMinutesChanged("480"))
+
+        assertThat(vm.uiState.value.shiftDialog?.message?.es())
+            .isEqualTo("Con ese ajuste, 1 alarma quedaría en el pasado; elige menos minutos")
+    }
+
+    @Test
+    fun `mover cierra el dialogo y dice cuantas alarmas se movieron`() = runTest { // R-18.3
+        shiftable()
+        val vm = subscribed(viewModel())
+        vm.onAction(OrderDetailAction.ShiftClicked)
+        vm.onAction(OrderDetailAction.ShiftMinutesChanged("15"))
+
+        vm.effects.test {
+            vm.onAction(OrderDetailAction.ShiftConfirmed)
+
+            assertThat((awaitItem() as OrderDetailEffect.ShowMessage).message.es()).isEqualTo("2 alarmas movidas")
+        }
+        assertThat(vm.uiState.value.shiftDialog).isNull()
+        assertThat(alarms.alarms.getValue(1).time).isEqualTo(LocalTime.of(14, 15))
+    }
+
+    @Test
+    fun `cancelar cierra el dialogo sin mover nada`() = runTest { // R-18.2
+        shiftable()
+        val vm = subscribed(viewModel())
+        vm.onAction(OrderDetailAction.ShiftClicked)
+        vm.onAction(OrderDetailAction.ShiftMinutesChanged("15"))
+
+        vm.onAction(OrderDetailAction.ShiftDismissed)
+
+        assertThat(vm.uiState.value.shiftDialog).isNull()
+        assertThat(alarms.alarms.getValue(1).time).isEqualTo(LocalTime.of(14, 0))
     }
 }

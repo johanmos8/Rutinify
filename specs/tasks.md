@@ -295,10 +295,11 @@
   - `ShiftOrderAlarmsUseCase` (TDD, D-73): cruzar medianoche hacia delante y hacia atrás, pospuestas, pasado, fuera de 0..30, plan pausado, estados que no cambian, idempotencia de la reprogramación.
   - ✅ Tests en verde con `Clock.fixed` y zona explícita.
   - _Hecho:_ `ShiftOrderAlarmsUseCase` (vista previa y cambio, todo o nada) y `AlarmRepository.updateSchedules` en una transacción (D-73). 13 tests nuevos (700 en verde): medianoche hacia delante y hacia atrás, pospuestas, pasado, fuera del día 1–31, plan pausado sin programar, estados que no cambian, plan no permitido, vista previa sin cambios e idempotencia con alarmas críticas.
-- [ ] **T-56 · "Voy tarde" en el detalle** — (R-18.1, R-18.2)
+- [x] **T-56 · "Voy tarde" en el detalle** — (R-18.1, R-18.2)
   - Diálogo con sentido y minutos, vista previa y mensajes de error; mensaje "{n} alarmas movidas".
   - Tests de VM; previews claro/oscuro.
   - ✅ Acción visible solo en planes *Activos* o *Pausados*.
+  - _Hecho:_ botón "Voy tarde" en la cabecera y diálogo "Mover las alarmas" con "Retrasar"/"Adelantar", minutos, vista previa y errores; snackbar "{n} alarmas movidas" (D-91). Textos en español e inglés. 6 tests nuevos (706 en verde), preview del diálogo. En el emulador: "1 alarma; la próxima pasa de las 23:21 a las 23:51" y, tras "Mover", la alarma queda a las 23:51.
 - [ ] **T-57 · Editar una alarma** — (R-18.9, R-18.10)
   - `UpdateAlarmUseCase` (D-74); formulario reutilizado de Revisión.
   - ✅ Solo *Pendientes*; hora pasada rechazada con su mensaje.
