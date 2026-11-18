@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.di
 
+import com.mirkwood.rutinify.domain.importer.PlanExporter
+import com.mirkwood.rutinify.data.importer.JsonPlanExporter
 import com.mirkwood.rutinify.data.draft.InMemoryDraftStore
 import com.mirkwood.rutinify.data.importer.RawPromptTemplateSource
 import com.mirkwood.rutinify.data.share.InMemorySharedTextInbox
@@ -43,4 +45,7 @@ abstract class ImporterModule {
 
     @Binds
     abstract fun bindTemplateScenarioStore(impl: SharedPrefsTemplateScenarioStore): TemplateScenarioStore
+
+    @Binds
+    abstract fun bindPlanExporter(impl: JsonPlanExporter): PlanExporter
 }

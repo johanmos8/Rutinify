@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.ui.orderdetail
 
+import com.mirkwood.rutinify.data.importer.JsonPlanExporter
+import com.mirkwood.rutinify.domain.usecase.ExportPlanUseCase
 import com.mirkwood.rutinify.ui.common.ActivityForm
 import com.mirkwood.rutinify.domain.usecase.UpdateAlarmUseCase
 import com.mirkwood.rutinify.domain.usecase.ShiftOrderAlarmsUseCase
@@ -89,6 +91,7 @@ class OrderDetailViewModelTest {
         duplicateOrder = DuplicateOrderUseCase(orders, drafts),
         shiftOrderAlarms = ShiftOrderAlarmsUseCase(orders, alarms, scheduler, categories, TriggerTimeCalculator(), { zone }, clock, lock),
         updateAlarm = UpdateAlarmUseCase(alarms, orders, scheduler, publisher, categories, TriggerTimeCalculator(), { zone }, clock, lock),
+        exportPlan = ExportPlanUseCase(orders, alarms, JsonPlanExporter()),
         zoneProvider = { zone },
         clock = clock,
     )
@@ -703,5 +706,25 @@ class OrderDetailViewModelTest {
         assertThat(vm.uiState.value.editing).isNull()
         assertThat(alarms.alarms.getValue(1).time).isEqualTo(LocalTime.of(15, 0))
         assertThat(alarms.alarms.getValue(1).title).isEqualTo("Paseo")
+    }
+
+    // ---- Share a plan (T-58) ----
+
+    @Test
+    fun `compartir como texto envia el JSON del plan`() = runTest { // R-19.2, R-19.3
+        shiftable()
+        val vm = subscribed(viewModel())
+
+        vm.onAction(OrderDetailAction.ShareClicked)
+        assertThat(vm.uiState.value.showShareOptions).isTrue()
+
+        vm.effects.test {
+            vm.onAction(OrderDetailAction.ShareAsText)
+
+            val json = (awaitItem() as OrderDetailEffect.SharePlanText).json
+            assertThat(json).contains("\"name\": \"Cachorro\"")
+            assertThat(json).contains("\"time\": \"14:00\"")
+        }
+        assertThat(vm.uiState.value.showShareOptions).isFalse()
     }
 }

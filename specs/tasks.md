@@ -304,9 +304,10 @@
   - `UpdateAlarmUseCase` (D-74); formulario reutilizado de Revisión.
   - ✅ Solo *Pendientes*; hora pasada rechazada con su mensaje.
   - _Hecho:_ `UpdateAlarmUseCase` con las reglas de Revisión y "Esa hora ya pasó; elige una hora futura"; `AlarmRepository.getByOrder` y `updateDetails`; icono de editar en cada pendiente y `EditActivityDialog` compartido con Revisión (D-74). 13 tests nuevos (719 en verde). En el emulador, el icono abre "Editar actividad" con la hora, el título y la categoría de la alarma.
-- [ ] **T-58 · Exportar el plan como texto** — (R-19.1–R-19.3)
+- [x] **T-58 · Exportar el plan como texto** — (R-19.1–R-19.3)
   - `ExportPlanUseCase`: el JSON exportado vuelve a importarse igual (test de ida y vuelta, también con `assignee` y varios días).
   - ✅ "Compartir como texto" abre el selector con el bloque de código.
+  - _Hecho:_ `PlanExporter`/`JsonPlanExporter`, `ExportPlanUseCase` y "Compartir plan" → "Compartir como texto" en el detalle (D-75). Tests de ida y vuelta (con `assignee`, descripción, duración y siete días) y de VM. 4 tests nuevos (723 en verde). En el emulador el selector recibe "Importa este plan en Rutinify" con el JSON en un bloque de código.
 - [ ] **T-59 · Enlace y QR** — (R-19.4, R-19.5, R-19.7, R-19.8)
   - `EncodePlanLinkUseCase`/`DecodePlanLinkUseCase` (TDD: ida y vuelta, límite de 2.331 bytes, enlace dañado); `intent-filter` `rutinify://import`; QR con ZXing (D-75).
   - ✅ Un plan que no cabe muestra el mensaje de R-19.5.

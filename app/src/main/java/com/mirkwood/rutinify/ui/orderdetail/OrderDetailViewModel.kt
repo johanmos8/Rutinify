@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.ui.orderdetail
 
+import com.mirkwood.rutinify.domain.usecase.ExportPlanUseCase
 import com.mirkwood.rutinify.ui.common.ActivityForm
 import com.mirkwood.rutinify.domain.importer.DraftItemRules
 import com.mirkwood.rutinify.domain.usecase.UpdateAlarmResult
@@ -102,6 +103,8 @@ data class OrderDetailUiState(
     val shiftDialog: ShiftDialogUi? = null,
     /** Non-null while an alarm is being edited (R-18.9). */
     val editing: EditAlarmUi? = null,
+    /** "Compartir plan" options are open (R-19.2). */
+    val showShareOptions: Boolean = false,
 )
 
 /** Edit form of one alarm of the plan (R-18.9). */
@@ -182,6 +185,14 @@ sealed interface OrderDetailAction {
     data object EditSaved : OrderDetailAction
 
     data object EditDismissed : OrderDetailAction
+
+    /** "Compartir plan" in the menu (R-19.2). */
+    data object ShareClicked : OrderDetailAction
+
+    /** "Compartir como texto" (R-19.3). */
+    data object ShareAsText : OrderDetailAction
+
+    data object ShareDismissed : OrderDetailAction
 }
 
 sealed interface OrderDetailEffect {
@@ -195,6 +206,9 @@ sealed interface OrderDetailEffect {
 
     /** Review of a duplicated draft (R-10.7). */
     data class NavigateToReview(val draftId: String) : OrderDetailEffect
+
+    /** Android chooser with the plan JSON (R-19.3); the screen adds the line "Importa este plan en Rutinify". */
+    data class SharePlanText(val json: String) : OrderDetailEffect
 }
 
 @HiltViewModel
@@ -212,6 +226,7 @@ class OrderDetailViewModel @Inject constructor(
     private val duplicateOrder: DuplicateOrderUseCase,
     private val shiftOrderAlarms: ShiftOrderAlarmsUseCase,
     private val updateAlarm: UpdateAlarmUseCase,
+    private val exportPlan: ExportPlanUseCase,
     private val zoneProvider: ZoneProvider,
     private val clock: Clock,
 ) : ViewModel() {
@@ -225,6 +240,7 @@ class OrderDetailViewModel @Inject constructor(
     private val duplicateDate = MutableStateFlow<Long?>(null)
     private val shiftDialog = MutableStateFlow<ShiftDialogUi?>(null)
     private val editing = MutableStateFlow<EditAlarmUi?>(null)
+    private val shareOptions = MutableStateFlow(false)
     private var shiftPreviewJob: Job? = null
 
     /** Set while the order is being deleted, so the screen does not flash "Esta rutina ya no existe". */
@@ -242,15 +258,15 @@ class OrderDetailViewModel @Inject constructor(
 
     val uiState: StateFlow<OrderDetailUiState> =
         combine(
-            combine(observeOrderDetail(orderId), exactAllowed, ::Pair),
+            combine(observeOrderDetail(orderId), exactAllowed, shareOptions, ::Triple),
             dialog,
             duplicateDate,
             shiftDialog,
             editing,
-        ) { (detail, exact), dialog, duplicateDate, shift, edit ->
+        ) { (detail, exact, share), dialog, duplicateDate, shift, edit ->
             val state = when {
                 detail != null -> toUiState(detail, exact)
-                    .copy(dialog = dialog, duplicateDateMillis = duplicateDate, shiftDialog = shift, editing = edit)
+                    .copy(dialog = dialog, duplicateDateMillis = duplicateDate, shiftDialog = shift, editing = edit, showShareOptions = share)
                 leaving -> lastShown?.copy(dialog = null) ?: OrderDetailUiState()
                 else -> OrderDetailUiState(isLoading = false, notFound = true)
             }
@@ -287,6 +303,12 @@ class OrderDetailViewModel @Inject constructor(
                 editing.value = editing.value?.let { it.copy(form = it.form.copy(time = action.time, title = action.title, category = action.category)) }
             OrderDetailAction.EditSaved -> saveEdit()
             OrderDetailAction.EditDismissed -> editing.value = null
+            OrderDetailAction.ShareClicked -> shareOptions.value = true
+            OrderDetailAction.ShareDismissed -> shareOptions.value = false
+            OrderDetailAction.ShareAsText -> {
+                shareOptions.value = false
+                viewModelScope.launch { exportPlan(orderId)?.let { effectChannel.send(OrderDetailEffect.SharePlanText(it)) } }
+            }
             OrderDetailAction.ShiftDismissed -> {
                 shiftPreviewJob?.cancel()
                 shiftDialog.value = null

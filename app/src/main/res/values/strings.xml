@@ -294,4 +294,11 @@
 
     <!-- Edit an alarm (T-57, R-18.9, R-18.10) -->
     <string name="alarm_edit_past">Esa hora ya pasó; elige una hora futura</string>
+
+    <!-- Share a plan (T-58, T-59, R-19) -->
+    <string name="action_share_plan">Compartir plan</string>
+    <string name="share_plan_body">Envía el plan a otro teléfono para que lo importe en Rutinify.</string>
+    <string name="action_share_as_text">Compartir como texto</string>
+    <string name="share_plan_intro">Importa este plan en Rutinify</string>
+    <string name="share_plan_chooser">Enviar el plan a…</string>
 </resources>

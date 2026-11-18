@@ -1,5 +1,10 @@
 package com.mirkwood.rutinify.ui.orderdetail
 
+import com.mirkwood.rutinify.MainActivity
+import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
+import android.content.Context
+import android.content.ComponentName
 import com.mirkwood.rutinify.ui.common.EditActivityDialog
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
@@ -85,6 +90,7 @@ fun OrderDetailRoute(
     val resources = LocalResources.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val undoLabel = stringResource(R.string.action_undo)
+    val context = LocalContext.current
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onAction(OrderDetailAction.Resumed) }
 
@@ -94,6 +100,7 @@ fun OrderDetailRoute(
                 when (effect) {
                     OrderDetailEffect.NavigateBack -> onBack()
                     is OrderDetailEffect.NavigateToReview -> onNavigateToReview(effect.draftId)
+                    is OrderDetailEffect.SharePlanText -> sharePlanText(context, effect.json)
                     is OrderDetailEffect.ShowMessage ->
                         snackbarHostState.showSnackbar(effect.message.resolve(resources), duration = SnackbarDuration.Short)
                     is OrderDetailEffect.ShowUndo -> {
@@ -135,7 +142,7 @@ fun OrderDetailScreen(
             if (state.name.isEmpty()) {
                 BackTopAppBar(titleRes = R.string.order_detail_title, onBack = onBack)
             } else {
-                BackTopAppBar(title = state.name, onBack = onBack, actions = { OverflowMenu(state.canDuplicate, onAction) })
+                BackTopAppBar(title = state.name, onBack = onBack, actions = { OverflowMenu(state.canDuplicate, state.total > 0, onAction) })
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -148,6 +155,7 @@ fun OrderDetailScreen(
     }
     state.dialog?.let { ConfirmDialog(it, onAction) }
     state.shiftDialog?.let { ShiftDialog(it, onAction) }
+    if (state.showShareOptions) ShareOptionsDialog(onAction)
     state.editing?.let { edit ->
         EditActivityDialog(
             form = edit.form,
@@ -168,7 +176,7 @@ fun OrderDetailScreen(
 
 /** "Duplicar para otra fecha" and "Eliminar plan" live in the menu; both stay in every status (R-10.8). */
 @Composable
-private fun OverflowMenu(canDuplicate: Boolean, onAction: (OrderDetailAction) -> Unit) {
+private fun OverflowMenu(canDuplicate: Boolean, canShare: Boolean, onAction: (OrderDetailAction) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { expanded = true }) {
@@ -181,6 +189,15 @@ private fun OverflowMenu(canDuplicate: Boolean, onAction: (OrderDetailAction) ->
                     onClick = {
                         expanded = false
                         onAction(OrderDetailAction.DuplicateClicked)
+                    },
+                )
+            }
+            if (canShare) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.action_share_plan)) },
+                    onClick = {
+                        expanded = false
+                        onAction(OrderDetailAction.ShareClicked)
                     },
                 )
             }
@@ -214,6 +231,31 @@ private fun ConfirmDialog(dialog: OrderDetailDialog, onAction: (OrderDetailActio
             TextButton(onClick = { onAction(OrderDetailAction.DismissDialog) }) { Text(stringResource(R.string.action_cancel)) }
         },
     )
+}
+
+/** "Compartir plan" (R-19.2): how to send it. */
+@Composable
+private fun ShareOptionsDialog(onAction: (OrderDetailAction) -> Unit) {
+    AlertDialog(
+        onDismissRequest = { onAction(OrderDetailAction.ShareDismissed) },
+        title = { Text(stringResource(R.string.action_share_plan)) },
+        text = { Text(stringResource(R.string.share_plan_body)) },
+        confirmButton = {
+            TextButton(onClick = { onAction(OrderDetailAction.ShareAsText) }) { Text(stringResource(R.string.action_share_as_text)) }
+        },
+        dismissButton = {
+            TextButton(onClick = { onAction(OrderDetailAction.ShareDismissed) }) { Text(stringResource(R.string.action_cancel)) }
+        },
+    )
+}
+
+/** R-19.3: one line for the person who receives it, then the JSON in a code block; Rutinify itself is left out. */
+private fun sharePlanText(context: Context, json: String) {
+    val text = context.getString(R.string.share_plan_intro) + "\n\n```json\n" + json + "\n```"
+    val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
+    val chooser = Intent.createChooser(send, context.getString(R.string.share_plan_chooser))
+        .putExtra(Intent.EXTRA_EXCLUDE_COMPONENTS, arrayOf(ComponentName(context, MainActivity::class.java)))
+    context.startActivity(chooser)
 }
 
 /** "Voy tarde" (R-18.2): direction, minutes and a live preview; "Mover" only when the change is possible. */
