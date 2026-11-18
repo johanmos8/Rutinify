@@ -26,6 +26,8 @@ zxingCore = "3.5.3"
 codeScanner = "16.1.0"
 # Home screen widget (D-79)
 glance = "1.1.1"
+# On-device AI (D-80, approved after T-65)
+genaiPrompt = "1.0.0-beta4"
 
 [libraries]
 # QR generation (D-75)
@@ -33,6 +35,8 @@ zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxingCo
 # Home screen widget (D-79)
 androidx-glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "glance" }
 androidx-glance-material3 = { group = "androidx.glance", name = "glance-material3", version.ref = "glance" }
+# Gemini Nano through ML Kit GenAI (D-80)
+mlkit-genai-prompt = { group = "com.google.mlkit", name = "genai-prompt", version.ref = "genaiPrompt" }
 # QR scanning by Google Play services, without CAMERA (D-75)
 play-services-code-scanner = { group = "com.google.android.gms", name = "play-services-code-scanner", version.ref = "codeScanner" }
 # AndroidX core / lifecycle

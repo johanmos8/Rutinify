@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.ui.newroutine
 
+import androidx.compose.ui.Alignment
 import android.content.ComponentName
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
@@ -135,6 +136,7 @@ fun NewRoutineScreen(
                 onOpenInAi = { onAction(NewRoutineAction.OpenInAiClicked) },
                 onToggle = { onAction(NewRoutineAction.ToggleTemplate) },
             )
+            if (state.onDeviceAvailable) OnDeviceSection(state, onAction)
             OutlinedTextField(
                 value = state.text,
                 onValueChange = { onAction(NewRoutineAction.TextChanged(it)) },
@@ -290,6 +292,60 @@ private fun NewRoutineScreenValidatingPreview() {
     RutinifyTheme {
         NewRoutineScreen(
             state = NewRoutineUiState(text = PreviewData.INVALID_JSON, template = PreviewData.TEMPLATE, isValidating = true),
+            onAction = {},
+            onBack = {},
+        )
+    }
+}
+
+/** R-22.1–R-22.3: only when the phone's model is ready; the template flow below stays the same. */
+@Composable
+private fun OnDeviceSection(state: NewRoutineUiState, onAction: (NewRoutineAction) -> Unit, modifier: Modifier = Modifier) {
+    Card(modifier = modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.on_device_title), style = MaterialTheme.typography.titleMedium)
+            OutlinedTextField(
+                value = state.onDeviceText,
+                onValueChange = { onAction(NewRoutineAction.OnDeviceTextChanged(it)) },
+                label = { Text(stringResource(R.string.on_device_hint)) },
+                minLines = 3,
+                maxLines = 8,
+                enabled = !state.isConverting,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            if (state.isConverting) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    Text(stringResource(R.string.on_device_converting), modifier = Modifier.weight(1f))
+                    TextButton(onClick = { onAction(NewRoutineAction.CancelConvertClicked) }) { Text(stringResource(R.string.action_cancel)) }
+                }
+            } else {
+                Button(onClick = { onAction(NewRoutineAction.ConvertClicked) }, enabled = state.canConvert) {
+                    Text(stringResource(R.string.action_convert))
+                }
+            }
+        }
+    }
+}
+
+@ThemePreviews
+@Composable
+private fun NewRoutineOnDevicePreview() {
+    RutinifyTheme {
+        NewRoutineScreen(
+            state = NewRoutineUiState(onDeviceAvailable = true, onDeviceText = "Amoxicilina cada 8 horas durante 7 días, empezando a las 6"),
+            onAction = {},
+            onBack = {},
+        )
+    }
+}
+
+@ThemePreviews
+@Composable
+private fun NewRoutineConvertingPreview() {
+    RutinifyTheme {
+        NewRoutineScreen(
+            state = NewRoutineUiState(onDeviceAvailable = true, onDeviceText = "Paseos a las 7, 13 y 21", isConverting = true),
             onAction = {},
             onBack = {},
         )

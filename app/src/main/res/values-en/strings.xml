@@ -344,4 +344,12 @@
     <string name="widget_tomorrow">tomorrow</string>
     <string name="widget_time_day">%1$s · %2$s</string>
     <string name="widget_description">The next alarm of your plans, with its “Done” button</string>
+
+    <!-- On-device AI (R-22) -->
+    <string name="on_device_title">Convert on the phone</string>
+    <string name="on_device_hint">Write your routine however you like</string>
+    <string name="action_convert">Convert</string>
+    <string name="on_device_converting">Converting…</string>
+    <string name="on_device_failed">The phone’s AI could not convert the routine; use the template with your usual AI</string>
+    <string name="on_device_too_long">The text is too long for the phone’s AI; shorten it or use your usual AI</string>
 </resources>

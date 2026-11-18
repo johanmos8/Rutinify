@@ -100,6 +100,9 @@ dependencies {
     // "Lo siguiente" widget (D-79)
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.material3)
+
+    // "Convertir en el teléfono" with Gemini Nano (D-80)
+    implementation(libs.mlkit.genai.prompt)
     implementation(libs.kotlinx.coroutines.android)
 
     // Unit tests (JVM)

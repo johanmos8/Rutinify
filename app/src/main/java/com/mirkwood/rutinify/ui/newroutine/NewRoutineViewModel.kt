@@ -1,5 +1,8 @@
 package com.mirkwood.rutinify.ui.newroutine
 
+import kotlinx.coroutines.Job
+import com.mirkwood.rutinify.domain.usecase.ConvertResult
+import com.mirkwood.rutinify.domain.usecase.ConvertOnDeviceUseCase
 import com.mirkwood.rutinify.domain.usecase.DecodePlanLinkUseCase
 import com.mirkwood.rutinify.domain.importer.Severity
 import com.mirkwood.rutinify.domain.diagnostics.DiagnosticsRecorder
@@ -43,7 +46,14 @@ data class NewRoutineUiState(
     val isValidating: Boolean = false,
     /** Already-worded validation errors, at most 20 plus "y {k} errores más" (R-3.16). */
     val issues: List<UiText> = emptyList(),
+    /** "Convertir en el teléfono" is offered only when the phone's model is ready (R-22.1, R-22.4). */
+    val onDeviceAvailable: Boolean = false,
+    val onDeviceText: String = "",
+    /** "Convirtiendo…" with "Cancelar" (R-22.3). */
+    val isConverting: Boolean = false,
 ) {
+    val canConvert: Boolean get() = onDeviceText.isNotBlank() && !isConverting && !isValidating
+
     /** R-2.4: disabled while the field is empty (or only blanks) and while validating. */
     val canValidate: Boolean get() = text.isNotBlank() && !isValidating
 }
@@ -51,6 +61,15 @@ data class NewRoutineUiState(
 sealed interface NewRoutineAction {
     data class TextChanged(val text: String) : NewRoutineAction
     data object PasteClicked : NewRoutineAction
+
+    /** Free text for the phone's model (R-22.1). */
+    data class OnDeviceTextChanged(val text: String) : NewRoutineAction
+
+    /** "Convertir" (R-22.2). */
+    data object ConvertClicked : NewRoutineAction
+
+    /** "Cancelar" while converting (R-22.3). */
+    data object CancelConvertClicked : NewRoutineAction
 
     /** "Escanear QR" (R-19.6). */
     data object ScanQrClicked : NewRoutineAction
@@ -95,7 +114,10 @@ class NewRoutineViewModel @Inject constructor(
     private val scenarioStore: TemplateScenarioStore,
     private val diagnostics: DiagnosticsRecorder,
     private val decodePlanLink: DecodePlanLinkUseCase,
+    private val convertOnDevice: ConvertOnDeviceUseCase,
 ) : ViewModel() {
+
+    private var convertJob: Job? = null
 
     /** Everything except the text, which lives in [savedStateHandle] (R-2.5). */
     private val local = MutableStateFlow(NewRoutineUiState())
@@ -109,6 +131,8 @@ class NewRoutineViewModel @Inject constructor(
     init {
         viewModelScope.launch { diagnostics.record(DiagnosticEvent.Step.NEW_ROUTINE) } // R-17.2
         showScenario(scenarioStore.last() ?: TemplateScenario.GENERIC)
+        // R-22.4: without a ready model the screen stays as it was
+        viewModelScope.launch { local.update { it.copy(onDeviceAvailable = convertOnDevice.isAvailable()) } }
         receiveSharedText()
     }
 
@@ -116,6 +140,12 @@ class NewRoutineViewModel @Inject constructor(
         when (action) {
             is NewRoutineAction.TextChanged -> setText(action.text)
             NewRoutineAction.PasteClicked -> paste()
+            is NewRoutineAction.OnDeviceTextChanged -> local.update { it.copy(onDeviceText = action.text) }
+            NewRoutineAction.ConvertClicked -> convert()
+            NewRoutineAction.CancelConvertClicked -> {
+                convertJob?.cancel()
+                local.update { it.copy(isConverting = false) }
+            }
             NewRoutineAction.ScanQrClicked -> effectChannel.trySend(NewRoutineEffect.StartQrScan)
             is NewRoutineAction.QrScanned -> {
                 draftStore.clear()
@@ -168,6 +198,31 @@ class NewRoutineViewModel @Inject constructor(
         }
         setText(json)
         validate()
+    }
+
+    /** R-22.2: the model writes the JSON; a valid one opens Review, an invalid one shows it with its errors. */
+    private fun convert() {
+        val state = local.value
+        if (!state.canConvert) return
+        local.update { it.copy(isConverting = true, issues = emptyList()) }
+        convertJob = viewModelScope.launch {
+            val result = convertOnDevice(state.onDeviceText, state.scenario)
+            local.update { it.copy(isConverting = false) }
+            when (result) {
+                is ConvertResult.Converted -> when (val imported = result.result) {
+                    is ImportResult.Success -> {
+                        draftStore.put(DraftEntry(imported.draft, imported.warnings))
+                        effectChannel.send(NewRoutineEffect.NavigateToReview(imported.draft.id))
+                    }
+                    is ImportResult.Failure -> {
+                        setText(result.json)
+                        local.update { it.copy(issues = ErrorMessages.list(imported.issues)) }
+                    }
+                }
+                ConvertResult.TooLong -> effectChannel.send(NewRoutineEffect.ShowMessage(UiText.Res(R.string.on_device_too_long)))
+                ConvertResult.Failed -> effectChannel.send(NewRoutineEffect.ShowMessage(UiText.Res(R.string.on_device_failed)))
+            }
+        }
     }
 
     private fun currentText(): String = savedStateHandle[KEY_TEXT] ?: ""

@@ -346,4 +346,12 @@
     <string name="widget_tomorrow">mañana</string>
     <string name="widget_time_day">%1$s · %2$s</string>
     <string name="widget_description">La próxima alarma de tus planes, con su botón «Hecho»</string>
+
+    <!-- On-device AI (T-66, R-22) -->
+    <string name="on_device_title">Convertir en el teléfono</string>
+    <string name="on_device_hint">Escribe tu rutina como quieras</string>
+    <string name="action_convert">Convertir</string>
+    <string name="on_device_converting">Convirtiendo…</string>
+    <string name="on_device_failed">La IA del teléfono no pudo convertir la rutina; usa la plantilla con tu IA de siempre</string>
+    <string name="on_device_too_long">El texto es demasiado largo para la IA del teléfono; acórtalo o usa tu IA de siempre</string>
 </resources>

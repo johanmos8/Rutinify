@@ -343,10 +343,11 @@
   - Rama de prueba con `genai-prompt`: revisar el manifiesto fusionado (`INTERNET` y otros permisos), tamaño del APK y comportamiento en un dispositivo compatible y en uno no compatible.
   - ✅ Resultado anotado en D-80 y decisión de Johan registrada; la rama no se fusiona.
   - _Hecho:_ prueba sin commit (no se fusionó nada): `genai-prompt` no añade `INTERNET`, solo el permiso de AICore; +11,4 MB en el APK de depuración. Se cumple la condición que Johan puso el 2026-11-16, así que la dependencia queda aprobada (D-80). Falta probar en un teléfono compatible con Gemini Nano. De paso: `glance-appwidget` (T-63) trae WorkManager con `WAKE_LOCK` y `FOREGROUND_SERVICE`, solo para dibujar el widget; anotado en la checklist de publicación.
-- [ ] **T-66 · Convertir en el teléfono** — (R-22.1–R-22.6)
+- [x] **T-66 · Convertir en el teléfono** — (R-22.1–R-22.6)
   - `OnDeviceRoutineImporter`; opción visible solo con `AVAILABLE`; cancelar; límite de entrada; mensajes de error.
   - Tests con un fake del modelo; prueba manual en dispositivo compatible.
   - ✅ Sin modelo, *Nueva rutina* se ve igual que antes.
+  - _Hecho:_ `genai-prompt` 1.0.0-beta4 (aprobada tras T-65), `OnDeviceModel`/`MlKitOnDeviceModel`, `ConvertOnDeviceUseCase` y la tarjeta "Convertir en el teléfono" con "Convirtiendo…" y "Cancelar" (D-80, D-93). Textos en español e inglés. 9 tests nuevos (774 en verde) con un modelo falso. En el emulador (sin Gemini Nano) la tarjeta no aparece y no hay errores. Falta probarla en un teléfono compatible.
 - [ ] **T-67 · Validador del schema v2** — (R-23.1–R-23.6)
   - TDD: v1 sin cambios; v2 con `weekdays` y `until`; cada error de R-23.3–R-23.6; R-3.4 con "1 o 2".
   - Plantillas con un ejemplo v2 opcional; README del contrato.

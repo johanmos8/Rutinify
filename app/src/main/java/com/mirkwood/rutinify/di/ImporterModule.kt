@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.di
 
+import com.mirkwood.rutinify.domain.importer.OnDeviceModel
+import com.mirkwood.rutinify.data.importer.MlKitOnDeviceModel
 import com.mirkwood.rutinify.domain.importer.QrEncoder
 import com.mirkwood.rutinify.data.importer.ZxingQrEncoder
 import com.mirkwood.rutinify.domain.importer.PlanExporter
@@ -53,4 +55,7 @@ abstract class ImporterModule {
 
     @Binds
     abstract fun bindQrEncoder(impl: ZxingQrEncoder): QrEncoder
+
+    @Binds
+    abstract fun bindOnDeviceModel(impl: MlKitOnDeviceModel): OnDeviceModel
 }

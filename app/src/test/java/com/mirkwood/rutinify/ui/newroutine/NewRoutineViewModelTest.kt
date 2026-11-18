@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.ui.newroutine
 
+import com.mirkwood.rutinify.testutil.FakeOnDeviceModel
+import com.mirkwood.rutinify.domain.usecase.ConvertOnDeviceUseCase
 import com.mirkwood.rutinify.testutil.es
 import com.mirkwood.rutinify.domain.importer.PlanLink
 import com.mirkwood.rutinify.domain.usecase.DecodePlanLinkUseCase
@@ -54,14 +56,15 @@ class NewRoutineViewModelTest {
     private val sharer = FakeTextSharer()
 
     private val scenarios = FakeTemplateScenarioStore()
+    private val onDevice = FakeOnDeviceModel(available = false)
     private val diagnostics = FakeDiagnosticsRecorder()
 
     private fun viewModel(handle: SavedStateHandle = savedState) =
-        NewRoutineViewModel(handle, importer, { template }, clipboard, draftStore, inbox, sharer, scenarios, diagnostics, DecodePlanLinkUseCase())
+        NewRoutineViewModel(handle, importer, { template }, clipboard, draftStore, inbox, sharer, scenarios, diagnostics, DecodePlanLinkUseCase(), ConvertOnDeviceUseCase(onDevice, { "Plantilla" }, importer))
 
     /** Each scenario has its own template text. */
     private fun scenarioViewModel() =
-        NewRoutineViewModel(savedState, importer, { "Plantilla ${it.name}" }, clipboard, draftStore, inbox, sharer, scenarios, diagnostics, DecodePlanLinkUseCase())
+        NewRoutineViewModel(savedState, importer, { "Plantilla ${it.name}" }, clipboard, draftStore, inbox, sharer, scenarios, diagnostics, DecodePlanLinkUseCase(), ConvertOnDeviceUseCase(onDevice, { "Plantilla" }, importer))
 
     /** Arguments of `NewRoutineDestination(fromShare = true)`. */
     private fun sharedHandle() = SavedStateHandle(mapOf("fromShare" to true))
@@ -429,6 +432,80 @@ class NewRoutineViewModelTest {
             vm.onAction(NewRoutineAction.QrScanned("https://example.com"))
             assertThat((awaitItem() as NewRoutineEffect.ShowMessage).message.es()).isEqualTo("Este código no contiene un plan de Rutinify")
         }
+        assertThat(importer.received).isEmpty()
+    }
+
+    // ---- On-device AI (T-66) ----
+
+    @Test
+    fun `sin modelo listo no se ofrece convertir en el telefono`() = runTest { // R-22.4
+        assertThat(subscribed(viewModel()).uiState.value.onDeviceAvailable).isFalse()
+    }
+
+    @Test
+    fun `con el modelo listo se ofrece y una respuesta valida abre Revision`() = runTest { // R-22.1, R-22.2
+        onDevice.available = true
+        onDevice.answer = "{}"
+        val vm = subscribed(viewModel())
+        assertThat(vm.uiState.value.onDeviceAvailable).isTrue()
+
+        vm.onAction(NewRoutineAction.OnDeviceTextChanged("Siesta a las 13"))
+        vm.effects.test {
+            vm.onAction(NewRoutineAction.ConvertClicked)
+            assertThat(awaitItem()).isEqualTo(NewRoutineEffect.NavigateToReview(draft.id))
+        }
+    }
+
+    @Test
+    fun `una respuesta con errores se muestra con sus errores`() = runTest { // R-22.2, R-3.16
+        val issues = listOf(ValidationIssue(field = "routine.name", kind = IssueKind.MISSING_FIELD))
+        importer.result = ImportResult.Failure(issues)
+        onDevice.available = true
+        onDevice.answer = "{\"items\": []}"
+        val vm = subscribed(viewModel())
+        vm.onAction(NewRoutineAction.OnDeviceTextChanged("Siesta a las 13"))
+
+        vm.onAction(NewRoutineAction.ConvertClicked)
+
+        assertThat(vm.uiState.value.text).isEqualTo("{\"items\": []}")
+        assertThat(vm.uiState.value.issues).isEqualTo(ErrorMessages.list(issues))
+    }
+
+    @Test
+    fun `texto demasiado largo o fallo del modelo avisan`() = runTest { // R-22.5, R-22.6
+        onDevice.available = true
+        onDevice.fits = false
+        val vm = subscribed(viewModel())
+        vm.onAction(NewRoutineAction.OnDeviceTextChanged("Siesta"))
+
+        vm.effects.test {
+            vm.onAction(NewRoutineAction.ConvertClicked)
+            assertThat((awaitItem() as NewRoutineEffect.ShowMessage).message.es())
+                .isEqualTo("El texto es demasiado largo para la IA del teléfono; acórtalo o usa tu IA de siempre")
+
+            onDevice.fits = true
+            onDevice.answer = null
+            vm.onAction(NewRoutineAction.ConvertClicked)
+            assertThat((awaitItem() as NewRoutineEffect.ShowMessage).message.es())
+                .isEqualTo("La IA del teléfono no pudo convertir la rutina; usa la plantilla con tu IA de siempre")
+        }
+    }
+
+    @Test
+    fun `mientras convierte dice Convirtiendo y se puede cancelar`() = runTest { // R-22.3
+        onDevice.available = true
+        onDevice.answer = "{}"
+        onDevice.hold = CompletableDeferred()
+        val vm = subscribed(viewModel())
+        vm.onAction(NewRoutineAction.OnDeviceTextChanged("Siesta"))
+
+        vm.onAction(NewRoutineAction.ConvertClicked)
+        assertThat(vm.uiState.value.isConverting).isTrue()
+
+        vm.onAction(NewRoutineAction.CancelConvertClicked)
+        onDevice.hold?.complete(Unit)
+
+        assertThat(vm.uiState.value.isConverting).isFalse()
         assertThat(importer.received).isEmpty()
     }
 }
