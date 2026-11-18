@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.mirkwood.rutinify.domain.model.OrderDisplayStatus
 import com.mirkwood.rutinify.domain.model.OrderSummary
 import com.mirkwood.rutinify.domain.usecase.GetPermissionStatusUseCase
+import com.mirkwood.rutinify.domain.usecase.ObserveCategorySettingsUseCase
 import com.mirkwood.rutinify.domain.usecase.ObserveOrderSummariesUseCase
 import com.mirkwood.rutinify.ui.common.SpanLabels
 import com.mirkwood.rutinify.ui.common.UiText
@@ -46,19 +47,27 @@ sealed interface HomeAction {
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     observeOrderSummaries: ObserveOrderSummariesUseCase,
+    observeCategorySettings: ObserveCategorySettingsUseCase,
     private val getPermissionStatus: GetPermissionStatusUseCase,
 ) : ViewModel() {
 
-    private val missingPermissions = MutableStateFlow(!getPermissionStatus().allGranted)
+    private val permissions = MutableStateFlow(getPermissionStatus())
 
     /** Follows Room, so any order or alarm change refreshes the list (R-8.6). */
-    val uiState: StateFlow<HomeUiState> = combine(observeOrderSummaries(), missingPermissions) { summaries, missing ->
-        HomeUiState(isLoading = false, orders = summaries.map(::toCard), missingPermissions = missing)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
+    val uiState: StateFlow<HomeUiState> =
+        combine(observeOrderSummaries(), observeCategorySettings(), permissions) { summaries, categories, status ->
+            // D-88: full screen only matters once some category is critical (R-15.11)
+            val missingFullScreen = !status.fullScreenIntent && categories.any { it.critical }
+            HomeUiState(
+                isLoading = false,
+                orders = summaries.map(::toCard),
+                missingPermissions = !status.allGranted || missingFullScreen,
+            )
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 
     fun onAction(action: HomeAction) {
         when (action) {
-            HomeAction.Resumed -> missingPermissions.value = !getPermissionStatus().allGranted
+            HomeAction.Resumed -> permissions.value = getPermissionStatus()
         }
     }
 

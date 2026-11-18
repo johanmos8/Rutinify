@@ -17,6 +17,10 @@
     <string name="permissions_exact_title">Alarmas exactas</string>
     <string name="permissions_exact_description">Para que cada aviso llegue a su hora exacta. Sin él, Android puede retrasarlo unos minutos.</string>
     <string name="permissions_granted">Concedido</string>
+    <string name="permissions_full_screen_title">Alarmas a pantalla completa</string>
+    <string name="permissions_full_screen_description">Para que las alarmas críticas enciendan la pantalla y se vean sobre la pantalla de bloqueo. Sin él suenan igual, pero como notificación emergente.</string>
+    <string name="permissions_enabled">Activado</string>
+    <string name="permissions_disabled">Desactivado</string>
     <string name="permissions_missing">Falta</string>
     <string name="permissions_battery_note">Algunos fabricantes cierran las apps en segundo plano para ahorrar batería. Si una alarma no suena, busca tu modelo en dontkillmyapp.com y sigue sus pasos.</string>
     <string name="action_fix">Corregir</string>

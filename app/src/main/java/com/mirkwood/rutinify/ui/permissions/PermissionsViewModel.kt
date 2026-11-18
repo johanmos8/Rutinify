@@ -12,9 +12,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** R-11.4: one row per permission, each with its "Corregir" button while missing. */
-data class PermissionsUiState(val notifications: Boolean, val exactAlarms: Boolean) {
-    val allGranted: Boolean get() = notifications && exactAlarms
+/** R-11.4: one row per permission, each with its "Corregir" button while missing; [fullScreenIntent] is R-15.11. */
+data class PermissionsUiState(val notifications: Boolean, val exactAlarms: Boolean, val fullScreenIntent: Boolean = true) {
+    val allGranted: Boolean get() = notifications && exactAlarms && fullScreenIntent
 }
 
 sealed interface PermissionsAction {
@@ -48,5 +48,6 @@ class PermissionsViewModel @Inject constructor(
         }
     }
 
-    private fun PermissionStatus.toUi() = PermissionsUiState(notifications = notifications, exactAlarms = exactAlarms)
+    private fun PermissionStatus.toUi() =
+        PermissionsUiState(notifications = notifications, exactAlarms = exactAlarms, fullScreenIntent = fullScreenIntent)
 }

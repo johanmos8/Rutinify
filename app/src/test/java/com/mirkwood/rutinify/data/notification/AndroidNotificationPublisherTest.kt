@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.data.notification
 
+import com.mirkwood.rutinify.testutil.FakePermissionChecker
 import com.mirkwood.rutinify.ui.alarm.AlarmActivity
 import android.Manifest
 import android.app.Application
@@ -31,7 +32,8 @@ class AndroidNotificationPublisherTest {
     private val app: Application = ApplicationProvider.getApplicationContext()
     private val manager = app.getSystemService(NotificationManager::class.java)
     private val shadowManager = shadowOf(manager)
-    private val publisher = AndroidNotificationPublisher(app, manager, PendingIntentFactory(app))
+    private val permissions = FakePermissionChecker()
+    private val publisher = AndroidNotificationPublisher(app, manager, PendingIntentFactory(app), permissions)
 
     private val triggerAt = Instant.parse("2026-11-05T11:45:00Z")
     private val siesta = AlarmNotification(
@@ -359,5 +361,30 @@ class AndroidNotificationPublisherTest {
         publisher.cancel(42L)
 
         assertThat(summary()).isNull()
+    }
+
+    @Test
+    fun `sin permiso de pantalla completa suena como notificacion emergente con los mismos botones`() { // R-15.11, D-68
+        permissions.fullScreenIntent = false
+
+        publisher.publish(siesta.copy(critical = true))
+
+        val notification = requireNotNull(shown(42L))
+        assertThat(notification.fullScreenIntent).isNull()
+        assertThat(notification.channelId).isEqualTo("alarm_critical")
+        assertThat(notification.priority).isEqualTo(Notification.PRIORITY_HIGH)
+        assertThat(notification.flags and Notification.FLAG_INSISTENT).isNotEqualTo(0)
+        assertThat(notification.actions.map { it.title.toString() }).containsExactly("Hecho", "+5 min", "Silenciar").inOrder()
+    }
+
+    @Test
+    fun `el permiso de pantalla completa se mira en cada alarma`() { // R-15.11, D-68
+        permissions.fullScreenIntent = false
+        publisher.publish(siesta.copy(critical = true))
+        assertThat(requireNotNull(shown(42L)).fullScreenIntent).isNull()
+
+        permissions.fullScreenIntent = true
+        publisher.publish(siesta.copy(alarmId = 43L, critical = true))
+        assertThat(requireNotNull(shown(43L)).fullScreenIntent).isNotNull()
     }
 }

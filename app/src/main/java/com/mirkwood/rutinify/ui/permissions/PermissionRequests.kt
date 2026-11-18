@@ -59,6 +59,12 @@ fun openExactAlarmSettings(context: Context) {
     start(context, Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, "package:${context.packageName}".toUri()))
 }
 
+/** "Corregir" for full-screen alarms: the system page of this app (R-15.11, D-68); granted at install below 14. */
+fun openFullScreenIntentSettings(context: Context) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return
+    start(context, Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, "package:${context.packageName}".toUri()))
+}
+
 /** App notification settings (R-11.8). */
 fun openNotificationSettings(context: Context) {
     start(context, Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName))

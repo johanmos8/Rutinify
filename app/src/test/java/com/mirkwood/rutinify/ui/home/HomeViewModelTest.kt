@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.ui.home
 
+import com.mirkwood.rutinify.testutil.FakeCategorySettingsRepository
+import com.mirkwood.rutinify.domain.usecase.ObserveCategorySettingsUseCase
 import com.google.common.truth.Truth.assertThat
 import com.mirkwood.rutinify.domain.model.OrderDisplayStatus
 import com.mirkwood.rutinify.domain.model.OrderStatus
@@ -32,7 +34,13 @@ class HomeViewModelTest {
 
     private val checker = FakePermissionChecker()
 
-    private fun viewModel() = HomeViewModel(ObserveOrderSummariesUseCase(orders), GetPermissionStatusUseCase(checker))
+    private val categories = FakeCategorySettingsRepository()
+
+    private fun viewModel() = HomeViewModel(
+        ObserveOrderSummariesUseCase(orders),
+        ObserveCategorySettingsUseCase(categories),
+        GetPermissionStatusUseCase(checker),
+    )
 
     /** Keeps `uiState` subscribed (WhileSubscribed) for the whole test. */
     private fun TestScope.subscribed(vm: HomeViewModel) = vm.also {
@@ -177,5 +185,24 @@ class HomeViewModelTest {
             UiText.Res(R.string.date_range, listOf("sábado 28 de noviembre", "viernes 4 de diciembre de 2026")),
             UiText.Res(R.string.date_range, listOf("martes 29 de diciembre de 2026", "domingo 3 de enero de 2027")),
         ).inOrder()
+    }
+
+    @Test
+    fun `sin pantalla completa y sin categorias criticas no muestra el banner`() = runTest { // D-88
+        checker.fullScreenIntent = false
+        categories.used.value = listOf("medicación")
+
+        assertThat(subscribed(viewModel()).uiState.value.missingPermissions).isFalse()
+    }
+
+    @Test
+    fun `sin pantalla completa y con una categoria critica muestra el banner`() = runTest { // R-15.11, D-88
+        checker.fullScreenIntent = false
+        categories.used.value = listOf("medicación")
+        val vm = subscribed(viewModel())
+
+        categories.setCritical("medicación", true)
+
+        assertThat(vm.uiState.value.missingPermissions).isTrue()
     }
 }

@@ -101,4 +101,21 @@ class PermissionsViewModelTest {
 
         assertThat(scheduler.scheduled).isEmpty()
     }
+
+    @Test
+    fun `muestra el permiso de pantalla completa y lo vuelve a mirar al volver`() { // R-15.11, R-11.5
+        checker.notifications = true
+        checker.exactAlarms = true
+        checker.fullScreenIntent = false
+        val vm = viewModel()
+
+        assertThat(vm.uiState.value.fullScreenIntent).isFalse()
+        assertThat(vm.uiState.value.allGranted).isFalse()
+
+        checker.fullScreenIntent = true
+        vm.onAction(PermissionsAction.Resumed)
+
+        assertThat(vm.uiState.value.fullScreenIntent).isTrue()
+        assertThat(vm.uiState.value.allGranted).isTrue()
+    }
 }

@@ -48,6 +48,7 @@ fun PermissionsRoute(
         onBack = onBack,
         onFixNotifications = fixNotifications,
         onFixExactAlarms = { openExactAlarmSettings(context) },
+        onFixFullScreen = { openFullScreenIntentSettings(context) },
         modifier = modifier,
     )
 }
@@ -59,6 +60,7 @@ fun PermissionsScreen(
     onBack: () -> Unit,
     onFixNotifications: () -> Unit,
     onFixExactAlarms: () -> Unit,
+    onFixFullScreen: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -89,6 +91,15 @@ fun PermissionsScreen(
                 granted = state.exactAlarms,
                 onFix = onFixExactAlarms,
             )
+            // R-15.11: "Alarmas a pantalla completa: desactivado"
+            PermissionCard(
+                titleRes = R.string.permissions_full_screen_title,
+                descriptionRes = R.string.permissions_full_screen_description,
+                granted = state.fullScreenIntent,
+                onFix = onFixFullScreen,
+                grantedLabelRes = R.string.permissions_enabled,
+                missingLabelRes = R.string.permissions_disabled,
+            )
             // Design K-2: informative only, no link (the app has no INTERNET permission, R-13.6)
             Text(
                 text = stringResource(R.string.permissions_battery_note),
@@ -106,13 +117,15 @@ private fun PermissionCard(
     granted: Boolean,
     onFix: () -> Unit,
     modifier: Modifier = Modifier,
+    @StringRes grantedLabelRes: Int = R.string.permissions_granted,
+    @StringRes missingLabelRes: Int = R.string.permissions_missing,
 ) {
     Card(modifier = modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(titleRes), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                 Text(
-                    text = stringResource(if (granted) R.string.permissions_granted else R.string.permissions_missing),
+                    text = stringResource(if (granted) grantedLabelRes else missingLabelRes),
                     style = MaterialTheme.typography.labelLarge,
                     color = if (granted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                 )
@@ -130,10 +143,11 @@ private fun PermissionCard(
 private fun PermissionsScreenMissingPreview() {
     RutinifyTheme {
         PermissionsScreen(
-            state = PermissionsUiState(notifications = true, exactAlarms = false),
+            state = PermissionsUiState(notifications = true, exactAlarms = false, fullScreenIntent = false),
             onBack = {},
             onFixNotifications = {},
             onFixExactAlarms = {},
+            onFixFullScreen = {},
         )
     }
 }
@@ -147,6 +161,7 @@ private fun PermissionsScreenGrantedPreview() {
             onBack = {},
             onFixNotifications = {},
             onFixExactAlarms = {},
+            onFixFullScreen = {},
         )
     }
 }

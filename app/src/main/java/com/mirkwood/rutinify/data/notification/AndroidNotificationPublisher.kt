@@ -22,6 +22,7 @@ import com.mirkwood.rutinify.data.alarm.PendingIntentFactory
 import com.mirkwood.rutinify.domain.model.categoryDisplayName
 import com.mirkwood.rutinify.domain.scheduler.AlarmNotification
 import com.mirkwood.rutinify.domain.scheduler.NotificationPublisher
+import com.mirkwood.rutinify.domain.scheduler.PermissionChecker
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
@@ -31,6 +32,7 @@ class AndroidNotificationPublisher @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val manager: NotificationManager,
     private val pendingIntents: PendingIntentFactory,
+    private val permissions: PermissionChecker,
 ) : NotificationPublisher {
 
     override fun ensureChannels(categories: Collection<String>) {
@@ -65,14 +67,15 @@ class AndroidNotificationPublisher @Inject constructor(
 
     override fun cancel(alarmId: Long) {
         manager.cancel(TAG, alarmId.toInt())
-        removeSummaryIfEmpty()
+        removeSummaryIfEmpty(cancelled = setOf(alarmId.toInt()))
     }
 
     override fun cancelForOrder(orderId: Long) {
-        manager.activeNotifications
+        val ids = manager.activeNotifications
             .filter { it.tag == TAG && it.notification.extras.getLong(EXTRA_ORDER_ID, NO_ORDER) == orderId }
-            .forEach { manager.cancel(TAG, it.id) }
-        removeSummaryIfEmpty()
+            .map { it.id }
+        ids.forEach { manager.cancel(TAG, it) }
+        removeSummaryIfEmpty(cancelled = ids.toSet())
     }
 
     /**
@@ -93,8 +96,9 @@ class AndroidNotificationPublisher @Inject constructor(
         manager.notify(TAG_SUMMARY, SUMMARY_ID, summary)
     }
 
-    private fun removeSummaryIfEmpty() {
-        if (manager.activeNotifications.none { it.tag == TAG }) manager.cancel(TAG_SUMMARY, SUMMARY_ID)
+    /** [cancelled] are left out: `cancel` is asynchronous, so they may still be listed as active. */
+    private fun removeSummaryIfEmpty(cancelled: Set<Int>) {
+        if (manager.activeNotifications.none { it.tag == TAG && it.id !in cancelled }) manager.cancel(TAG_SUMMARY, SUMMARY_ID)
     }
 
     private fun canNotify(): Boolean = notificationsAllowed(context, manager)
@@ -163,10 +167,12 @@ class AndroidNotificationPublisher @Inject constructor(
             .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_CHILDREN)
         if (ringing) {
             val silence = context.getString(R.string.notification_action_silence)
-            builder
-                .addAction(NotificationCompat.Action.Builder(null, silence, pendingIntents.silence(n.alarmId)).build())
-                // R-15.7: over the lock screen; a heads-up notification where full screen is not allowed (T-47)
-                .setFullScreenIntent(pendingIntents.alarmScreen(n.alarmId, n.orderId), true)
+            builder.addAction(NotificationCompat.Action.Builder(null, silence, pendingIntents.silence(n.alarmId)).build())
+            // R-15.7 over the lock screen; checked on every alarm, because the user can revoke it at any time. Without
+            // it the same notification shows as heads-up, with the same sound and buttons (R-15.11, D-68)
+            if (permissions.fullScreenIntentGranted()) {
+                builder.setFullScreenIntent(pendingIntents.alarmScreen(n.alarmId, n.orderId), true)
+            }
         }
         return builder.build().apply {
             // R-15.6: the sound repeats until "Hecho", "+5 min", "Silenciar" or dismissing replaces or removes it

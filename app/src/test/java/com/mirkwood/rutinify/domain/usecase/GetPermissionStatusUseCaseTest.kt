@@ -35,4 +35,12 @@ class GetPermissionStatusUseCaseTest {
         checker.exactAlarms = true
         assertThat(getStatus().exactAlarms).isTrue()
     }
+
+    @Test
+    fun `incluye la pantalla completa sin contarla para el banner`() { // R-15.11, D-88
+        checker.fullScreenIntent = false
+
+        assertThat(getStatus().fullScreenIntent).isFalse()
+        assertThat(getStatus().allGranted).isTrue()
+    }
 }

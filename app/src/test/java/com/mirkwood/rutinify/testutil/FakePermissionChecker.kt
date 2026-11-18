@@ -7,6 +7,7 @@ class FakePermissionChecker(
     var notifications: Boolean = true,
     var exactAlarms: Boolean = true,
     var notificationsRequestable: Boolean = false,
+    var fullScreenIntent: Boolean = true,
 ) : PermissionChecker {
 
     override fun notificationsGranted(): Boolean = notifications
@@ -14,4 +15,6 @@ class FakePermissionChecker(
     override fun exactAlarmsGranted(): Boolean = exactAlarms
 
     override fun notificationsRequestable(): Boolean = notificationsRequestable
+
+    override fun fullScreenIntentGranted(): Boolean = fullScreenIntent
 }

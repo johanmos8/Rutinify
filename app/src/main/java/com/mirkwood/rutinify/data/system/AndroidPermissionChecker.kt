@@ -23,6 +23,9 @@ class AndroidPermissionChecker @Inject constructor(
 
     override fun exactAlarmsGranted(): Boolean = scheduler.canScheduleExact()
 
+    override fun fullScreenIntentGranted(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE || notificationManager.canUseFullScreenIntent()
+
     override fun notificationsRequestable(): Boolean =
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED

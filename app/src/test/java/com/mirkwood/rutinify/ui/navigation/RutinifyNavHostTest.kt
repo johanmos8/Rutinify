@@ -61,7 +61,7 @@ class RutinifyNavHostTest {
                     },
                     newRoutineContent = { onBack, _ -> NewRoutineScreen(NewRoutineUiState(), onAction = {}, onBack = onBack) },
                     permissionsContent = { onBack ->
-                        PermissionsScreen(PermissionsUiState(notifications = true, exactAlarms = false), onBack, {}, {})
+                        PermissionsScreen(PermissionsUiState(notifications = true, exactAlarms = false), onBack, {}, {}, {})
                     },
                     settingsContent = { onBack -> SettingsScreen(PreviewData.settingsState, onAction = {}, onBack = onBack) },
                     orderDetailContent = { onBack, _ -> OrderDetailScreen(OrderDetailUiState(isLoading = false, notFound = true), onAction = {}, onBack = onBack) },
