@@ -246,10 +246,11 @@
   - Tests de `PermissionChecker` y del publicador con y sin permiso.
   - ✅ Sin permiso, la alarma suena como notificación emergente.
   - _Hecho:_ `PermissionChecker.fullScreenIntentGranted()`; el publicador lo mira en cada alarma crítica y sin él no pone `fullScreenIntent`; tarjeta "Alarmas a pantalla completa" ("Activado"/"Desactivado", "Corregir" → `ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT`); el banner de Inicio solo la cuenta si hay alguna categoría crítica (D-88). Además, el resumen del grupo (D-87) ya no se queda solo tras "Hecho" desde la app. 6 tests nuevos (650 en verde). En el emulador, sin el permiso: banner en Inicio, tarjeta "Desactivado", "Corregir" abre el ajuste del sistema, y una alarma crítica con la pantalla apagada sonó con sus tres botones sin abrir la pantalla de alarma.
-- [ ] **T-48 · Petición guiada de alarmas exactas** — (R-11.2, R-15.5; D-69 opción C)
+- [x] **T-48 · Petición guiada de alarmas exactas** — (R-11.2, R-15.5; D-69 opción C)
   - Pedir el permiso al marcar la primera categoría crítica (R-15.5; hecho ya en T-44, D-84) y mostrar una tarjeta en Inicio tras programar el primer plan si falta el permiso; ambas abren `ACTION_REQUEST_SCHEDULE_EXACT_ALARM`.
   - Sin `USE_EXACT_ALARM` en el manifiesto de v1.2.
   - ✅ Tests de VM de la petición y de la tarjeta; previews claro/oscuro; manifiesto sin `USE_EXACT_ALARM`.
+  - _Hecho:_ `ExactAlarmsCardUseCase` y tarjeta "Activa las alarmas exactas" en Inicio con "Ahora no" y "Activar"; sustituye al banner cuando solo faltan las exactas (D-89). `ManifestPermissionsTest` comprueba que no hay `USE_EXACT_ALARM` ni `INTERNET`. 11 tests nuevos (661 en verde), previews claro/oscuro. En el emulador, sin el permiso: la tarjeta aparece sobre los planes, "Activar" abre "Alarmas y recordatorios" y al conceder desaparece.
 - [ ] **T-49 · Interfaz en inglés** — (R-13.3)
   - `values-en/`, `raw-en/` (cinco plantillas), patrones de fecha en recursos (D-71); lint `MissingTranslation` como error.
   - Tests de `SpanLabels`/`DateFormats` con locale `en`; los existentes en `es` siguen en verde.

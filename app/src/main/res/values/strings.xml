@@ -24,6 +24,9 @@
     <string name="permissions_missing">Falta</string>
     <string name="permissions_battery_note">Algunos fabricantes cierran las apps en segundo plano para ahorrar batería. Si una alarma no suena, busca tu modelo en dontkillmyapp.com y sigue sus pasos.</string>
     <string name="action_fix">Corregir</string>
+    <string name="home_exact_card_title">Activa las alarmas exactas</string>
+    <string name="home_exact_card_body">Android tiene desactivadas las alarmas exactas para Rutinify, así que cada aviso puede llegar unos minutos tarde. Actívalas para que suenen a su hora.</string>
+    <string name="action_enable">Activar</string>
     <string name="home_permissions_banner">Faltan permisos: puede que las alarmas no suenen a tiempo o no se vean.</string>
     <string name="action_review_permissions">Revisar</string>
     <string name="review_notifications_title">Avisos en pantalla</string>

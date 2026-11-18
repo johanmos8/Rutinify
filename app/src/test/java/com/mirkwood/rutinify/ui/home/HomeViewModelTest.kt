@@ -1,5 +1,8 @@
 package com.mirkwood.rutinify.ui.home
 
+import app.cash.turbine.test
+import com.mirkwood.rutinify.testutil.FakePermissionPromptStore
+import com.mirkwood.rutinify.domain.usecase.ExactAlarmsCardUseCase
 import com.mirkwood.rutinify.testutil.FakeCategorySettingsRepository
 import com.mirkwood.rutinify.domain.usecase.ObserveCategorySettingsUseCase
 import com.google.common.truth.Truth.assertThat
@@ -35,11 +38,13 @@ class HomeViewModelTest {
     private val checker = FakePermissionChecker()
 
     private val categories = FakeCategorySettingsRepository()
+    private val prompts = FakePermissionPromptStore()
 
     private fun viewModel() = HomeViewModel(
         ObserveOrderSummariesUseCase(orders),
         ObserveCategorySettingsUseCase(categories),
         GetPermissionStatusUseCase(checker),
+        ExactAlarmsCardUseCase(checker, prompts),
     )
 
     /** Keeps `uiState` subscribed (WhileSubscribed) for the whole test. */
@@ -204,5 +209,76 @@ class HomeViewModelTest {
         categories.setCritical("medicación", true)
 
         assertThat(vm.uiState.value.missingPermissions).isTrue()
+    }
+
+    @Test
+    fun `sin planes no muestra la tarjeta de alarmas exactas`() = runTest { // R-11.2, D-89
+        checker.exactAlarms = false
+
+        val state = subscribed(viewModel()).uiState.value
+
+        assertThat(state.showExactAlarmsCard).isFalse()
+        assertThat(state.missingPermissions).isTrue()
+    }
+
+    @Test
+    fun `tras el primer plan sin alarmas exactas muestra la tarjeta en lugar del banner`() = runTest { // R-11.2, D-89
+        checker.exactAlarms = false
+        orders.summaries.value = listOf(summary(1))
+
+        val state = subscribed(viewModel()).uiState.value
+
+        assertThat(state.showExactAlarmsCard).isTrue()
+        assertThat(state.missingPermissions).isFalse()
+    }
+
+    @Test
+    fun `si tambien faltan las notificaciones se ven la tarjeta y el banner`() = runTest { // R-11.3, D-89
+        checker.exactAlarms = false
+        checker.notifications = false
+        orders.summaries.value = listOf(summary(1))
+
+        val state = subscribed(viewModel()).uiState.value
+
+        assertThat(state.showExactAlarmsCard).isTrue()
+        assertThat(state.missingPermissions).isTrue()
+    }
+
+    @Test
+    fun `Activar abre el ajuste de alarmas exactas`() = runTest { // R-11.2
+        checker.exactAlarms = false
+        orders.summaries.value = listOf(summary(1))
+        val vm = subscribed(viewModel())
+
+        vm.effects.test {
+            vm.onAction(HomeAction.ExactAlarmsCardEnable)
+            assertThat(awaitItem()).isEqualTo(HomeEffect.OpenExactAlarmSettings)
+        }
+    }
+
+    @Test
+    fun `Ahora no quita la tarjeta para siempre y deja el banner`() = runTest { // D-89
+        checker.exactAlarms = false
+        orders.summaries.value = listOf(summary(1))
+        val vm = subscribed(viewModel())
+
+        vm.onAction(HomeAction.ExactAlarmsCardDismiss)
+
+        assertThat(vm.uiState.value.showExactAlarmsCard).isFalse()
+        assertThat(vm.uiState.value.missingPermissions).isTrue()
+        assertThat(prompts.cardDismissed).isTrue()
+    }
+
+    @Test
+    fun `al volver con el permiso concedido la tarjeta desaparece`() = runTest { // R-11.5
+        checker.exactAlarms = false
+        orders.summaries.value = listOf(summary(1))
+        val vm = subscribed(viewModel())
+
+        checker.exactAlarms = true
+        vm.onAction(HomeAction.Resumed)
+
+        assertThat(vm.uiState.value.showExactAlarmsCard).isFalse()
+        assertThat(vm.uiState.value.missingPermissions).isFalse()
     }
 }

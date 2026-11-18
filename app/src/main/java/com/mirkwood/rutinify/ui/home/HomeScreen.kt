@@ -24,9 +24,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -38,6 +40,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mirkwood.rutinify.R
 import com.mirkwood.rutinify.ui.common.OrderStatusLabel
 import com.mirkwood.rutinify.ui.common.asString
+import com.mirkwood.rutinify.ui.permissions.openExactAlarmSettings
 import com.mirkwood.rutinify.ui.preview.PreviewData
 import com.mirkwood.rutinify.ui.preview.ThemePreviews
 import com.mirkwood.rutinify.ui.theme.RutinifyTheme
@@ -53,10 +56,19 @@ fun HomeRoute(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     // R-11.5: the banner follows changes made in system settings
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onAction(HomeAction.Resumed) }
+    LaunchedEffect(viewModel) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                HomeEffect.OpenExactAlarmSettings -> openExactAlarmSettings(context)
+            }
+        }
+    }
     HomeScreen(
         state = state,
+        onAction = viewModel::onAction,
         onNewRoutineClick = onNewRoutineClick,
         onOrderClick = onOrderClick,
         onPermissionsClick = onPermissionsClick,
@@ -70,6 +82,7 @@ fun HomeRoute(
 @Composable
 fun HomeScreen(
     state: HomeUiState,
+    onAction: (HomeAction) -> Unit,
     onNewRoutineClick: () -> Unit,
     onOrderClick: (orderId: Long) -> Unit,
     onPermissionsClick: () -> Unit,
@@ -98,6 +111,9 @@ fun HomeScreen(
         },
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            if (state.showExactAlarmsCard) {
+                ExactAlarmsCard(onAction = onAction, modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp))
+            }
             if (state.missingPermissions) {
                 PermissionsBanner(onClick = onPermissionsClick, modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp))
             }
@@ -146,6 +162,29 @@ private fun PermissionsBanner(onClick: () -> Unit, modifier: Modifier = Modifier
     }
 }
 
+/** R-11.2, D-89: shown once a plan exists and exact alarms are off, until "Ahora no". */
+@Composable
+private fun ExactAlarmsCard(onAction: (HomeAction) -> Unit, modifier: Modifier = Modifier) {
+    Card(modifier = modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 8.dp, bottom = 4.dp)) {
+            Text(stringResource(R.string.home_exact_card_title), style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = stringResource(R.string.home_exact_card_body),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 4.dp, end = 8.dp),
+            )
+            Row(modifier = Modifier.align(Alignment.End)) {
+                TextButton(onClick = { onAction(HomeAction.ExactAlarmsCardDismiss) }) {
+                    Text(stringResource(R.string.action_not_now))
+                }
+                TextButton(onClick = { onAction(HomeAction.ExactAlarmsCardEnable) }) {
+                    Text(stringResource(R.string.action_enable))
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun OrderCard(card: OrderCardUi, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Card(onClick = onClick, modifier = modifier.fillMaxWidth()) {
@@ -189,13 +228,13 @@ private fun EmptyState(modifier: Modifier = Modifier) {
 @ThemePreviews
 @Composable
 private fun HomeScreenOrdersPreview() {
-    RutinifyTheme { HomeScreen(state = PreviewData.homeState, onNewRoutineClick = {}, onOrderClick = {}, onPermissionsClick = {}, onSettingsClick = {}) }
+    RutinifyTheme { HomeScreen(state = PreviewData.homeState, onAction = {}, onNewRoutineClick = {}, onOrderClick = {}, onPermissionsClick = {}, onSettingsClick = {}) }
 }
 
 @ThemePreviews
 @Composable
 private fun HomeScreenEmptyPreview() {
-    RutinifyTheme { HomeScreen(state = HomeUiState(isLoading = false), onNewRoutineClick = {}, onOrderClick = {}, onPermissionsClick = {}, onSettingsClick = {}) }
+    RutinifyTheme { HomeScreen(state = HomeUiState(isLoading = false), onAction = {}, onNewRoutineClick = {}, onOrderClick = {}, onPermissionsClick = {}, onSettingsClick = {}) }
 }
 
 @ThemePreviews
@@ -204,6 +243,22 @@ private fun HomeScreenMissingPermissionsPreview() {
     RutinifyTheme {
         HomeScreen(
             state = PreviewData.homeState.copy(missingPermissions = true),
+            onAction = {},
+            onNewRoutineClick = {},
+            onOrderClick = {},
+            onPermissionsClick = {},
+            onSettingsClick = {},
+        )
+    }
+}
+
+@ThemePreviews
+@Composable
+private fun HomeScreenExactAlarmsCardPreview() {
+    RutinifyTheme {
+        HomeScreen(
+            state = PreviewData.homeState.copy(showExactAlarmsCard = true),
+            onAction = {},
             onNewRoutineClick = {},
             onOrderClick = {},
             onPermissionsClick = {},

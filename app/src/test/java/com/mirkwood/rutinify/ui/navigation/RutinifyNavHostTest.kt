@@ -53,6 +53,7 @@ class RutinifyNavHostTest {
                     homeContent = { onNew, onOrder, onPermissions, onSettings ->
                         HomeScreen(
                             homeState.value,
+                            onAction = {},
                             onNewRoutineClick = onNew,
                             onOrderClick = onOrder,
                             onPermissionsClick = onPermissions,
