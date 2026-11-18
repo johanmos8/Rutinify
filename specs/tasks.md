@@ -312,10 +312,11 @@
   - `EncodePlanLinkUseCase`/`DecodePlanLinkUseCase` (TDD: ida y vuelta, límite de 2.331 bytes, enlace dañado); `intent-filter` `rutinify://import`; QR con ZXing (D-75).
   - ✅ Un plan que no cabe muestra el mensaje de R-19.5.
   - _Hecho:_ `PlanLink`, `EncodePlanLinkUseCase`, `DecodePlanLinkUseCase`, ZXing `core` (§13, ya aprobada; `CLAUDE.md` §9 actualizado con las dependencias aprobadas) e `intent-filter` `rutinify://import`; "Mostrar QR" en "Compartir plan" y R-19.5 con "Compartir como texto" (D-75). 11 tests nuevos (734 en verde), entre ellos uno que lee el QR generado con el lector de ZXing. En el emulador: el QR del plan se ve; `am start … rutinify://import?…` abre *Revisión* con el plan y un enlace dañado muestra "Este código no contiene un plan de Rutinify".
-- [ ] **T-60 · Escanear QR y filtro por responsable** — (R-19.6, R-19.9, R-19.10)
+- [x] **T-60 · Escanear QR y filtro por responsable** — (R-19.6, R-19.9, R-19.10)
   - "Escanear QR" con Google code scanner; filtro "Solo las tareas de…" en *Revisión* (D-76).
   - Tests de VM del filtro (con y sin `assignee`, "Todas" restaura).
   - ✅ El manifiesto no gana `CAMERA` ni `INTERNET`.
+  - _Hecho:_ "Escanear QR" en *Nueva rutina* con Google code scanner (sin `CAMERA`; el `INTERNET` que trae la librería se quita del manifiesto, D-75) y filtro "Solo las tareas de…" en *Revisión* (D-76). 8 tests nuevos (742 en verde), preview del filtro. En el emulador, "Escanear QR" abre el escáner de Google ("Scanned by Google on behalf of Rutinify").
 - [ ] **T-61 · Eventos del historial** — (R-20.1)
   - Room v4: `alarm_event` con migración que crea eventos desde `done_at` y *Omitidas* (D-77, D-83); escritura en la misma transacción que el estado.
   - ✅ Test de migración y de cada use case que escribe eventos.

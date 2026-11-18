@@ -784,4 +784,56 @@ class ReviewViewModelTest {
 
         assertThat(diagnostics.events).isEmpty()
     }
+
+    // ---- Filter by person (T-60) ----
+
+    private val shared = draft.copy(
+        items = listOf("13:00" to "Ana", "14:00" to "Luis", "15:00" to null, "16:00" to "Ana").mapIndexed { i, (t, who) ->
+            DraftItem(i, LocalTime.parse(t), 0, "A$i", null, null, "general", who)
+        },
+    )
+
+    @Test
+    fun `sin responsables no hay filtro`() = runTest { // R-19.9
+        assertThat(subscribed(viewModel()).state.assignees).isEmpty()
+    }
+
+    @Test
+    fun `ofrece cada responsable distinto y Todas`() = runTest { // R-19.9
+        val vm = subscribed(viewModel(shared))
+
+        assertThat(vm.state.assignees).containsExactly("Ana", "Luis").inOrder()
+        assertThat(vm.state.assigneeFilter).isNull()
+        assertThat(vm.state.items.map { it.key }).containsExactly(0, 1, 2, 3)
+    }
+
+    @Test
+    fun `elegir a alguien quita las de otros y deja las de todos`() = runTest { // R-19.9, D-76
+        val vm = subscribed(viewModel(shared))
+
+        vm.onAction(ReviewAction.AssigneeFilterChanged("Ana"))
+
+        assertThat(vm.state.items.map { it.key }).containsExactly(0, 2, 3).inOrder()
+        assertThat(vm.state.assigneeFilter).isEqualTo("Ana")
+    }
+
+    @Test
+    fun `Todas vuelve a mostrarlas`() = runTest { // R-19.9
+        val vm = subscribed(viewModel(shared))
+        vm.onAction(ReviewAction.AssigneeFilterChanged("Luis"))
+
+        vm.onAction(ReviewAction.AssigneeFilterChanged(null))
+
+        assertThat(vm.state.items.map { it.key }).containsExactly(0, 1, 2, 3)
+    }
+
+    @Test
+    fun `al programar solo entran las tareas elegidas, no como omitidas`() = runTest { // R-19.9, D-76
+        val vm = subscribed(viewModel(shared))
+        vm.onAction(ReviewAction.AssigneeFilterChanged("Luis"))
+
+        vm.onAction(ReviewAction.ScheduleClicked)
+
+        assertThat(alarms.alarms.values.map { it.title }).containsExactly("A1", "A2")
+    }
 }

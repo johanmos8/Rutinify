@@ -307,4 +307,8 @@
     <string name="qr_too_large">Este plan es demasiado grande para un QR; compártelo como texto</string>
     <string name="import_link_invalid">Este código no contiene un plan de Rutinify</string>
     <string name="action_close">Cerrar</string>
+    <string name="action_scan_qr">Escanear QR</string>
+    <string name="new_routine_scan_failed">No se pudo abrir el escáner de QR</string>
+    <string name="review_assignee_filter">Solo las tareas de…</string>
+    <string name="review_assignee_all">Todas</string>
 </resources>

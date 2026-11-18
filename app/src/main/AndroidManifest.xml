@@ -11,6 +11,15 @@
     <!-- Alarm screen of critical alarms over the lock screen (R-15.7, D-68); its fallback and Permissions row are T-47 -->
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
 
+    <!-- The QR scanner library asks for network access for its own telemetry; scanning runs in Google Play services,
+         so the app keeps no network permission (R-13.6, D-75) -->
+    <uses-permission
+        android:name="android.permission.INTERNET"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.ACCESS_NETWORK_STATE"
+        tools:node="remove" />
+
     <!-- "Abrir en IA" checks for apps that receive text (R-14.8, D-65) -->
     <queries>
         <intent>

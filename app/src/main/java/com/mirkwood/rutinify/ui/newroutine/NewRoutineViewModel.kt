@@ -51,6 +51,15 @@ data class NewRoutineUiState(
 sealed interface NewRoutineAction {
     data class TextChanged(val text: String) : NewRoutineAction
     data object PasteClicked : NewRoutineAction
+
+    /** "Escanear QR" (R-19.6). */
+    data object ScanQrClicked : NewRoutineAction
+
+    /** What the scanner read (R-19.7). */
+    data class QrScanned(val text: String) : NewRoutineAction
+
+    /** The scanner could not open (no Google Play services, for example). */
+    data object QrScanFailed : NewRoutineAction
     data object CopyTemplateClicked : NewRoutineAction
 
     /** Template selector (R-16.2). */
@@ -69,6 +78,9 @@ sealed interface NewRoutineEffect {
 
     /** Android's app chooser with the template, titled "Enviar la plantilla a…" (R-14.7, D-65). */
     data class ShareTemplate(val template: String) : NewRoutineEffect
+
+    /** Opens the Google code scanner (R-19.6, D-75). */
+    data object StartQrScan : NewRoutineEffect
 }
 
 @HiltViewModel
@@ -104,6 +116,18 @@ class NewRoutineViewModel @Inject constructor(
         when (action) {
             is NewRoutineAction.TextChanged -> setText(action.text)
             NewRoutineAction.PasteClicked -> paste()
+            NewRoutineAction.ScanQrClicked -> effectChannel.trySend(NewRoutineEffect.StartQrScan)
+            is NewRoutineAction.QrScanned -> {
+                draftStore.clear()
+                // R-19.8: a QR code that is not a Rutinify link is not a plan either
+                if (decodePlanLink.isLink(action.text)) {
+                    importText(action.text)
+                } else {
+                    effectChannel.trySend(NewRoutineEffect.ShowMessage(UiText.Res(R.string.import_link_invalid)))
+                }
+            }
+            NewRoutineAction.QrScanFailed ->
+                effectChannel.trySend(NewRoutineEffect.ShowMessage(UiText.Res(R.string.new_routine_scan_failed)))
             NewRoutineAction.CopyTemplateClicked -> copyTemplate()
             is NewRoutineAction.ScenarioSelected -> {
                 scenarioStore.save(action.scenario)

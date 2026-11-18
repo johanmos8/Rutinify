@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.ui.review
 
+import androidx.compose.material3.FilterChip
+import androidx.compose.foundation.layout.FlowRow
 import com.mirkwood.rutinify.ui.common.EditActivityDialog
 import com.mirkwood.rutinify.ui.common.ActivityForm
 import com.mirkwood.rutinify.ui.permissions.openExactAlarmSettings
@@ -161,6 +163,9 @@ fun ReviewScreen(
             item(key = "header") {
                 Header(state, onChangeDate = { showDatePicker = true }, onUseTomorrow = { onAction(ReviewAction.UseTomorrow) })
             }
+            if (state.assignees.isNotEmpty()) {
+                item(key = "assignees") { AssigneeFilter(state.assignees, state.assigneeFilter, onAction) }
+            }
             if (state.days.isEmpty()) {
                 items(state.items, key = { it.key }) { item ->
                     ReviewItemRow(item = item, onAction = onAction)
@@ -193,6 +198,28 @@ fun ReviewScreen(
         ReviewDialog.ExactAlarms -> ExactAlarmsDialog(onAction)
         is ReviewDialog.Conflict -> ConflictDialog(dialog, onAction)
         null -> Unit
+    }
+}
+
+/** R-19.9: "Solo las tareas de…" one person, or "Todas". */
+@Composable
+private fun AssigneeFilter(assignees: List<String>, selected: String?, onAction: (ReviewAction) -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier = modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(stringResource(R.string.review_assignee_filter), style = MaterialTheme.typography.labelLarge)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(
+                selected = selected == null,
+                onClick = { onAction(ReviewAction.AssigneeFilterChanged(null)) },
+                label = { Text(stringResource(R.string.review_assignee_all)) },
+            )
+            assignees.forEach { name ->
+                FilterChip(
+                    selected = selected == name,
+                    onClick = { onAction(ReviewAction.AssigneeFilterChanged(name)) },
+                    label = { Text(name) },
+                )
+            }
+        }
     }
 }
 
@@ -485,6 +512,18 @@ private fun ReviewScreenEditPreview() {
             state = PreviewData.reviewState.copy(
                 editing = EditItemUi(1, "25:00", "Paseo", "paseo", timeError = UiText.Res(R.string.review_error_time)),
             ),
+            onAction = {},
+            onBack = {},
+        )
+    }
+}
+
+@ThemePreviews
+@Composable
+private fun ReviewScreenAssigneeFilterPreview() {
+    RutinifyTheme {
+        ReviewScreen(
+            state = PreviewData.reviewState.copy(assignees = listOf("Ana", "Luis"), assigneeFilter = "Ana"),
             onAction = {},
             onBack = {},
         )

@@ -95,6 +95,7 @@ dependencies {
 
     // QR codes of shared plans (D-75)
     implementation(libs.zxing.core)
+    implementation(libs.play.services.code.scanner)
     implementation(libs.kotlinx.coroutines.android)
 
     // Unit tests (JVM)

@@ -399,4 +399,36 @@ class NewRoutineViewModelTest {
             assertThat((awaitItem() as NewRoutineEffect.ShowMessage).message.es()).isEqualTo("Este código no contiene un plan de Rutinify")
         }
     }
+
+    @Test
+    fun `Escanear QR abre el escaner`() = runTest { // R-19.6
+        val vm = viewModel()
+
+        vm.effects.test {
+            vm.onAction(NewRoutineAction.ScanQrClicked)
+            assertThat(awaitItem()).isEqualTo(NewRoutineEffect.StartQrScan)
+        }
+    }
+
+    @Test
+    fun `un QR de Rutinify se decodifica y se valida`() = runTest { // R-19.7
+        val json = """{"schemaVersion":1,"routine":{"name":"Gato","date":null,"notes":null},"items":[]}"""
+        val vm = subscribed(viewModel())
+
+        vm.onAction(NewRoutineAction.QrScanned((PlanLink.encode(json) as PlanLink.Encoded.Ok).link))
+
+        assertThat(vm.uiState.value.text).isEqualTo(json)
+        assertThat(importer.received).containsExactly(json)
+    }
+
+    @Test
+    fun `un QR ajeno dice que no contiene un plan`() = runTest { // R-19.8
+        val vm = viewModel()
+
+        vm.effects.test {
+            vm.onAction(NewRoutineAction.QrScanned("https://example.com"))
+            assertThat((awaitItem() as NewRoutineEffect.ShowMessage).message.es()).isEqualTo("Este código no contiene un plan de Rutinify")
+        }
+        assertThat(importer.received).isEmpty()
+    }
 }

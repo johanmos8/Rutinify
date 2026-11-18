@@ -77,6 +77,11 @@ fun NewRoutineRoute(
                 when (effect) {
                     is NewRoutineEffect.ShowMessage -> snackbarHostState.showSnackbar(effect.message.resolve(resources))
                     is NewRoutineEffect.NavigateToReview -> onNavigateToReview(effect.draftId)
+                    NewRoutineEffect.StartQrScan -> startQrScan(
+                        context,
+                        onScanned = { viewModel.onAction(NewRoutineAction.QrScanned(it)) },
+                        onFailed = { viewModel.onAction(NewRoutineAction.QrScanFailed) },
+                    )
                     is NewRoutineEffect.ShareTemplate -> {
                         val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, effect.template)
                         val chooser = Intent.createChooser(send, chooserTitle)
@@ -162,6 +167,8 @@ fun NewRoutineScreen(
                     }
                 }
             }
+            // R-19.6: a plan from another phone's QR code
+            TextButton(onClick = { onAction(NewRoutineAction.ScanQrClicked) }) { Text(stringResource(R.string.action_scan_qr)) }
             if (state.issues.isNotEmpty()) IssuesCard(state)
         }
     }

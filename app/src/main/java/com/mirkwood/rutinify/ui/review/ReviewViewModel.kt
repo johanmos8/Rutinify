@@ -113,9 +113,16 @@ data class ReviewUiState(
     val editing: EditItemUi? = null,
     val dialog: ReviewDialog? = null,
     val isScheduling: Boolean = false,
+    /** Distinct `assignee` values of the draft, for "Solo las tareas de…"; empty hides the filter (R-19.9). */
+    val assignees: List<String> = emptyList(),
+    /** Chosen person, or null for "Todas" (R-19.9, D-76). */
+    val assigneeFilter: String? = null,
 )
 
 sealed interface ReviewAction {
+    /** "Solo las tareas de…" [name], or "Todas" with null (R-19.9). */
+    data class AssigneeFilterChanged(val name: String?) : ReviewAction
+
     data class ToggleIncluded(val key: Int) : ReviewAction
     data class RemoveItem(val key: Int) : ReviewAction
     data object UndoRemove : ReviewAction
@@ -194,7 +201,17 @@ class ReviewViewModel @Inject constructor(
         val dialog: ReviewDialog? = null,
         val isScheduling: Boolean = false,
         val lastPolicy: ConflictPolicy = ConflictPolicy.KEEP_BOTH,
-    )
+        val assignee: String? = null,
+    ) {
+        /**
+         * The draft as shown and scheduled: with a person chosen, other people's activities are left out and those
+         * without `assignee` stay, since they belong to everyone (R-19.9, D-76). [draft] keeps them all for "Todas".
+         */
+        val visibleDraft: RoutineDraft?
+            get() = draft?.let { d ->
+                if (assignee == null) d else d.copy(items = d.items.filter { it.assignee == null || it.assignee == assignee })
+            }
+    }
 
     private val model: MutableStateFlow<Model>
     private val effectChannel = Channel<ReviewEffect>(Channel.BUFFERED)
@@ -219,6 +236,7 @@ class ReviewViewModel @Inject constructor(
 
     fun onAction(action: ReviewAction) {
         when (action) {
+            is ReviewAction.AssigneeFilterChanged -> model.update { it.copy(assignee = action.name) }
             is ReviewAction.ToggleIncluded -> toggle(action.key)
             is ReviewAction.RemoveItem -> remove(action.key)
             ReviewAction.UndoRemove -> undoRemove()
@@ -265,7 +283,7 @@ class ReviewViewModel @Inject constructor(
     // ---- State mapping ----
 
     private fun toUiState(m: Model): ReviewUiState {
-        val draft = m.draft ?: return ReviewUiState(draftLost = true)
+        val draft = m.visibleDraft ?: return ReviewUiState(draftLost = true)
         val preview = preview(m, draft)
         val dateLabel = SpanLabels.fullDate(m.date)
         return ReviewUiState(
@@ -293,6 +311,8 @@ class ReviewViewModel @Inject constructor(
             editing = m.editing,
             dialog = m.dialog,
             isScheduling = m.isScheduling,
+            assignees = m.draft?.items?.mapNotNull { it.assignee }?.distinct()?.sorted().orEmpty(),
+            assigneeFilter = m.assignee,
         )
     }
 
@@ -345,7 +365,7 @@ class ReviewViewModel @Inject constructor(
 
     private fun toggle(key: Int) {
         val m = model.value
-        val draft = m.draft ?: return
+        val draft = m.visibleDraft ?: return
         // A past activity can never be included (R-4.7)
         val row = preview(m, draft).items.firstOrNull { it.item.key == key } ?: return
         if (row.isPast) return
@@ -451,16 +471,17 @@ class ReviewViewModel @Inject constructor(
 
     private fun checkConflictsAndSchedule() {
         val m = model.value
-        if (m.draft == null || m.isScheduling) return
+        val draft = m.visibleDraft
+        if (draft == null || m.isScheduling) return
         viewModelScope.launch {
             model.update { it.copy(isScheduling = true) }
-            val conflicts = findConflicts(m.draft, m.date)
+            val conflicts = findConflicts(draft, m.date)
             if (conflicts.isEmpty()) {
                 runSchedule(ConflictPolicy.KEEP_BOTH)
             } else {
                 val dialog = ReviewDialog.Conflict(
                     orders = conflicts.map { ConflictOrderUi(it.order.name, SpanLabels.short(it.span)) },
-                    showsRanges = m.draft.spanOn(m.date).isMultiDay || conflicts.any { it.span.isMultiDay },
+                    showsRanges = draft.spanOn(m.date).isMultiDay || conflicts.any { it.span.isMultiDay },
                 )
                 model.update { it.copy(isScheduling = false, dialog = dialog) }
             }
@@ -477,7 +498,7 @@ class ReviewViewModel @Inject constructor(
 
     private suspend fun runSchedule(policy: ConflictPolicy) {
         val m = model.value
-        val draft = m.draft ?: return
+        val draft = m.visibleDraft ?: return
         val result = scheduleOrder(draft, m.date, m.excluded, policy)
         model.update { it.copy(isScheduling = false, lastPolicy = policy) }
         val effect = when (result) {
