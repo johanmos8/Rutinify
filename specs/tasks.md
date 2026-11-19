@@ -370,6 +370,11 @@
   - ✅ Resultados anotados.
   - _Hecho:_ `koverVerify` en verde con 97,1 % de líneas; manifiesto de release revisado sin `INTERNET` (R-13.6, D-80) y `RescheduleReceiver` exportado aceptado (D-97, `release-checklist.md`); casos 35–39 de recurrencia en `manual-test.md`, con el conflicto recurrente comprobado en el emulador. 812 tests en verde.
 
+## Después de v2.0
+
+Lo que queda abierto (verificación en dispositivos, publicación, diseño, pantallas grandes, rendimiento) está en
+[`backlog.md`](backlog.md). Un elemento del backlog pasa aquí como tarea cuando se elige, con su requisito.
+
 ## Trazabilidad rápida
 
 | Requisito | Tareas |

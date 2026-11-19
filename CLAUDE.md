@@ -12,7 +12,7 @@ locales programadas con `AlarmManager`. Cada importación es una **Orden** (`Rou
 - Paquete / applicationId: `com.mirkwood.rutinify`
 - `minSdk 28`, `targetSdk 36`, `compileSdk 36`
 - AGP 9.x (Kotlin integrado en AGP: **no** añadir el plugin `org.jetbrains.kotlin.android`)
-- Spec: `specs/requirements.md` (QUÉ), `specs/design.md` (CÓMO), `specs/tasks.md` (ORDEN DE TRABAJO)
+- Spec: `specs/requirements.md` (QUÉ), `specs/design.md` (CÓMO), `specs/tasks.md` (ORDEN DE TRABAJO), `specs/backlog.md` (candidatos sin requisito todavía)
 
 ## 2. Forma de trabajo (Spec-Driven Development)
 
