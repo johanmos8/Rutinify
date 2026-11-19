@@ -75,11 +75,11 @@ class RoutineJsonParserRoutineTest {
     }
 
     @Test
-    fun `schemaVersion 2 se rechaza indicando el valor recibido y no se valida nada mas`() { // R-3.4
-        val issues = issuesOf(parseJson("""{"schemaVersion": 2, "routine": {"name": ""}, "items": []}"""))
+    fun `schemaVersion 3 se rechaza indicando el valor recibido y no se valida nada mas`() { // R-3.4, R-23.1
+        val issues = issuesOf(parseJson("""{"schemaVersion": 3, "routine": {"name": ""}, "items": []}"""))
 
         assertThat(issues).containsExactly(
-            ValidationIssue(field = "schemaVersion", kind = IssueKind.UNSUPPORTED_SCHEMA_VERSION, received = "2"),
+            ValidationIssue(field = "schemaVersion", kind = IssueKind.UNSUPPORTED_SCHEMA_VERSION, received = "3"),
         )
     }
 

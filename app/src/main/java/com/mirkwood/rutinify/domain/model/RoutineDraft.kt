@@ -15,6 +15,8 @@ data class RoutineDraft(
     val origin: DraftOrigin,
     /** Exact JSON text the draft was imported from, saved as the order's `raw_json` (D-34). */
     val rawJson: String? = null,
+    /** Schema v2 repetition by weekday; [items] are then one day type (R-23.2, D-81). */
+    val recurrence: Recurrence? = null,
 )
 
 data class DraftItem(

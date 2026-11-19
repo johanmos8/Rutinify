@@ -348,10 +348,11 @@
   - Tests con un fake del modelo; prueba manual en dispositivo compatible.
   - ✅ Sin modelo, *Nueva rutina* se ve igual que antes.
   - _Hecho:_ `genai-prompt` 1.0.0-beta4 (aprobada tras T-65), `OnDeviceModel`/`MlKitOnDeviceModel`, `ConvertOnDeviceUseCase` y la tarjeta "Convertir en el teléfono" con "Convirtiendo…" y "Cancelar" (D-80, D-93). Textos en español e inglés. 9 tests nuevos (774 en verde) con un modelo falso. En el emulador (sin Gemini Nano) la tarjeta no aparece y no hay errores. Falta probarla en un teléfono compatible.
-- [ ] **T-67 · Validador del schema v2** — (R-23.1–R-23.6)
+- [x] **T-67 · Validador del schema v2** — (R-23.1–R-23.6)
   - TDD: v1 sin cambios; v2 con `weekdays` y `until`; cada error de R-23.3–R-23.6; R-3.4 con "1 o 2".
   - Plantillas con un ejemplo v2 opcional; README del contrato.
   - ✅ Fixtures v2 válidos e inválidos.
+  - _Hecho:_ `Recurrence`, parser v1/v2 con R-23.3–R-23.6, R-3.4 dice "1 o 2", textos en los dos idiomas y el punto 6 en las diez plantillas (D-81). `valid_v2.json` y casos inválidos en línea. 9 tests nuevos (783 en verde). El README del contrato se actualiza al final de la serie.
 - [ ] **T-68 · Planes recurrentes y ventana de programación** — (R-23.7, R-23.10–R-23.14)
   - Room v5 (D-81, D-83); `MaterializeRecurringUseCase` (TDD: idempotente, ventana de 7 días, pausa y reanudación, `until`); alarma diaria `MATERIALIZE`; textos de recurrencia; *Revisión* con el día tipo y "{n} alarmas por semana" (R-23.14).
   - ✅ Reiniciar o cambiar de zona no duplica alarmas.

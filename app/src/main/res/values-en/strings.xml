@@ -46,8 +46,8 @@
     <string name="issue_prefix_routine">Routine</string>
 
     <string name="issue_no_json">I could not find valid JSON in the text. Make sure you paste the AI’s full answer.</string>
-    <string name="issue_version_received">Unsupported format version (expected 1); received “%1$s”</string>
-    <string name="issue_version_missing">Unsupported format version (expected 1); the schemaVersion field is missing</string>
+    <string name="issue_version_received">Unsupported format version (expected 1 or 2); received “%1$s”</string>
+    <string name="issue_version_missing">Unsupported format version (expected 1 or 2); the schemaVersion field is missing</string>
     <string name="issue_no_routine">The routine field with the routine details is missing</string>
     <string name="issue_no_name">The routine has no name (routine.name field)</string>
     <!-- A date example, not a range -->
@@ -69,6 +69,10 @@
     <string name="issue_item_missing_field">%1$s: the %2$s field is missing</string>
     <string name="issue_title_truncated">%1$s: the title was longer than 80 characters and was shortened</string>
     <string name="issue_day_offset">%1$s: dayOffset must be a whole number between 0 and 30 (days after the routine date)</string>
+    <string name="issue_recurrence_needs_v2">The recurrence field needs schemaVersion 2</string>
+    <string name="issue_recurrence_weekdays">recurrence.weekdays must be a list of days such as [\"MO\", \"WE\"]</string>
+    <string name="issue_recurrence_until">recurrence.until must be a date on or after the routine date</string>
+    <string name="issue_recurrence_combination">recurrence cannot be combined with repeatDays or with dayOffset greater than 1</string>
     <string name="issue_repeat_days">repeatDays must be a whole number between 1 and 30 (days the routine repeats)</string>
     <string name="issue_repeat_with_day_offset">%1$s: with repeatDays only dayOffset 0 or 1 is allowed; for days that differ, write each day without repeatDays</string>
     <string name="issue_duration">%1$s: durationMin must be a number of minutes between 1 and 1440</string>

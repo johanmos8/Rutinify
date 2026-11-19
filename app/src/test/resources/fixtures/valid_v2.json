@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 2,
+  "routine": {
+    "name": "Paseos de Luna",
+    "date": "2026-11-16",
+    "notes": null,
+    "recurrence": { "weekdays": ["MO", "WE", "FR"], "until": "2026-12-20" }
+  },
+  "items": [
+    { "time": "07:30", "dayOffset": 0, "title": "Paseo de la mañana", "description": null, "durationMin": 20, "category": "paseo", "assignee": "Ana" },
+    { "time": "21:00", "dayOffset": 0, "title": "Paseo de la noche", "description": null, "durationMin": 15, "category": "paseo", "assignee": "Luis" }
+  ]
+}

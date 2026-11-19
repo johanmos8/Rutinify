@@ -3,7 +3,7 @@ You are an assistant that turns a routine written in plain language into JSON th
 Instructions:
 1. Reply only with a valid JSON object, without explanations. You may wrap it in a json code block.
 2. Use exactly this structure (version 1):
-   - schemaVersion: always the number 1.
+   - schemaVersion: the number 1, or 2 if you use routine.recurrence (point 6).
    - routine.name: short name of the routine. Required.
    - routine.date: date of the routine in YYYY-MM-DD format, or null if not given.
    - routine.notes: general notes (up to 500 characters), or null.
@@ -22,6 +22,7 @@ Instructions:
    - If the days differ (for example, a tapering dose), do not use repeatDays: write each day with dayOffset: 0, 1, 2… up to a maximum of 30.
 4. Do not invent activities. If an activity has no clear time, choose the most reasonable one and say so in description.
 5. Use straight quotes (") and do not add comments inside the JSON.
+6. If the routine repeats on some weekdays with no fixed end date (for example, the daily walks or the Monday class), use schemaVersion 2 and add routine.recurrence with weekdays (list of days among "MO", "TU", "WE", "TH", "FR", "SA" and "SU") and until (end date YYYY-MM-DD, or null if it never ends), for example "recurrence": {"weekdays": ["MO", "WE", "FR"], "until": null}. Write the activities of a single day, with dayOffset 0 or 1, and without repeatDays.
 
 Example answer:
 ```json

@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.data.importer
 
+import com.mirkwood.rutinify.domain.model.Recurrence
 import com.mirkwood.rutinify.domain.importer.DraftItemRules
 import com.mirkwood.rutinify.domain.importer.ImportResult
 import com.mirkwood.rutinify.domain.importer.IssueKind
@@ -31,7 +32,8 @@ class RoutineJsonParser @Inject constructor() {
 
     fun parse(root: JsonObject, draftId: String): ImportResult {
         val version = root["schemaVersion"]
-        if (!isVersionOne(version)) {
+        val schema = schemaOf(version)
+        if (schema == null) {
             // R-3.4: nothing else is validated against an unknown format
             return ImportResult.Failure(
                 listOf(
@@ -49,6 +51,11 @@ class RoutineJsonParser @Inject constructor() {
         // An invalid repeatDays is already reported; items are then checked as a single day
         val repeatDays = routine?.repeatDays ?: readableRepeatDays(root["routine"])
         val items = readItems(root["items"], repeatDays, issues)
+        val recurrence = readRecurrence(root["routine"], schema, routine?.date, issues)
+        // R-23.6: a weekly repetition repeats one day type
+        if (recurrence != null && (repeatDays > 1 || items.orEmpty().any { it.dayOffset > DraftItemRules.MAX_DAY_OFFSET_WITH_REPEAT })) {
+            issues += ValidationIssue(field = "routine.recurrence", kind = IssueKind.RECURRENCE_COMBINATION)
+        }
 
         val errors = issues.filter { it.severity == Severity.ERROR }
         if (errors.isNotEmpty() || routine == null || items == null) {
@@ -61,6 +68,7 @@ class RoutineJsonParser @Inject constructor() {
             notes = routine.notes,
             items = items,
             origin = DraftOrigin.IMPORT,
+            recurrence = recurrence,
         )
         return ImportResult.Success(draft, warnings = issues.filter { it.severity == Severity.WARNING })
     }
@@ -69,8 +77,47 @@ class RoutineJsonParser @Inject constructor() {
 
     private class RoutineFields(val name: String, val date: LocalDate?, val notes: String?, val repeatDays: Int)
 
-    private fun isVersionOne(element: JsonElement?): Boolean =
-        element is JsonPrimitive && !element.isString && element.content == "1"
+    /** R-3.4, R-23.1: the whole numbers 1 and 2; anything else (text, decimals, other numbers) is unsupported. */
+    private fun schemaOf(element: JsonElement?): Int? =
+        (element as? JsonPrimitive)?.takeIf { !it.isString }?.content?.takeIf { it == "1" || it == "2" }?.toInt()
+
+    /** R-23.2–R-23.5: `routine.recurrence`, only in schema 2. Null when absent or invalid (the issue is added). */
+    private fun readRecurrence(routine: JsonElement?, schema: Int, date: LocalDate?, issues: MutableList<ValidationIssue>): Recurrence? {
+        val element = (routine as? JsonObject)?.get("recurrence")
+        if (element == null || element is JsonNull) return null
+        if (schema < 2) {
+            issues += ValidationIssue(field = "routine.recurrence", kind = IssueKind.RECURRENCE_NEEDS_V2)
+            return null
+        }
+        if (element !is JsonObject) {
+            issues += wrongType("routine.recurrence", ValueType.OBJECT, element)
+            return null
+        }
+        val codes = (element["weekdays"] as? JsonArray)?.map { (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content }
+        val weekdays = codes?.mapNotNull { code -> code?.let { Recurrence.CODES[it.trim().uppercase()] } }
+        val validDays = codes != null && weekdays != null && codes.isNotEmpty() && weekdays.size == codes.size && weekdays.toSet().size == codes.size
+        if (!validDays) {
+            issues += ValidationIssue(field = "recurrence.weekdays", kind = IssueKind.RECURRENCE_WEEKDAYS)
+        }
+        val untilElement = element["until"]
+        val until = if (untilElement == null || untilElement is JsonNull) {
+            null
+        } else {
+            val parsed = (untilElement as? JsonPrimitive)?.takeIf { it.isString }?.content?.let {
+                try {
+                    LocalDate.parse(it.trim())
+                } catch (_: DateTimeParseException) {
+                    null
+                }
+            }
+            if (parsed == null || (date != null && parsed.isBefore(date))) {
+                issues += ValidationIssue(field = "recurrence.until", kind = IssueKind.RECURRENCE_UNTIL, received = untilElement.describe())
+                return null
+            }
+            parsed
+        }
+        return if (validDays) Recurrence(requireNotNull(weekdays).toSet(), until) else null
+    }
 
     private fun readRoutine(element: JsonElement?, issues: MutableList<ValidationIssue>): RoutineFields? {
         if (element == null || element is JsonNull) {

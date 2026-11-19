@@ -34,7 +34,7 @@ class PromptTemplateTest {
         val rules = template("generic").substringAfter("Instrucciones:").substringBefore("\n\n")
 
         scenarios.forEach { assertThat(template(it)).contains(rules) }
-        assertThat(rules).contains("schemaVersion: siempre el número 1")
+        assertThat(rules).contains("schemaVersion: el número 1, o 2 si usas routine.recurrence")
     }
 
     @Test
@@ -92,7 +92,7 @@ class PromptTemplateTest {
     @Test
     fun `las plantillas inglesas piden el mismo contrato y su ejemplo parsea`() { // R-13.3, R-16.4
         val rules = english("generic").substringAfter("Instructions:").substringBefore("\n\n")
-        assertThat(rules).contains("schemaVersion: always the number 1")
+        assertThat(rules).contains("schemaVersion: the number 1, or 2 if you use routine.recurrence")
 
         scenarios.forEach { scenario ->
             val text = english(scenario)
@@ -108,5 +108,13 @@ class PromptTemplateTest {
     @Test
     fun `la de medicacion en ingles tambien pide no proponer dosis`() { // R-16.5
         assertThat(english("medication")).contains("Use only the times and doses I write. Do not suggest doses, do not change the schedule")
+    }
+
+    @Test
+    fun `todas explican la recurrencia del schema 2`() { // R-23.1, R-23.2
+        scenarios.forEach {
+            assertThat(template(it)).contains("routine.recurrence con weekdays")
+            assertThat(english(it)).contains("routine.recurrence with weekdays")
+        }
     }
 }

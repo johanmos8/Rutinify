@@ -47,8 +47,8 @@
     <string name="issue_prefix_routine">Rutina</string>
 
     <string name="issue_no_json">No encontré un JSON válido en el texto. Asegúrate de pegar la respuesta completa de la IA.</string>
-    <string name="issue_version_received">Versión de formato no soportada (se esperaba 1); se recibió «%1$s»</string>
-    <string name="issue_version_missing">Versión de formato no soportada (se esperaba 1); falta el campo schemaVersion</string>
+    <string name="issue_version_received">Versión de formato no soportada (se esperaba 1 o 2); se recibió «%1$s»</string>
+    <string name="issue_version_missing">Versión de formato no soportada (se esperaba 1 o 2); falta el campo schemaVersion</string>
     <string name="issue_no_routine">Falta el campo routine con los datos de la rutina</string>
     <string name="issue_no_name">La rutina no tiene nombre (campo routine.name)</string>
     <!-- A date example, not a range -->
@@ -70,6 +70,10 @@
     <string name="issue_item_missing_field">%1$s: falta el campo %2$s</string>
     <string name="issue_title_truncated">%1$s: el título tenía más de 80 caracteres y se ha recortado</string>
     <string name="issue_day_offset">%1$s: dayOffset debe ser un número entero entre 0 y 30 (días después de la fecha de la rutina)</string>
+    <string name="issue_recurrence_needs_v2">El campo recurrence necesita schemaVersion 2</string>
+    <string name="issue_recurrence_weekdays">recurrence.weekdays debe ser una lista de días como [\"MO\", \"WE\"]</string>
+    <string name="issue_recurrence_until">recurrence.until debe ser una fecha igual o posterior a la de la rutina</string>
+    <string name="issue_recurrence_combination">recurrence no se puede combinar con repeatDays ni con dayOffset mayor que 1</string>
     <string name="issue_repeat_days">repeatDays debe ser un número entero entre 1 y 30 (días que se repite la rutina)</string>
     <string name="issue_repeat_with_day_offset">%1$s: con repeatDays solo se admite dayOffset 0 o 1; para días distintos entre sí, escribe cada día sin repeatDays</string>
     <string name="issue_duration">%1$s: durationMin debe ser un número de minutos entre 1 y 1440</string>

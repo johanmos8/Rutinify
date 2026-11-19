@@ -51,6 +51,10 @@ object ErrorMessages {
             IssueKind.REPEAT_DAYS_OUT_OF_RANGE -> res(R.string.issue_repeat_days)
             IssueKind.REPEAT_WITH_DAY_OFFSET -> res(R.string.issue_repeat_with_day_offset, prefix ?: routinePrefix())
             IssueKind.TOO_MANY_REPEATED_ITEMS -> res(R.string.issue_too_many_repeated_items, received)
+            IssueKind.RECURRENCE_NEEDS_V2 -> res(R.string.issue_recurrence_needs_v2)
+            IssueKind.RECURRENCE_WEEKDAYS -> res(R.string.issue_recurrence_weekdays)
+            IssueKind.RECURRENCE_UNTIL -> res(R.string.issue_recurrence_until)
+            IssueKind.RECURRENCE_COMBINATION -> res(R.string.issue_recurrence_combination)
         }
     }
 

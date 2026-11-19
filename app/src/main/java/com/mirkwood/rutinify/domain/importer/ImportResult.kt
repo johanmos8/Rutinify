@@ -72,6 +72,18 @@ enum class IssueKind {
 
     /** Over 200 items once `repeatDays` is expanded; expanded count in `received` (R-3.27). */
     TOO_MANY_REPEATED_ITEMS,
+
+    /** `routine.recurrence` with `schemaVersion` 1 (R-23.3). */
+    RECURRENCE_NEEDS_V2,
+
+    /** `recurrence.weekdays` missing, empty, unknown or repeated (R-23.4). */
+    RECURRENCE_WEEKDAYS,
+
+    /** `recurrence.until` not a date, or before `routine.date` (R-23.5). */
+    RECURRENCE_UNTIL,
+
+    /** `recurrence` together with `repeatDays` > 1 or an item `dayOffset` > 1 (R-23.6). */
+    RECURRENCE_COMBINATION,
 }
 
 enum class Severity { ERROR, WARNING }

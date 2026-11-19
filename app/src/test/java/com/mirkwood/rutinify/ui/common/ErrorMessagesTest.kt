@@ -62,9 +62,9 @@ class ErrorMessagesTest {
     @Test
     fun `version no soportada con y sin valor recibido`() { // R-3.4
         assertThat(text(ValidationIssue(field = "schemaVersion", kind = IssueKind.UNSUPPORTED_SCHEMA_VERSION, received = "2")))
-            .isEqualTo("Versión de formato no soportada (se esperaba 1); se recibió «2»")
+            .isEqualTo("Versión de formato no soportada (se esperaba 1 o 2); se recibió «2»")
         assertThat(text(ValidationIssue(field = "schemaVersion", kind = IssueKind.UNSUPPORTED_SCHEMA_VERSION)))
-            .isEqualTo("Versión de formato no soportada (se esperaba 1); falta el campo schemaVersion")
+            .isEqualTo("Versión de formato no soportada (se esperaba 1 o 2); falta el campo schemaVersion")
     }
 
     @Test
@@ -242,5 +242,16 @@ class ErrorMessagesTest {
         val lines = ErrorMessages.list(List(21) { ValidationIssue(kind = IssueKind.NO_ITEMS) }).map { it.resolve(resources) }
 
         assertThat(lines.last()).isEqualTo("y 1 error más")
+    }
+
+    @Test
+    fun `los errores de recurrencia usan los textos de R-23`() { // R-23.3–R-23.6
+        assertThat(text(ValidationIssue(kind = IssueKind.RECURRENCE_NEEDS_V2))).isEqualTo("El campo recurrence necesita schemaVersion 2")
+        assertThat(text(ValidationIssue(kind = IssueKind.RECURRENCE_WEEKDAYS)))
+            .isEqualTo("recurrence.weekdays debe ser una lista de días como [\"MO\", \"WE\"]")
+        assertThat(text(ValidationIssue(kind = IssueKind.RECURRENCE_UNTIL)))
+            .isEqualTo("recurrence.until debe ser una fecha igual o posterior a la de la rutina")
+        assertThat(text(ValidationIssue(kind = IssueKind.RECURRENCE_COMBINATION)))
+            .isEqualTo("recurrence no se puede combinar con repeatDays ni con dayOffset mayor que 1")
     }
 }
