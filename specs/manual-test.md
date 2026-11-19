@@ -99,3 +99,11 @@ instaladas y, para el QR, un segundo teléfono.
 | 37 | Con planes de un día, de varios días y uno recurrente diario ya guardados, compartir un v2 "Gimnasio" que se repite los jueves desde hoy (jueves) y pulsar "Programar alarmas" | El aviso de conflicto lista los tres; el recurrente con su recurrencia, los demás con sus fechas (R-23.9, R-23.10) | Emulador API 36 (2026-11-19): "Coinciden con: Amoxicilina de Luna (del 16 al 22 de noviembre), Paseos diarios (Se repite todos los días, desde el 19 de noviembre), Reloj (19 de noviembre)" |
 | 38 | Un plan recurrente cuya ventana superaría 500 alarmas pendientes | Mensaje de R-5.10 y nada programado (R-23.8) | Cubierto por tests de `ScheduleOrderUseCase` (T-69); no reproducido a mano por el volumen |
 | 39 | Pausar un plan recurrente un día y reanudarlo | No suena nada de los días en pausa y al reanudar se crean las de la ventana desde ese momento (R-23.12) | Cubierto por tests (T-68); pendiente en teléfono real a lo largo de varios días |
+
+### «Inicio automático» en Xiaomi (D-102)
+
+| # | Paso | Esperado | Resultado |
+|---|---|---|---|
+| 40 | En un Xiaomi con «Inicio automático» desactivado y un plan, abrir Inicio | Tarjeta "Activa «Inicio automático»" diciendo que está desactivado (R-11.9) | Redmi con HyperOS 3, Android 16 (2026-11-19): aparece con el texto de desactivado |
+| 41 | "Abrir ajustes", activar Rutinify y volver | Se abre la lista de «Inicio automático» de Seguridad; al volver la tarjeta desaparece (R-11.5, R-11.9) | Mismo teléfono: con la página de la app no se encontraba el interruptor; con `OP_AUTO_START` sí, y la tarjeta desapareció (`MIUIOP(10008): allow`) |
+| 42 | Cerrar la app desde Recientes y esperar una alarma normal | La notificación aparece con la app cerrada | Pendiente de la siguiente alarma del plan |
