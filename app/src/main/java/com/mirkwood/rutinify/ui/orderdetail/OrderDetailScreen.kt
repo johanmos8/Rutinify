@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.Canvas
 import com.mirkwood.rutinify.MainActivity
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import android.content.Intent
 import android.content.Context
 import android.content.ComponentName
@@ -25,10 +26,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -553,53 +555,76 @@ private fun TimelineCard(
         colors = if (item.isNext) CardDefaults.cardColors(containerColor = colors.primaryContainer) else CardDefaults.cardColors(),
         border = if (item.isHighlighted) BorderStroke(2.dp, colors.primary) else null,
     ) {
-        Row(
-            modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 16.dp, end = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Column(modifier = Modifier.width(64.dp)) {
-                Text(item.time, style = MaterialTheme.typography.titleMedium)
-                if (item.nextDay) {
-                    Text(stringResource(R.string.order_detail_next_day), style = MaterialTheme.typography.labelSmall)
+        // With large text the three icons would squeeze the title into broken words ("Desayun" / "o"), so they go on
+        // their own line under the text
+        if (LocalDensity.current.fontScale >= STACKED_FONT_SCALE) {
+            Column(modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp, end = 4.dp)) {
+                Row(modifier = Modifier.padding(end = 12.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    TimelineInfo(item)
                 }
+                Row(modifier = Modifier.align(Alignment.End)) { TimelineActions(item, onMarkDone, onDelete, onEdit) }
             }
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(item.title, style = MaterialTheme.typography.titleMedium)
-                item.description?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = item.category,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = colors.onSurfaceVariant,
-                    )
-                    AlarmStatusText(item.status)
-                    if (item.isNext) {
-                        Text(
-                            text = stringResource(R.string.order_detail_next),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = colors.primary,
-                        )
-                    }
-                }
-            }
-            Row {
-                if (item.canEdit) {
-                    IconButton(onClick = onEdit) {
-                        Icon(painterResource(R.drawable.ic_edit), contentDescription = stringResource(R.string.review_edit_item, item.title))
-                    }
-                }
-                if (item.canMarkDone) {
-                    IconButton(onClick = onMarkDone) {
-                        Icon(painterResource(R.drawable.ic_check), contentDescription = stringResource(R.string.order_detail_mark_done, item.title))
-                    }
-                }
-                IconButton(onClick = onDelete) {
-                    Icon(painterResource(R.drawable.ic_delete), contentDescription = stringResource(R.string.order_detail_delete_alarm, item.title))
-                }
+        } else {
+            Row(
+                modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 16.dp, end = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                TimelineInfo(item)
+                Row { TimelineActions(item, onMarkDone, onDelete, onEdit) }
             }
         }
     }
 }
+
+/** Time column and text column of a timeline card. */
+@Composable
+private fun RowScope.TimelineInfo(item: TimelineItemUi) {
+    val colors = MaterialTheme.colorScheme
+    // Grows with the font size instead of splitting the time ("12:1" / "7") at 200 % text
+    Column(modifier = Modifier.widthIn(min = 64.dp)) {
+        Text(item.time, style = MaterialTheme.typography.titleMedium)
+        if (item.nextDay) {
+            Text(stringResource(R.string.order_detail_next_day), style = MaterialTheme.typography.labelSmall)
+        }
+    }
+    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(item.title, style = MaterialTheme.typography.titleMedium)
+        item.description?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+        // Whole labels move to the next line rather than breaking inside a word ("Próx" / "ima")
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(text = item.category, style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant)
+            AlarmStatusText(item.status)
+            if (item.isNext) {
+                Text(
+                    text = stringResource(R.string.order_detail_next),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = colors.primary,
+                )
+            }
+        }
+    }
+}
+
+/** Edit, done and delete buttons of a timeline card, laid out by the caller's row. */
+@Composable
+private fun TimelineActions(item: TimelineItemUi, onMarkDone: () -> Unit, onDelete: () -> Unit, onEdit: () -> Unit) {
+    if (item.canEdit) {
+        IconButton(onClick = onEdit) {
+            Icon(painterResource(R.drawable.ic_edit), contentDescription = stringResource(R.string.review_edit_item, item.title))
+        }
+    }
+    if (item.canMarkDone) {
+        IconButton(onClick = onMarkDone) {
+            Icon(painterResource(R.drawable.ic_check), contentDescription = stringResource(R.string.order_detail_mark_done, item.title))
+        }
+    }
+    IconButton(onClick = onDelete) {
+        Icon(painterResource(R.drawable.ic_delete), contentDescription = stringResource(R.string.order_detail_delete_alarm, item.title))
+    }
+}
+
+/** Font scale from which the timeline card puts its actions under the text. */
+private const val STACKED_FONT_SCALE = 1.5f
 
 @Composable
 private fun AlarmStatusText(status: AlarmStatus, modifier: Modifier = Modifier) {

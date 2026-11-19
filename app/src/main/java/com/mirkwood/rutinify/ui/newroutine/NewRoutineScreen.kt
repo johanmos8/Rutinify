@@ -7,6 +7,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import com.mirkwood.rutinify.ui.common.ActionButtonRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -148,15 +149,12 @@ fun NewRoutineScreen(
                 isError = state.issues.isNotEmpty(),
                 modifier = Modifier.fillMaxWidth(),
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                OutlinedButton(
-                    onClick = { onAction(NewRoutineAction.PasteClicked) },
-                    modifier = Modifier.weight(1f),
-                ) { Text(stringResource(R.string.action_paste)) }
+            // Labels never wrap: the buttons stack when they do not fit side by side
+            ActionButtonRow {
+                OutlinedButton(onClick = { onAction(NewRoutineAction.PasteClicked) }) { Text(stringResource(R.string.action_paste)) }
                 Button(
                     onClick = { onAction(NewRoutineAction.ValidateClicked) },
                     enabled = state.canValidate,
-                    modifier = Modifier.weight(1f),
                 ) {
                     if (state.isValidating) {
                         val validating = stringResource(R.string.new_routine_validating)
@@ -191,8 +189,8 @@ private fun TemplateSection(
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.new_routine_template_hint), style = MaterialTheme.typography.bodyMedium)
             ScenarioSelector(selected = scenario, onSelected = onScenarioSelected)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                Button(onClick = onCopy, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_copy_template)) }
+            ActionButtonRow {
+                Button(onClick = onCopy) { Text(stringResource(R.string.action_copy_template)) }
                 // R-14.6: next to "Copiar plantilla"
                 OutlinedButton(onClick = onOpenInAi, modifier = Modifier.weight(1f)) {
                     Text(stringResource(R.string.action_open_in_ai))
