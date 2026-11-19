@@ -83,6 +83,7 @@ estática (por ejemplo, GitHub Pages del repositorio).
 - [ ] Formulario de alarmas exactas solo para la versión con `USE_EXACT_ALARM` de la pista cerrada (T-54).
 - [ ] Sin `INTERNET` (R-13.6), comprobado por `ManifestPermissionsTest`. La telemetría de Google que traen el escáner de QR y ML Kit lo pide; el manifiesto lo quita (D-75).
 - [ ] `WAKE_LOCK` y `FOREGROUND_SERVICE` llegan con WorkManager, que Glance usa para dibujar el widget (T-63); la app no arranca servicios en primer plano ni usa WorkManager para disparar alarmas. Si Play pide declarar servicios en primer plano, responder que no se usan.
+- [ ] Manifiesto de release revisado en T-71 (2026-11-19): permisos `SCHEDULE_EXACT_ALARM`, `POST_NOTIFICATIONS`, `RECEIVE_BOOT_COMPLETED`, `USE_FULL_SCREEN_INTENT`, `BIND_SERVICE` de AICore, `WAKE_LOCK`, `FOREGROUND_SERVICE` y el permiso interno de receivers dinámicos de AndroidX; **sin `INTERNET`** (R-13.6). Exportados: `MainActivity`, el widget, `RescheduleReceiver` (lo exige el arranque) y componentes de AndroidX protegidos por permisos del sistema (`BIND_REMOTEVIEWS`, `BIND_JOB_SERVICE`, `DUMP`). `RescheduleReceiver` acepta también el repaso diario (`…action.MATERIALIZE`, D-94), así que otra app podría forzar un reprogramado; es idempotente y no cambia datos, por eso se acepta (D-97). Volver a mirarlo si se añade un receiver nuevo.
 - [ ] `com.google.android.apps.aicore.service.BIND_SERVICE` solo si se incluye la IA en el teléfono (R-22, D-80).
 
 ## 7. Clasificación de contenido y público

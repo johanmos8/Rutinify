@@ -89,3 +89,13 @@ instaladas y, para el QR, un segundo teléfono.
 | 32 | Con un reloj Wear OS emparejado (app Pixel Watch o Wear OS en el teléfono), programar un plan con una actividad dentro de 2 minutos | La alarma aparece en el reloj, que vibra, con los botones "Hecho" y "+5 min" (R-24.1) | Pendiente: no hay reloj ni imagen de Wear OS en este equipo. Emulador API 36 (2026-11-19): la notificación del teléfono no lleva `LOCAL_ONLY` y sus acciones se ven igual que antes, solo con texto |
 | 33 | Pulsar "Hecho" en el reloj; repetir con otra alarma y "+5 min" | En el teléfono la alarma queda *Hecha* o se pospone 5 minutos, y la notificación desaparece de los dos (R-24.2) | Pendiente: necesita reloj |
 | 34 | Con una categoría crítica, dejar que suene y pulsar "Silenciar" en el reloj | El teléfono deja de sonar y la notificación sigue con "Hecho" y "+5 min" (R-24.3) | Pendiente: necesita reloj |
+
+### Planes recurrentes (v2.0, T-68, T-69)
+
+| # | Paso | Esperado | Resultado |
+|---|---|---|---|
+| 35 | Compartir un JSON v2 con `recurrence` (todos los días, dos actividades) y programar | *Revisión* muestra "Se repite todos los días, desde…" y "14 alarmas por semana"; se crean solo las alarmas de los próximos 7 días (R-23.7, R-23.14) | Emulador API 36 (2026-11-18): "14 alarmas por semana"; 13 pendientes (la de las 07:30 de hoy ya había pasado) |
+| 36 | Reiniciar la app (o el teléfono) dos veces | No se duplican alarmas (R-23.7) | Emulador API 36 (2026-11-18): siguieron 13 tras dos reinicios |
+| 37 | Con planes de un día, de varios días y uno recurrente diario ya guardados, compartir un v2 "Gimnasio" que se repite los jueves desde hoy (jueves) y pulsar "Programar alarmas" | El aviso de conflicto lista los tres; el recurrente con su recurrencia, los demás con sus fechas (R-23.9, R-23.10) | Emulador API 36 (2026-11-19): "Coinciden con: Amoxicilina de Luna (del 16 al 22 de noviembre), Paseos diarios (Se repite todos los días, desde el 19 de noviembre), Reloj (19 de noviembre)" |
+| 38 | Un plan recurrente cuya ventana superaría 500 alarmas pendientes | Mensaje de R-5.10 y nada programado (R-23.8) | Cubierto por tests de `ScheduleOrderUseCase` (T-69); no reproducido a mano por el volumen |
+| 39 | Pausar un plan recurrente un día y reanudarlo | No suena nada de los días en pausa y al reanudar se crean las de la ventana desde ese momento (R-23.12) | Cubierto por tests (T-68); pendiente en teléfono real a lo largo de varios días |
