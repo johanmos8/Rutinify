@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.ui.permissions
 
+import com.mirkwood.rutinify.ui.common.contentSideMargin
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -72,7 +73,8 @@ fun PermissionsScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                // D-100: centred and at most 840 dp wide on large windows
+                .padding(horizontal = contentSideMargin(), vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(

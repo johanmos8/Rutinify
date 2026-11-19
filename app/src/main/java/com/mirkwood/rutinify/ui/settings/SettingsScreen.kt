@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.ui.settings
 
+import com.mirkwood.rutinify.ui.common.contentSideMargin
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.runtime.remember
 import androidx.compose.material3.SnackbarHostState
@@ -92,11 +93,12 @@ fun SettingsScreen(
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(vertical = 8.dp),
+            // D-100: items keep their 16 dp margin; large windows add the rest to centre them
+            contentPadding = PaddingValues(horizontal = contentSideMargin() - 16.dp, vertical = 8.dp),
         ) {
-            item(key = "header") { CriticalHeader() }
+            item(key = "header", contentType = "header") { CriticalHeader() }
             if (state.showExactAlarmsWarning) {
-                item(key = "warning") {
+                item(key = "warning", contentType = "warning") {
                     ExactAlarmsWarning(
                         onOpenSettings = { onAction(SettingsAction.ExactAlarmsOpenSettings) },
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -104,7 +106,7 @@ fun SettingsScreen(
                 }
             }
             if (state.showEmptyState) {
-                item(key = "empty") {
+                item(key = "empty", contentType = "empty") {
                     Text(
                         text = stringResource(R.string.settings_critical_empty),
                         style = MaterialTheme.typography.bodyMedium,
@@ -113,10 +115,10 @@ fun SettingsScreen(
                     )
                 }
             }
-            items(state.categories, key = { it.name }) { row ->
+            items(state.categories, key = { it.name }, contentType = { "category" }) { row ->
                 CategorySwitchRow(row = row, onToggle = { onAction(SettingsAction.CriticalToggled(row.name, it)) })
             }
-            item(key = "diagnostics") { DiagnosticsSection(enabled = state.diagnosticsEnabled, onAction = onAction) }
+            item(key = "diagnostics", contentType = "diagnostics") { DiagnosticsSection(enabled = state.diagnosticsEnabled, onAction = onAction) }
         }
     }
     if (state.showExactAlarmsDialog) ExactAlarmsDialog(onAction)

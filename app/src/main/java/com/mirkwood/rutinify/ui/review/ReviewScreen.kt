@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.ui.review
 
+import androidx.compose.foundation.layout.PaddingValues
+import com.mirkwood.rutinify.ui.common.contentSideMargin
 import androidx.compose.material3.FilterChip
 import androidx.compose.foundation.layout.FlowRow
 import com.mirkwood.rutinify.ui.common.EditActivityDialog
@@ -158,23 +160,25 @@ fun ReviewScreen(
         }
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
+            // D-100: items keep their 16 dp margin; large windows add the rest to centre them
+            contentPadding = PaddingValues(horizontal = contentSideMargin() - 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            item(key = "header") {
+            item(key = "header", contentType = "header") {
                 Header(state, onChangeDate = { showDatePicker = true }, onUseTomorrow = { onAction(ReviewAction.UseTomorrow) })
             }
             if (state.assignees.isNotEmpty()) {
-                item(key = "assignees") { AssigneeFilter(state.assignees, state.assigneeFilter, onAction) }
+                item(key = "assignees", contentType = "assignees") { AssigneeFilter(state.assignees, state.assigneeFilter, onAction) }
             }
             if (state.days.isEmpty()) {
-                items(state.items, key = { it.key }) { item ->
+                items(state.items, key = { it.key }, contentType = { "item" }) { item ->
                     ReviewItemRow(item = item, onAction = onAction)
                 }
             } else {
                 // R-4.13: one header per day with activities
                 state.days.forEach { day ->
-                    item(key = "day-${day.dayOffset}") { DayHeader(day.title) }
-                    items(day.items, key = { it.key }) { item ->
+                    item(key = "day-${day.dayOffset}", contentType = "day") { DayHeader(day.title) }
+                    items(day.items, key = { it.key }, contentType = { "item" }) { item ->
                         ReviewItemRow(item = item, onAction = onAction)
                     }
                 }

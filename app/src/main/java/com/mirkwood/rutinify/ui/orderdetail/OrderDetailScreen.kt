@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.ui.orderdetail
 
+import com.mirkwood.rutinify.ui.common.contentSideMargin
 import androidx.core.net.toUri
 import com.mirkwood.rutinify.domain.importer.QrMatrix
 import androidx.compose.ui.semantics.semantics
@@ -447,22 +448,27 @@ private fun Timeline(state: OrderDetailUiState, onAction: (OrderDetailAction) ->
         if (!fullyVisible) listState.scrollToItem((target - 1).coerceAtLeast(0))
     }
 
+    // Read once for the whole list rather than in every card
+    val stacked = LocalDensity.current.fontScale >= STACKED_FONT_SCALE
     LazyColumn(
         state = listState,
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
+        // D-100: centred and at most 840 dp wide on large windows
+        contentPadding = PaddingValues(horizontal = contentSideMargin(), vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item(key = "header") { Header(state, onAction) }
+        item(key = "header", contentType = "header") { Header(state, onAction) }
         if (state.windowedWarning) {
-            item(key = "windowed") { WindowedWarning() }
+            item(key = "windowed", contentType = "windowed") { WindowedWarning() }
         }
-        items(state.timeline, key = { it.id }) { item ->
+        // An alarm that opens a day carries its header, so it is a different shape to reuse
+        items(state.timeline, key = { it.id }, contentType = { if (it.dayTitle != null) "alarm_day" else "alarm" }) { item ->
             // The day header (R-9.6) shares its alarm's list item, so scrollToIndex keeps pointing at alarms
             Column(modifier = Modifier.animateItem(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 item.dayTitle?.let { DayHeader(it) }
                 TimelineCard(
                     item = item,
+                    stacked = stacked,
                     onMarkDone = { onAction(OrderDetailAction.MarkDone(item.id)) },
                     onDelete = { onAction(OrderDetailAction.Delete(item.id)) },
                     onEdit = { onAction(OrderDetailAction.EditClicked(item.id)) },
@@ -549,6 +555,8 @@ private fun DayHeader(title: UiText, modifier: Modifier = Modifier) {
 @Composable
 private fun TimelineCard(
     item: TimelineItemUi,
+    /** Actions under the text, for large font scales (D-98). */
+    stacked: Boolean,
     onMarkDone: () -> Unit,
     onDelete: () -> Unit,
     onEdit: () -> Unit,
@@ -562,7 +570,7 @@ private fun TimelineCard(
     ) {
         // With large text the three icons would squeeze the title into broken words ("Desayun" / "o"), so they go on
         // their own line under the text
-        if (LocalDensity.current.fontScale >= STACKED_FONT_SCALE) {
+        if (stacked) {
             Column(modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp, end = 4.dp)) {
                 Row(modifier = Modifier.padding(end = 12.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     TimelineInfo(item)

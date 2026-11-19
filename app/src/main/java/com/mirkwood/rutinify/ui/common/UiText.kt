@@ -8,6 +8,8 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.platform.LocalResources
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Text to show, described by resource id and arguments so it can be built outside composables (VMs,
@@ -29,11 +31,22 @@ sealed interface UiText {
         is Res -> resources.getString(id, *resolveArgs(args, resources))
         is Plain -> value
         is Plural -> resources.getQuantityString(id, quantity, *resolveArgs(args, resources))
-        is Date -> date.format(DateTimeFormatter.ofPattern(resources.getString(patternId), resources.configuration.locales[0]))
+        is Date -> date.format(DateFormatterCache.get(resources.getString(patternId), resources.configuration.locales[0]))
     }
 
     private fun resolveArgs(args: List<Any>, resources: Resources): Array<Any> =
         args.map { if (it is UiText) it.resolve(resources) else it }.toTypedArray()
+}
+
+/**
+ * Formatters by pattern and locale. [UiText.Date] is resolved while composing list items, and building a
+ * `DateTimeFormatter` parses its pattern every time; the app uses only a handful of patterns.
+ */
+private object DateFormatterCache {
+    private val formatters = ConcurrentHashMap<String, DateTimeFormatter>()
+
+    fun get(pattern: String, locale: Locale): DateTimeFormatter =
+        formatters.getOrPut(locale.toLanguageTag() + '\u0000' + pattern) { DateTimeFormatter.ofPattern(pattern, locale) }
 }
 
 @Composable

@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.ui.home
 
+import com.mirkwood.rutinify.ui.common.contentSideMargin
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,8 +9,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.clickable
@@ -140,16 +143,20 @@ private fun HomeContent(
     onOrderClick: (orderId: Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val margin = contentSideMargin()
     when {
         state.showEmptyState -> EmptyState(modifier)
-        else -> LazyColumn(
+        // D-100: one column on phones, two once each card gets 360 dp; never wider than 840 dp
+        else -> LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = 360.dp),
             modifier = modifier.fillMaxSize(),
             // Bottom room so the FAB never covers the last card
-            contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 96.dp),
+            contentPadding = PaddingValues(start = margin, top = 8.dp, end = margin, bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             state.nextAlarm?.let { next ->
-                item(key = "next") {
+                item(key = "next", span = { GridItemSpan(maxLineSpan) }, contentType = "next") {
                     NextAlarmCard(
                         next = next,
                         onClick = { onOrderClick(next.orderId) },
@@ -158,14 +165,14 @@ private fun HomeContent(
                 }
             }
             if (state.ongoingOrders.isNotEmpty()) {
-                item(key = "ongoing_header") { SectionHeader(R.string.home_section_ongoing) }
-                items(state.ongoingOrders, key = { it.id }) { card ->
+                item(key = "ongoing_header", span = { GridItemSpan(maxLineSpan) }, contentType = "header") { SectionHeader(R.string.home_section_ongoing) }
+                items(state.ongoingOrders, key = { it.id }, contentType = { "ongoing" }) { card ->
                     OrderCard(card = card, onClick = { onOrderClick(card.id) })
                 }
             }
             if (state.pastOrders.isNotEmpty()) {
-                item(key = "past_header") { SectionHeader(R.string.home_section_past) }
-                items(state.pastOrders, key = { it.id }) { card ->
+                item(key = "past_header", span = { GridItemSpan(maxLineSpan) }, contentType = "header") { SectionHeader(R.string.home_section_past) }
+                items(state.pastOrders, key = { it.id }, contentType = { "past" }) { card ->
                     PastOrderRow(card = card, onClick = { onOrderClick(card.id) })
                 }
             }

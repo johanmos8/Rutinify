@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.ui.newroutine
 
+import com.mirkwood.rutinify.ui.common.contentSideMargin
 import androidx.compose.ui.Alignment
 import android.content.ComponentName
 import android.content.Intent
@@ -125,7 +126,8 @@ fun NewRoutineScreen(
                 .padding(padding)
                 .imePadding()
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                // D-100: centred and at most 840 dp wide on large windows
+                .padding(horizontal = contentSideMargin(), vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             TemplateSection(
