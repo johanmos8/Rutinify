@@ -316,4 +316,44 @@ class ScheduleOrderUseCaseTest {
         assertThat(result.scheduledCount).isEqualTo(3)
         assertThat(newOrderAlarms(result.orderId).map { it.activityId }.all { it != null }).isTrue()
     }
+
+    // --- T-69: limit and conflicts of recurring plans -------------------------------------------
+
+    private val everyDay = Recurrence(java.time.DayOfWeek.entries.toSet(), until = null)
+
+    @Test
+    fun `el limite de un plan recurrente cuenta solo las alarmas de la ventana`() = runTest { // R-23.8
+        orders.add(testOrder(id = 1L, date = date.plusDays(1)))
+        alarms.add(*(1L..480L).map { testAlarm(id = it, orderId = 1L) }.toTypedArray())
+        val daily = draftOf(3).copy(recurrence = everyDay) // 3 a day at 13:00, 7 days
+
+        val result = schedule(routine = daily)
+
+        assertThat(result).isEqualTo(ScheduleOrderResult.TooManyAlarms(requested = 21, alreadyScheduled = 480))
+        assertThat(orders.createCalls).isEqualTo(0)
+        assertThat(scheduler.scheduled).isEmpty()
+    }
+
+    @Test
+    fun `un plan recurrente sin fin cabe si su ventana cabe`() = runTest { // R-23.8
+        orders.add(testOrder(id = 1L, date = date.plusDays(1)))
+        alarms.add(*(1L..479L).map { testAlarm(id = it, orderId = 1L) }.toTypedArray())
+
+        val result = schedule(routine = draftOf(3).copy(recurrence = everyDay)) as ScheduleOrderResult.Scheduled
+
+        assertThat(result.scheduledCount).isEqualTo(21)
+    }
+
+    @Test
+    fun `con REPLACE un plan recurrente cancela solo los planes de sus dias de la semana`() = runTest { // R-23.9, R-6.2
+        orders.add(testOrder(id = 1L, name = "Viernes", date = date.plusDays(1)), testOrder(id = 2L, name = "Jueves", date = date.plusDays(7)))
+        alarms.add(testAlarm(id = 10L, orderId = 1L), testAlarm(id = 11L, orderId = 2L))
+        val thursdays = draft.copy(recurrence = Recurrence(setOf(java.time.DayOfWeek.THURSDAY), until = null))
+
+        schedule(routine = thursdays, policy = ConflictPolicy.REPLACE)
+
+        assertThat(orders.orders.getValue(1L).status).isEqualTo(OrderStatus.ACTIVE)
+        assertThat(orders.orders.getValue(2L).status).isEqualTo(OrderStatus.CANCELLED)
+        assertThat(scheduler.cancelled).containsExactly(11L)
+    }
 }

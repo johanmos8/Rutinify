@@ -7,7 +7,8 @@ import com.mirkwood.rutinify.domain.model.AlarmStatus
 import com.mirkwood.rutinify.domain.model.NewAlarm
 import com.mirkwood.rutinify.domain.model.NewOrder
 import com.mirkwood.rutinify.domain.model.RoutineDraft
-import com.mirkwood.rutinify.domain.model.spanOn
+import com.mirkwood.rutinify.domain.model.Recurrence
+import com.mirkwood.rutinify.domain.model.conflictDaysOn
 import com.mirkwood.rutinify.domain.repository.AlarmRepository
 import com.mirkwood.rutinify.domain.repository.CategorySettingsRepository
 import com.mirkwood.rutinify.domain.repository.OrderRepository
@@ -66,14 +67,14 @@ class ScheduleOrderUseCase @Inject constructor(
         policy: ConflictPolicy,
     ): ScheduleOrderResult = lock.withLock {
         val zone = zoneProvider.zone()
-        draft.recurrence?.let { return@withLock scheduleRecurring(draft, date, excludedKeys, policy) }
+        draft.recurrence?.let { return@withLock scheduleRecurring(draft, it, date, excludedKeys, policy) }
         // Recomputed now, not taken from the screen: time may have passed since the preview (R-4.7)
         val preview = buildPreview(draft, date, excludedKeys, clock.instant(), zone)
         val requested = preview.items.count { it.isIncluded }
         if (requested == 0) return@withLock ScheduleOrderResult.NothingToSchedule
 
         val replaceIds = if (policy == ConflictPolicy.REPLACE) {
-            orders.findOpenOverlapping(draft.spanOn(date).forConflicts()).map { it.order.id }
+            orders.findOpenOverlapping(draft.conflictDaysOn(date)).map { it.order.id }
         } else {
             emptyList()
         }
@@ -128,6 +129,7 @@ class ScheduleOrderUseCase @Inject constructor(
      */
     private suspend fun scheduleRecurring(
         draft: RoutineDraft,
+        recurrence: Recurrence,
         date: LocalDate,
         excludedKeys: Set<Int>,
         policy: ConflictPolicy,
@@ -137,12 +139,22 @@ class ScheduleOrderUseCase @Inject constructor(
         }
         if (activities.isEmpty()) return ScheduleOrderResult.NothingToSchedule
         val replaceIds = if (policy == ConflictPolicy.REPLACE) {
-            orders.findOpenOverlapping(draft.spanOn(date).forConflicts()).map { it.order.id }
+            orders.findOpenOverlapping(draft.conflictDaysOn(date)).map { it.order.id }
         } else {
             emptyList()
         }
+        // R-23.8: only the alarms of the window count, the same ones the materializer is about to create
+        val zone = zoneProvider.zone()
+        val now = clock.instant()
+        val requested = recurrence.windowOffsets(date, LocalDate.now(clock.withZone(zone))).sumOf { offset ->
+            activities.count { calculator.triggerAt(date, it.time, offset + it.dayOffset, zone).isAfter(now) }
+        }
+        val alreadyScheduled = alarms.getPendingForActiveOrders().count { it.alarm.orderId !in replaceIds }
+        if (alreadyScheduled + requested > MAX_PENDING_ALARMS) {
+            return ScheduleOrderResult.TooManyAlarms(requested, alreadyScheduled)
+        }
         val created = orders.createOrder(
-            NewOrder(name = draft.name, date = date, notes = draft.notes, rawJson = draft.rawJson, schemaVersion = 2, recurrence = draft.recurrence),
+            NewOrder(name = draft.name, date = date, notes = draft.notes, rawJson = draft.rawJson, schemaVersion = 2, recurrence = recurrence),
             alarms = emptyList(),
             replaceOrderIds = replaceIds,
             activities = activities,

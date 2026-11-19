@@ -3,6 +3,7 @@ package com.mirkwood.rutinify.testutil
 import com.mirkwood.rutinify.domain.model.AlarmItem
 import com.mirkwood.rutinify.domain.model.AlarmStatus
 import com.mirkwood.rutinify.domain.model.OrderStatus
+import com.mirkwood.rutinify.domain.model.Recurrence
 import com.mirkwood.rutinify.domain.model.RoutineOrder
 import java.time.Instant
 import java.time.LocalDate
@@ -14,7 +15,8 @@ fun testOrder(
     name: String = "Cachorro",
     date: LocalDate = LocalDate.of(2026, 11, 5),
     status: OrderStatus = OrderStatus.ACTIVE,
-) = RoutineOrder(id, name, date, notes = null, status = status, createdAt = Instant.parse("2026-11-04T12:00:00Z"))
+    recurrence: Recurrence? = null,
+) = RoutineOrder(id, name, date, notes = null, status = status, createdAt = Instant.parse("2026-11-04T12:00:00Z"), recurrence = recurrence)
 
 fun testAlarm(
     id: Long = 10L,

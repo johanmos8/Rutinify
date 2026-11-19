@@ -357,9 +357,10 @@
   - Room v5 (D-81, D-83); `MaterializeRecurringUseCase` (TDD: idempotente, ventana de 7 días, pausa y reanudación, `until`); alarma diaria `MATERIALIZE`; textos de recurrencia; *Revisión* con el día tipo y "{n} alarmas por semana" (R-23.14).
   - ✅ Reiniciar o cambiar de zona no duplica alarmas.
   - _Hecho:_ Room v5 con `routine_activity`, columnas de recurrencia y `activity_id` único por día; `MaterializeRecurringUseCase` y repaso diario a las 03:00 (D-81, D-94); textos de recurrencia en Inicio, detalle y *Revisión* ("{n} alarmas por semana"); duplicar y exportar conservan la recurrencia. 12 tests nuevos (793 en verde), entre ellos migración 4→5 e idempotencia. En el emulador: un plan diario con dos paseos mostró "14 alarmas por semana", al programar quedaron 13 pendientes (la de las 07:30 de hoy ya había pasado) y seguían 13 tras reiniciar la app dos veces.
-- [ ] **T-69 · Conflictos y límite con recurrencia** — (R-23.8, R-23.9)
+- [x] **T-69 · Conflictos y límite con recurrencia** — (R-23.8, R-23.9)
   - `RoutineSpan` con fin abierto; conflictos por día de la semana; límite de 500 solo con la ventana.
   - ✅ Tests de conflicto recurrente contra plan de un día, de varios días y otro recurrente.
+  - _Hecho:_ `ConflictDays` (fin abierto y días de la semana) en lugar de cambiar `RoutineSpan` (D-95); el repositorio cruza los planes recurrentes abiertos en Kotlin, *Revisión* los describe con su recurrencia y el límite de 500 cuenta solo la ventana. 17 tests nuevos (810 en verde): plan recurrente contra uno de un día, de varios días, otro recurrente, uno terminado, `REPLACE` por día de la semana y el límite.
 - [ ] **T-70 · Wear OS con notificaciones puenteadas** — (R-24.1–R-24.3)
   - Revisar `setLocalOnly` y acciones (D-82); prueba en emulador de Wear emparejado.
   - ✅ "Hecho", "+5 min" y "Silenciar" funcionan desde el reloj.

@@ -36,7 +36,7 @@ interface OrderDao {
     fun observeWithAlarms(id: Long): Flow<OrderWithAlarmsRow?>
 
     /**
-     * ACTIVE or PAUSED orders whose conflict days touch [start]..[end] (R-6.1, R-6.5, R-6.6, D-56, D-58), with
+     * ACTIVE or PAUSED plain (non-recurring) orders whose conflict days touch [start]..[end] (R-6.1, R-6.5, R-6.6, D-56, D-58), with
      * their largest `day_offset`. Like `RoutineSpan.forConflicts`, a stored order only counts beyond its date
      * when that offset is 2 (`MULTI_DAY_MIN_OFFSET`) or more. Dates are ISO text, so SQLite's `date()` and
      * string comparison work without a schema change.
@@ -47,13 +47,17 @@ interface OrderDao {
             SELECT o.*,
                    IFNULL((SELECT MAX(a.day_offset) FROM alarm_item a WHERE a.order_id = o.id), 0) AS max_day_offset
             FROM routine_order o
-            WHERE o.status IN ('ACTIVE', 'PAUSED') AND o.date <= :end
+            WHERE o.status IN ('ACTIVE', 'PAUSED') AND o.recurrence_weekdays IS NULL AND o.date <= :end
         )
         WHERE date(date, '+' || (CASE WHEN max_day_offset >= 2 THEN max_day_offset ELSE 0 END) || ' days') >= :start
         ORDER BY created_at, id
         """,
     )
     suspend fun findOpenOverlapping(start: LocalDate, end: LocalDate): List<ConflictingOrderRow>
+
+    /** ACTIVE or PAUSED plans that repeat by weekday; their conflicts are checked by weekday in Kotlin (R-23.9). */
+    @Query("SELECT * FROM routine_order WHERE status IN ('ACTIVE', 'PAUSED') AND recurrence_weekdays IS NOT NULL")
+    suspend fun getOpenRecurring(): List<RoutineOrderEntity>
 
     @Insert
     suspend fun insert(order: RoutineOrderEntity): Long

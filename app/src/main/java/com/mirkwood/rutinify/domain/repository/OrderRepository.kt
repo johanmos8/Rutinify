@@ -2,6 +2,7 @@ package com.mirkwood.rutinify.domain.repository
 
 import com.mirkwood.rutinify.domain.model.RoutineActivity
 import com.mirkwood.rutinify.domain.model.NewActivity
+import com.mirkwood.rutinify.domain.model.ConflictDays
 import com.mirkwood.rutinify.domain.model.ConflictingOrder
 import com.mirkwood.rutinify.domain.model.CreatedOrder
 import com.mirkwood.rutinify.domain.model.NewAlarm
@@ -10,7 +11,6 @@ import com.mirkwood.rutinify.domain.model.OrderStatus
 import com.mirkwood.rutinify.domain.model.OrderSummary
 import com.mirkwood.rutinify.domain.model.OrderWithAlarms
 import com.mirkwood.rutinify.domain.model.RoutineOrder
-import com.mirkwood.rutinify.domain.model.RoutineSpan
 import kotlinx.coroutines.flow.Flow
 
 interface OrderRepository {
@@ -24,10 +24,11 @@ interface OrderRepository {
     suspend fun getOrder(orderId: Long): RoutineOrder?
 
     /**
-     * ACTIVE or PAUSED orders whose conflict days ([RoutineSpan.forConflicts]) share a day with [span],
-     * each with its own span (R-6.1, R-6.6, D-58). [span] must already be the new routine's conflict days.
+     * ACTIVE or PAUSED orders whose conflict days ([ConflictingOrder.conflictDays]) share a date with [days], each with
+     * its own span (R-6.1, R-6.6, D-58); a recurring order only claims its weekdays, with no end without `until`
+     * (R-23.9).
      */
-    suspend fun findOpenOverlapping(span: RoutineSpan): List<ConflictingOrder>
+    suspend fun findOpenOverlapping(days: ConflictDays): List<ConflictingOrder>
 
     /**
      * Creates the ACTIVE order and its alarms in a single transaction. If [replaceOrderIds] is not

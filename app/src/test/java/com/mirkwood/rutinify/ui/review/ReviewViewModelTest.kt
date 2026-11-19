@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.ui.review
 
+import com.mirkwood.rutinify.ui.common.RecurrenceLabels
 import com.mirkwood.rutinify.domain.model.Recurrence
 import com.mirkwood.rutinify.domain.diagnostics.DiagnosticEvent
 import com.mirkwood.rutinify.testutil.FakeDiagnosticsRecorder
@@ -854,5 +855,20 @@ class ReviewViewModelTest {
 
         vm.onAction(ReviewAction.ToggleIncluded(0))
         assertThat(vm.state.summary?.es()).isEqualTo("8 alarmas por semana")
+    }
+
+    @Test
+    fun `un plan recurrente en conflicto se describe con sus dias de la semana`() = runTest { // R-23.9, R-23.10, T-69
+        val thursdays = Recurrence(setOf(today.dayOfWeek), until = null)
+        orders.add(testOrder(id = 1L, name = "Gimnasio", date = today.minusDays(7), recurrence = thursdays))
+        val vm = subscribed(viewModel())
+
+        vm.onAction(ReviewAction.ScheduleClicked)
+
+        val dialog = vm.state.dialog as ReviewDialog.Conflict
+        assertThat(dialog.showsRanges).isTrue()
+        assertThat(dialog.orders.single().name).isEqualTo("Gimnasio")
+        assertThat(dialog.orders.single().range).isEqualTo(RecurrenceLabels.label(thursdays, today.minusDays(7)))
+        assertThat(orders.createCalls).isEqualTo(0)
     }
 }

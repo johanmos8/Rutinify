@@ -3,6 +3,7 @@ package com.mirkwood.rutinify.domain.usecase
 import com.mirkwood.rutinify.domain.model.AlarmStatus
 import com.mirkwood.rutinify.domain.model.NewAlarm
 import com.mirkwood.rutinify.domain.model.OrderStatus
+import com.mirkwood.rutinify.domain.model.Recurrence
 import com.mirkwood.rutinify.domain.repository.AlarmRepository
 import com.mirkwood.rutinify.domain.repository.CategorySettingsRepository
 import com.mirkwood.rutinify.domain.repository.OrderRepository
@@ -50,10 +51,8 @@ class MaterializeRecurringUseCase @Inject constructor(
             val recurrence = order.recurrence ?: continue
             if (order.status != OrderStatus.ACTIVE) continue
             val activities = orders.getActivities(order.id)
-            val candidates = (0 until WINDOW_DAYS).map { today.plusDays(it.toLong()) }
-                .filter { recurrence.includes(it, order.date) }
-                .flatMap { day ->
-                    val offset = ChronoUnit.DAYS.between(order.date, day).toInt()
+            val candidates = recurrence.windowOffsets(order.date, today)
+                .flatMap { offset ->
                     activities.map { activity ->
                         NewAlarm(
                             position = activity.position,
@@ -88,3 +87,12 @@ class MaterializeRecurringUseCase @Inject constructor(
         const val WINDOW_DAYS = 7
     }
 }
+
+/**
+ * Offsets from [start] of the plan days inside the window that begins on [today] (R-23.7): what
+ * [MaterializeRecurringUseCase] creates and what the 500-alarm limit counts for a new recurring plan (R-23.8).
+ */
+internal fun Recurrence.windowOffsets(start: LocalDate, today: LocalDate): List<Int> =
+    (0 until MaterializeRecurringUseCase.WINDOW_DAYS).map { today.plusDays(it.toLong()) }
+        .filter { includes(it, start) }
+        .map { ChronoUnit.DAYS.between(start, it).toInt() }

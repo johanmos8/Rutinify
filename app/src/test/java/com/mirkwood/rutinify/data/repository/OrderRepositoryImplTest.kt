@@ -1,5 +1,8 @@
 package com.mirkwood.rutinify.data.repository
 
+import java.time.DayOfWeek
+import com.mirkwood.rutinify.domain.model.conflictDays
+import com.mirkwood.rutinify.domain.model.Recurrence
 import android.database.sqlite.SQLiteException
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.cash.turbine.test
@@ -201,9 +204,31 @@ class OrderRepositoryImplTest {
     fun `findOpenOverlapping mapea a dominio con el rango de la orden`() = runTest { // R-6.6, R-6.7
         val created = repository.createOrder(newOrder(), listOf(newAlarm(0), newAlarm(1, dayOffset = 6))).getOrThrow()
 
-        assertThat(repository.findOpenOverlapping(RoutineSpan(date.plusDays(3), date.plusDays(3))))
+        assertThat(repository.findOpenOverlapping(RoutineSpan(date.plusDays(3), date.plusDays(3)).conflictDays()))
             .containsExactly(ConflictingOrder(created.order, RoutineSpan.of(date, 6)))
-        assertThat(repository.findOpenOverlapping(RoutineSpan(date.plusDays(7), date.plusDays(9)))).isEmpty()
+        assertThat(repository.findOpenOverlapping(RoutineSpan(date.plusDays(7), date.plusDays(9)).conflictDays())).isEmpty()
+    }
+
+    @Test
+    fun `findOpenOverlapping cruza planes recurrentes por dia de la semana`() = runTest { // R-23.9, T-69
+        // date is Wednesday 4 November 2026
+        val wednesdays = Recurrence(setOf(DayOfWeek.WEDNESDAY), until = null)
+        val gym = repository.createOrder(newOrder("Gimnasio").copy(schemaVersion = 2, recurrence = wednesdays), emptyList()).getOrThrow()
+        val trip = repository.createOrder(newOrder("Viaje").copy(date = date.plusDays(20)), listOf(newAlarm(0), newAlarm(1, dayOffset = 3)))
+            .getOrThrow() // Tuesday 24 to Friday 27
+
+        // A single day on a later Wednesday meets the open-ended plan only
+        assertThat(repository.findOpenOverlapping(RoutineSpan(date.plusDays(14), date.plusDays(14)).conflictDays()).map { it.order })
+            .containsExactly(gym.order)
+        // A new recurring plan on Thursdays meets the trip, not the gym; the order follows creation
+        assertThat(repository.findOpenOverlapping(Recurrence(setOf(DayOfWeek.THURSDAY), null).conflictDays(date)).map { it.order })
+            .containsExactly(trip.order)
+        // On Wednesdays it meets both, and the gym keeps its start day as span
+        assertThat(repository.findOpenOverlapping(wednesdays.conflictDays(date)))
+            .containsExactly(ConflictingOrder(gym.order, RoutineSpan(date, date)), ConflictingOrder(trip.order, RoutineSpan.of(date.plusDays(20), 3)))
+            .inOrder()
+        // Ended before the trip: no clash
+        assertThat(repository.findOpenOverlapping(Recurrence(setOf(DayOfWeek.THURSDAY), date.plusDays(10)).conflictDays(date))).isEmpty()
     }
 
     @Test

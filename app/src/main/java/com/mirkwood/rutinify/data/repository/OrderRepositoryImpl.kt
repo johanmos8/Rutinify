@@ -10,7 +10,9 @@ import com.mirkwood.rutinify.data.local.AlarmItemDao
 import com.mirkwood.rutinify.data.local.OrderDao
 import com.mirkwood.rutinify.data.local.RutinifyDatabase
 import com.mirkwood.rutinify.domain.model.AlarmStatus
+import com.mirkwood.rutinify.domain.model.ConflictDays
 import com.mirkwood.rutinify.domain.model.ConflictingOrder
+import com.mirkwood.rutinify.domain.model.conflictDays
 import com.mirkwood.rutinify.domain.model.CreatedOrder
 import com.mirkwood.rutinify.domain.model.NewAlarm
 import com.mirkwood.rutinify.domain.model.NewOrder
@@ -24,6 +26,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.Clock
 import java.time.Instant
+import java.time.LocalDate
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -43,10 +46,20 @@ class OrderRepositoryImpl @Inject constructor(
 
     override suspend fun getOrder(orderId: Long): RoutineOrder? = orderDao.getById(orderId)?.toDomain()
 
-    override suspend fun findOpenOverlapping(span: RoutineSpan): List<ConflictingOrder> =
-        orderDao.findOpenOverlapping(span.start, span.end).map { row ->
+    /**
+     * SQL narrows plain orders by date; the weekdays of a recurring draft and every open recurring plan are checked
+     * here with [ConflictDays.overlaps] (R-23.9). A recurring plan's span is its start day: its stored offsets only
+     * reflect the occurrences created so far.
+     */
+    override suspend fun findOpenOverlapping(days: ConflictDays): List<ConflictingOrder> {
+        val plain = orderDao.findOpenOverlapping(days.start, days.end ?: OPEN_END).map { row ->
             ConflictingOrder(row.order.toDomain(), RoutineSpan.of(row.order.date, row.maxDayOffset))
         }
+        val recurring = orderDao.getOpenRecurring().map { ConflictingOrder(it.toDomain(), RoutineSpan(it.date, it.date)) }
+        return (plain + recurring)
+            .filter { days.overlaps(it.conflictDays) }
+            .sortedWith(compareBy({ it.order.createdAt }, { it.order.id }))
+    }
 
     override suspend fun createOrder(
         order: NewOrder,
@@ -99,4 +112,9 @@ class OrderRepositoryImpl @Inject constructor(
     }
 
     override suspend fun delete(orderId: Long) = orderDao.delete(orderId)
+
+    private companion object {
+        /** Upper bound for the SQL date filter when the claimed days have no end; ISO text still compares in order. */
+        val OPEN_END: LocalDate = LocalDate.of(9999, 12, 31)
+    }
 }

@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.ui.review
 
+import com.mirkwood.rutinify.domain.model.ConflictingOrder
 import com.mirkwood.rutinify.domain.model.Recurrence
 import com.mirkwood.rutinify.ui.common.RecurrenceLabels
 import com.mirkwood.rutinify.domain.diagnostics.DiagnosticsRecorder
@@ -501,6 +502,10 @@ class ReviewViewModel @Inject constructor(
         }
     }
 
+    /** Its weekdays for a recurring plan (R-23.10), otherwise its dates. */
+    private fun ConflictingOrder.rangeLabel(): UiText =
+        order.recurrence?.let { RecurrenceLabels.label(it, order.date) } ?: SpanLabels.short(span)
+
     private fun checkConflictsAndSchedule() {
         val m = model.value
         val draft = m.visibleDraft
@@ -512,8 +517,10 @@ class ReviewViewModel @Inject constructor(
                 runSchedule(ConflictPolicy.KEEP_BOTH)
             } else {
                 val dialog = ReviewDialog.Conflict(
-                    orders = conflicts.map { ConflictOrderUi(it.order.name, SpanLabels.short(it.span)) },
-                    showsRanges = draft.spanOn(m.date).isMultiDay || conflicts.any { it.span.isMultiDay },
+                    orders = conflicts.map { ConflictOrderUi(it.order.name, it.rangeLabel()) },
+                    // R-23.9: a recurring plan on either side only clashes on some days, so say which ones
+                    showsRanges = draft.recurrence != null || draft.spanOn(m.date).isMultiDay ||
+                        conflicts.any { it.span.isMultiDay || it.order.recurrence != null },
                 )
                 model.update { it.copy(isScheduling = false, dialog = dialog) }
             }
