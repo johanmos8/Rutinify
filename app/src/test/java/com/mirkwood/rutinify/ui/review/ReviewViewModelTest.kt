@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.ui.review
 
+import com.mirkwood.rutinify.domain.model.Recurrence
 import com.mirkwood.rutinify.domain.diagnostics.DiagnosticEvent
 import com.mirkwood.rutinify.testutil.FakeDiagnosticsRecorder
 import com.mirkwood.rutinify.testutil.es
@@ -99,13 +100,14 @@ class ReviewViewModelTest {
             defaultDatePolicy = DefaultDatePolicy(calculator),
             buildPreview = buildPreview,
             findConflicts = FindConflictingOrdersUseCase(orders),
-            scheduleOrder = ScheduleOrderUseCase(orders, alarms, scheduler, categories, publisher, buildPreview, calculator, { bogota }, clock, lock, diagnostics),
+            scheduleOrder = ScheduleOrderUseCase(orders, alarms, scheduler, categories, publisher, buildPreview, calculator, { bogota }, clock, lock, diagnostics, { 0 }),
             permissions = SchedulingPermissionsUseCase(checker, prompts),
             rescheduleAll = RescheduleAllUseCase(
                 alarms = alarms,
                 scheduler = scheduler,
                 categories = categories,
                 handleFired = HandleAlarmFiredUseCase(alarms, orders, publisher, categories, scheduler, clock, calculator, { bogota }, lock),
+                materializer = { 0 },
                 calculator = calculator,
                 zoneProvider = { bogota },
                 clock = clock,
@@ -835,5 +837,22 @@ class ReviewViewModelTest {
         vm.onAction(ReviewAction.ScheduleClicked)
 
         assertThat(alarms.alarms.values.map { it.title }).containsExactly("A1", "A2")
+    }
+
+    // ---- Recurring plans (T-68) ----
+
+    @Test
+    fun `un plan recurrente muestra el dia tipo la recurrencia y alarmas por semana`() = runTest { // R-23.14
+        val weekly = draft.copy(recurrence = Recurrence(setOf(java.time.DayOfWeek.MONDAY, java.time.DayOfWeek.THURSDAY), until = null))
+        val vm = subscribed(viewModel(weekly))
+
+        assertThat(vm.state.items.none { it.isPast }).isTrue()
+        assertThat(vm.state.days).isEmpty()
+        assertThat(vm.state.summary?.es()).isEqualTo("10 alarmas por semana")
+        assertThat(vm.state.recurrenceLabel?.es()).isEqualTo("Se repite lunes y jueves, desde el 5 de noviembre")
+        assertThat(vm.state.canSchedule).isTrue()
+
+        vm.onAction(ReviewAction.ToggleIncluded(0))
+        assertThat(vm.state.summary?.es()).isEqualTo("8 alarmas por semana")
     }
 }

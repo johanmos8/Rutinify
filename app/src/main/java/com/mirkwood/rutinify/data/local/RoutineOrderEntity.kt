@@ -24,4 +24,7 @@ data class RoutineOrderEntity(
     @ColumnInfo(name = "raw_json") val rawJson: String?,
     @ColumnInfo(name = "created_at") val createdAt: Instant,
     @ColumnInfo(name = "updated_at") val updatedAt: Instant,
+    /** Weekdays bitmask, Monday = bit 0; null for a plan that does not repeat (D-81). */
+    @ColumnInfo(name = "recurrence_weekdays") val recurrenceWeekdays: Int? = null,
+    @ColumnInfo(name = "recurrence_until") val recurrenceUntil: LocalDate? = null,
 )

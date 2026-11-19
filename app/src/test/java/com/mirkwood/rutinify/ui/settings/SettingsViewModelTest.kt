@@ -70,6 +70,7 @@ class SettingsViewModelTest {
             scheduler = scheduler,
             categories = categories,
             handleFired = HandleAlarmFiredUseCase(alarms, orders, FakeNotificationPublisher(), categories, scheduler, clock, calculator, { zone }, lock),
+            materializer = { 0 },
             calculator = calculator,
             zoneProvider = { zone },
             clock = clock,

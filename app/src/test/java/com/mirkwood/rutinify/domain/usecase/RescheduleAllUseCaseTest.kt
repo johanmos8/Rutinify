@@ -42,6 +42,7 @@ class RescheduleAllUseCaseTest {
         scheduler = scheduler,
         categories = categories,
         handleFired = HandleAlarmFiredUseCase(alarms, orders, publisher, categories, scheduler, clock, calculator, { zone }, lock),
+        materializer = { 0 },
         calculator = calculator,
         zoneProvider = { zone },
         clock = clock,
@@ -222,5 +223,13 @@ class RescheduleAllUseCaseTest {
 
         assertThat(scheduler.critical).containsExactly(10L, CriticalAlarm(orderId = 1L))
         assertThat(scheduler.scheduled.keys).containsExactly(10L, 11L)
+    }
+
+    @Test
+    fun `programa el repaso diario de las 3 de la manana`() = runTest { // R-23.7, D-81
+        reschedule()
+
+        // 12:00 now in Bogotá: next 03:00 is tomorrow
+        assertThat(scheduler.dailyRefresh).isEqualTo(Instant.parse("2026-11-06T08:00:00Z"))
     }
 }

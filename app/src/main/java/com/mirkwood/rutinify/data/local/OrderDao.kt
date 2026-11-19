@@ -67,4 +67,8 @@ interface OrderDao {
     /** Deletes the order; its alarms are deleted by cascade. */
     @Query("DELETE FROM routine_order WHERE id = :id")
     suspend fun delete(id: Long)
+
+    /** ACTIVE plans that repeat by weekday (R-23.7). */
+    @Query("SELECT * FROM routine_order WHERE status = 'ACTIVE' AND recurrence_weekdays IS NOT NULL")
+    suspend fun getActiveRecurring(): List<RoutineOrderEntity>
 }

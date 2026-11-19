@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.data.receiver
 
+import com.mirkwood.rutinify.data.alarm.PendingIntentFactory
 import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.content.BroadcastReceiver
@@ -38,6 +39,7 @@ class RescheduleReceiver : BroadcastReceiver() {
             Intent.ACTION_TIMEZONE_CHANGED, // R-12.2
             Intent.ACTION_MY_PACKAGE_REPLACED, // R-12.3
             AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED, // R-11.6
+            PendingIntentFactory.ACTION_MATERIALIZE, // R-23.7: the app's own daily refresh
         )
 
         fun isRescheduleAction(action: String?): Boolean = action in ACTIONS

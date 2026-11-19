@@ -93,7 +93,7 @@ class MigrationsTest {
     @Test
     fun `de 1 a la ultima version los planes siguen igual`() = runTest { // D-83
         createV1()
-        helper.runMigrationsAndValidate(dbName, 4, true, *Migrations.ALL).close()
+        helper.runMigrationsAndValidate(dbName, 5, true, *Migrations.ALL).close()
 
         val db = Room.databaseBuilder(ApplicationProvider.getApplicationContext(), RutinifyDatabase::class.java, dbName)
             .addMigrations(*Migrations.ALL)
@@ -134,6 +134,27 @@ class MigrationsTest {
                     while (cursor.moveToNext()) add(Triple(cursor.getLong(0), cursor.getString(1), cursor.getLong(2)))
                 }
                 assertThat(rows).containsExactly(Triple(10L, "DONE", 200L), Triple(11L, "SKIPPED", 300L)).inOrder()
+            }
+        }
+    }
+
+    @Test
+    fun `de 4 a 5 anade la recurrencia sin tocar los planes`() { // R-23, D-81, D-83
+        helper.createDatabase(dbName, 4).use { db ->
+            db.execSQL(
+                "INSERT INTO routine_order (id, name, date, notes, status, schema_version, raw_json, created_at, updated_at) " +
+                    "VALUES (1, 'Cachorro', '2026-11-16', NULL, 'ACTIVE', 1, NULL, 0, 0)",
+            )
+        }
+
+        helper.runMigrationsAndValidate(dbName, 5, true, Migrations.MIGRATION_4_5).use { db ->
+            db.query("SELECT recurrence_weekdays FROM routine_order WHERE id = 1").use { cursor ->
+                cursor.moveToFirst()
+                assertThat(cursor.isNull(0)).isTrue()
+            }
+            db.query("SELECT COUNT(*) FROM routine_activity").use { cursor ->
+                cursor.moveToFirst()
+                assertThat(cursor.getInt(0)).isEqualTo(0)
             }
         }
     }

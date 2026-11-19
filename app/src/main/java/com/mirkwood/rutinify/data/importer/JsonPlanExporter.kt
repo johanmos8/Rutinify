@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.data.importer
 
+import com.mirkwood.rutinify.domain.model.Recurrence
 import com.mirkwood.rutinify.domain.importer.PlanExporter
 import com.mirkwood.rutinify.domain.model.AlarmItem
 import com.mirkwood.rutinify.domain.model.RoutineOrder
@@ -21,13 +22,22 @@ class JsonPlanExporter @Inject constructor() : PlanExporter {
 
     override fun export(order: RoutineOrder, alarms: List<AlarmItem>, pretty: Boolean): String {
         val root = buildJsonObject {
-            put("schemaVersion", 1)
+            put("schemaVersion", if (order.recurrence != null) 2 else 1)
             put(
                 "routine",
                 buildJsonObject {
                     put("name", order.name)
                     put("date", order.date.toString())
                     put("notes", text(order.notes))
+                    order.recurrence?.let { recurrence ->
+                        put(
+                            "recurrence",
+                            buildJsonObject {
+                                put("weekdays", buildJsonArray { recurrence.weekdays.sorted().forEach { add(JsonPrimitive(codeOf(it))) } })
+                                put("until", text(recurrence.until?.toString()))
+                            },
+                        )
+                    }
                 },
             )
             put(
@@ -51,6 +61,8 @@ class JsonPlanExporter @Inject constructor() : PlanExporter {
         }
         return (if (pretty) PRETTY else Json).encodeToString(JsonElement.serializer(), root)
     }
+
+    private fun codeOf(day: java.time.DayOfWeek): String = Recurrence.CODES.entries.first { it.value == day }.key
 
     private fun text(value: String?): JsonElement = value?.let(::JsonPrimitive) ?: JsonNull
 

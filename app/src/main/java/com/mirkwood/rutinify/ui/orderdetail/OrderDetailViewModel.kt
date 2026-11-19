@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.ui.orderdetail
 
+import com.mirkwood.rutinify.ui.common.RecurrenceLabels
 import com.mirkwood.rutinify.domain.usecase.ExportHistoryPdfUseCase
 import com.mirkwood.rutinify.domain.usecase.BuildHistoryReportUseCase
 import com.mirkwood.rutinify.domain.importer.QrMatrix
@@ -490,7 +491,7 @@ class OrderDetailViewModel @Inject constructor(
         return OrderDetailUiState(
             isLoading = false,
             name = detail.order.name,
-            dateLabel = SpanLabels.long(detail.span),
+            dateLabel = detail.order.recurrence?.let { RecurrenceLabels.label(it, detail.order.date) } ?: SpanLabels.long(detail.span),
             notes = detail.order.notes,
             status = detail.displayStatus,
             pending = detail.pending,

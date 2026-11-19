@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.testutil
 
+import com.mirkwood.rutinify.domain.model.NewAlarm
 import kotlinx.coroutines.flow.map
 import com.mirkwood.rutinify.domain.model.UpcomingAlarm
 import com.mirkwood.rutinify.domain.model.AlarmEventType
@@ -87,6 +88,19 @@ class FakeAlarmRepository(
     }
 
     override suspend fun getEventsByOrder(orderId: Long): List<AlarmEvent> = events.filter { it.orderId == orderId }
+
+    private var nextOccurrenceId = 5_000L
+
+    override suspend fun insertOccurrences(orderId: Long, alarms: List<NewAlarm>): List<AlarmItem> {
+        val existing = this.alarms.values.filter { it.activityId != null }.map { it.activityId to it.dayOffset }.toSet()
+        return alarms.filter { (it.activityId to it.dayOffset) !in existing }.map {
+            AlarmItem(
+                id = nextOccurrenceId++, orderId = orderId, position = it.position, time = it.time, dayOffset = it.dayOffset,
+                title = it.title, description = it.description, durationMin = it.durationMin, category = it.category,
+                assignee = it.assignee, status = it.status, snoozedUntil = null, statusChangedAt = clock.instant(), activityId = it.activityId,
+            ).also { item -> this.alarms[item.id] = item }
+        }
+    }
 
     override suspend fun getByOrder(orderId: Long): List<AlarmItem> = alarms.values.filter { it.orderId == orderId }
 

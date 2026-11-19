@@ -36,4 +36,7 @@ interface AlarmScheduler {
 
     /** No-op when no silence is scheduled for [alarmId]. */
     fun cancelSilence(alarmId: Long)
+
+    /** The daily, inexact wake-up that creates the alarms entering the 7-day window (R-23.7, D-81). Replaces the previous one. */
+    fun scheduleDailyRefresh(at: Instant)
 }

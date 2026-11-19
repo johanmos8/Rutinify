@@ -47,5 +47,24 @@ object Migrations {
         }
     }
 
-    val ALL = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+    /** v2.0: recurring plans (R-23, D-81). Existing plans get no recurrence and keep every alarm. */
+    val MIGRATION_4_5 = object : Migration(4, 5) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `routine_order` ADD COLUMN `recurrence_weekdays` INTEGER")
+            db.execSQL("ALTER TABLE `routine_order` ADD COLUMN `recurrence_until` TEXT")
+            db.execSQL("ALTER TABLE `alarm_item` ADD COLUMN `activity_id` INTEGER")
+            db.execSQL(
+                "CREATE UNIQUE INDEX IF NOT EXISTS `index_alarm_item_activity_id_day_offset` ON `alarm_item` (`activity_id`, `day_offset`)",
+            )
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `routine_activity` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `order_id` INTEGER NOT NULL, " +
+                    "`position` INTEGER NOT NULL, `time` TEXT NOT NULL, `day_offset` INTEGER NOT NULL, `title` TEXT NOT NULL, " +
+                    "`description` TEXT, `duration_min` INTEGER, `category` TEXT NOT NULL, `assignee` TEXT, " +
+                    "FOREIGN KEY(`order_id`) REFERENCES `routine_order`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_routine_activity_order_id` ON `routine_activity` (`order_id`)")
+        }
+    }
+
+    val ALL = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
 }

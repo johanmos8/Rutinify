@@ -1,5 +1,10 @@
 package com.mirkwood.rutinify.data.repository
 
+import java.time.DayOfWeek
+import com.mirkwood.rutinify.domain.model.RoutineActivity
+import com.mirkwood.rutinify.domain.model.Recurrence
+import com.mirkwood.rutinify.domain.model.NewActivity
+import com.mirkwood.rutinify.data.local.RoutineActivityEntity
 import com.mirkwood.rutinify.data.local.AlarmItemEntity
 import com.mirkwood.rutinify.data.local.OrderSummaryRow
 import com.mirkwood.rutinify.data.local.OrderWithAlarmsRow
@@ -26,6 +31,37 @@ internal fun RoutineOrderEntity.toDomain() = RoutineOrder(
     notes = notes,
     status = status,
     createdAt = createdAt,
+    recurrence = recurrenceWeekdays?.let { Recurrence(weekdaysOf(it), recurrenceUntil) },
+)
+
+/** Monday = bit 0 … Sunday = bit 6 (D-81). */
+internal fun maskOf(days: Set<DayOfWeek>): Int = days.fold(0) { mask, day -> mask or (1 shl (day.value - 1)) }
+
+internal fun weekdaysOf(mask: Int): Set<DayOfWeek> = DayOfWeek.entries.filter { mask and (1 shl (it.value - 1)) != 0 }.toSet()
+
+internal fun RoutineActivityEntity.toDomain() = RoutineActivity(
+    id = id,
+    orderId = orderId,
+    position = position,
+    time = time,
+    dayOffset = dayOffset,
+    title = title,
+    description = description,
+    durationMin = durationMin,
+    category = category,
+    assignee = assignee,
+)
+
+internal fun NewActivity.toEntity(orderId: Long) = RoutineActivityEntity(
+    orderId = orderId,
+    position = position,
+    time = time,
+    dayOffset = dayOffset,
+    title = title,
+    description = description,
+    durationMin = durationMin,
+    category = category,
+    assignee = assignee,
 )
 
 internal fun AlarmItemEntity.toDomain() = AlarmItem(
@@ -44,6 +80,7 @@ internal fun AlarmItemEntity.toDomain() = AlarmItem(
     statusChangedAt = statusChangedAt,
     firedAt = firedAt,
     doneAt = doneAt,
+    activityId = activityId,
 )
 
 internal fun AlarmItem.toEntity() = AlarmItemEntity(
@@ -62,6 +99,7 @@ internal fun AlarmItem.toEntity() = AlarmItemEntity(
     firedAt = firedAt,
     doneAt = doneAt,
     statusChangedAt = statusChangedAt,
+    activityId = activityId,
 )
 
 internal fun OrderSummaryRow.toDomain() = OrderSummary(order = order.toDomain(), pending = pending, total = total, maxDayOffset = maxDayOffset)
@@ -82,6 +120,8 @@ internal fun NewOrder.toEntity(now: Instant) = RoutineOrderEntity(
     rawJson = rawJson,
     createdAt = now,
     updatedAt = now,
+    recurrenceWeekdays = recurrence?.let { maskOf(it.weekdays) },
+    recurrenceUntil = recurrence?.until,
 )
 
 internal fun NewAlarm.toEntity(orderId: Long, now: Instant) = AlarmItemEntity(
@@ -99,4 +139,5 @@ internal fun NewAlarm.toEntity(orderId: Long, now: Instant) = AlarmItemEntity(
     firedAt = null,
     doneAt = null,
     statusChangedAt = now,
+    activityId = activityId,
 )

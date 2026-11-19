@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.testutil
 
+import com.mirkwood.rutinify.domain.model.RoutineActivity
+import com.mirkwood.rutinify.domain.model.NewActivity
 import com.mirkwood.rutinify.domain.model.AlarmItem
 import com.mirkwood.rutinify.domain.model.AlarmStatus
 import com.mirkwood.rutinify.domain.model.ConflictingOrder
@@ -78,14 +80,18 @@ class FakeOrderRepository(
         order: NewOrder,
         alarms: List<NewAlarm>,
         replaceOrderIds: List<Long>,
+        activities: List<NewActivity>,
     ): Result<CreatedOrder> {
         createCalls++
         if (failCreate) return Result.failure(IllegalStateException("disk full"))
         val alarmRepo = requireNotNull(alarmRepository) { "Link a FakeAlarmRepository first" }
 
         val cancelled = replaceOrderIds.flatMap { cancelOrder(it) }
-        val created = RoutineOrder(nextOrderId++, order.name, order.date, order.notes, OrderStatus.ACTIVE, now)
+        val created = RoutineOrder(nextOrderId++, order.name, order.date, order.notes, OrderStatus.ACTIVE, now, order.recurrence)
         orders[created.id] = created
+        this.activities[created.id] = activities.mapIndexed { i, a ->
+            RoutineActivity(nextActivityId++, created.id, a.position, a.time, a.dayOffset, a.title, a.description, a.durationMin, a.category, a.assignee)
+        }
         val items = alarms.map {
             AlarmItem(
                 id = nextAlarmId++,
@@ -101,11 +107,21 @@ class FakeOrderRepository(
                 status = it.status,
                 snoozedUntil = null,
                 statusChangedAt = now,
+                activityId = it.activityId,
             )
         }
         alarmRepo.add(*items.toTypedArray())
         return Result.success(CreatedOrder(created, items, cancelled))
     }
+
+    /** Day types of recurring plans, by order id (D-81). */
+    val activities = mutableMapOf<Long, List<RoutineActivity>>()
+    private var nextActivityId = 500L
+
+    override suspend fun getActivities(orderId: Long): List<RoutineActivity> = activities[orderId].orEmpty()
+
+    override suspend fun getActiveRecurring(): List<RoutineOrder> =
+        orders.values.filter { it.status == OrderStatus.ACTIVE && it.recurrence != null }
 
     /** What [observeSummaries] emits; tests push new lists to simulate Room changes (R-8.6). */
     val summaries = MutableStateFlow<List<OrderSummary>>(emptyList())

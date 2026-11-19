@@ -238,6 +238,8 @@ private fun Header(state: ReviewUiState, onChangeDate: () -> Unit, onUseTomorrow
             OutlinedButton(onClick = onChangeDate) { Text(stringResource(R.string.action_change_date)) }
         }
         state.dateNotice?.let { Text(it.asString(), style = MaterialTheme.typography.bodyMedium) }
+        // R-23.14: when a plan repeats
+        state.recurrenceLabel?.let { Text(it.asString(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary) }
         if (state.suggestTomorrow) {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)) {
                 Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {

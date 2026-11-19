@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.ui.review
 
+import com.mirkwood.rutinify.domain.model.Recurrence
+import com.mirkwood.rutinify.ui.common.RecurrenceLabels
 import com.mirkwood.rutinify.domain.diagnostics.DiagnosticsRecorder
 import com.mirkwood.rutinify.domain.diagnostics.DiagnosticEvent
 import androidx.lifecycle.SavedStateHandle
@@ -117,6 +119,8 @@ data class ReviewUiState(
     val assignees: List<String> = emptyList(),
     /** Chosen person, or null for "Todas" (R-19.9, D-76). */
     val assigneeFilter: String? = null,
+    /** "Se repite lunes…" for a recurring plan (R-23.10, R-23.14). */
+    val recurrenceLabel: UiText? = null,
 )
 
 sealed interface ReviewAction {
@@ -284,6 +288,7 @@ class ReviewViewModel @Inject constructor(
 
     private fun toUiState(m: Model): ReviewUiState {
         val draft = m.visibleDraft ?: return ReviewUiState(draftLost = true)
+        draft.recurrence?.let { return recurringUiState(m, draft, it) }
         val preview = preview(m, draft)
         val dateLabel = SpanLabels.fullDate(m.date)
         return ReviewUiState(
@@ -313,6 +318,33 @@ class ReviewViewModel @Inject constructor(
             isScheduling = m.isScheduling,
             assignees = m.draft?.items?.mapNotNull { it.assignee }?.distinct()?.sorted().orEmpty(),
             assigneeFilter = m.assignee,
+        )
+    }
+
+    /**
+     * R-23.14: a recurring plan shows its day type (nothing is "past": the next days will have it), the recurrence under
+     * the date and "{n} alarmas por semana".
+     */
+    private fun recurringUiState(m: Model, draft: RoutineDraft, recurrence: Recurrence): ReviewUiState {
+        val dateLabel = SpanLabels.fullDate(m.date)
+        val rows = preview(m, draft).items.map { it.copy(isPast = false, isIncluded = it.item.key !in m.excluded) }
+        val perWeek = rows.count { it.isIncluded } * recurrence.weekdays.size
+        return ReviewUiState(
+            name = draft.name,
+            notes = draft.notes,
+            dateLabel = dateLabel,
+            dateMillisUtc = m.date.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
+            dateNotice = if (m.dateChosenByApp) UiText.Res(R.string.review_date_defaulted, listOf(dateLabel)) else null,
+            items = rows.map { itemUi(it, multiDay = false) },
+            summary = if (perWeek > 0) UiText.Plural(R.plurals.review_summary_weekly, perWeek, listOf(perWeek)) else null,
+            warnings = ErrorMessages.list(m.warnings),
+            canSchedule = perWeek > 0 && !m.isScheduling,
+            editing = m.editing,
+            dialog = m.dialog,
+            isScheduling = m.isScheduling,
+            assignees = m.draft?.items?.mapNotNull { it.assignee }?.distinct()?.sorted().orEmpty(),
+            assigneeFilter = m.assignee,
+            recurrenceLabel = RecurrenceLabels.label(recurrence, m.date),
         )
     }
 
@@ -366,9 +398,9 @@ class ReviewViewModel @Inject constructor(
     private fun toggle(key: Int) {
         val m = model.value
         val draft = m.visibleDraft ?: return
-        // A past activity can never be included (R-4.7)
+        // A past activity can never be included (R-4.7); in a recurring plan it rings on the next days (R-23.14)
         val row = preview(m, draft).items.firstOrNull { it.item.key == key } ?: return
-        if (row.isPast) return
+        if (row.isPast && draft.recurrence == null) return
         model.update { it.copy(excluded = if (key in it.excluded) it.excluded - key else it.excluded + key) }
     }
 

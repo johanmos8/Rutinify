@@ -85,6 +85,10 @@ interface AlarmItemDao {
     @Query("SELECT * FROM alarm_item WHERE order_id = :orderId ORDER BY id")
     suspend fun getByOrder(orderId: Long): List<AlarmItemEntity>
 
+    /** Occurrences of a recurring plan, ignoring any already created for the same activity and day (D-81). */
+    @androidx.room.Insert(onConflict = androidx.room.OnConflictStrategy.IGNORE)
+    suspend fun insertIgnoring(alarms: List<AlarmItemEntity>): List<Long>
+
     /** Edit from the detail: only a PENDING alarm changes (R-18.9, D-74). */
     @Query(
         """

@@ -97,7 +97,7 @@ class OrderDetailViewModelTest {
         cancelOrderAlarms = CancelOrderAlarmsUseCase(orders, scheduler, publisher, lock),
         deleteOrder = DeleteOrderUseCase(orders, alarms, scheduler, publisher, lock),
         pauseOrder = PauseOrderUseCase(orders, alarms, scheduler, lock),
-        resumeOrder = ResumeOrderUseCase(orders, alarms, scheduler, categories, TriggerTimeCalculator(), { zone }, clock, lock),
+        resumeOrder = ResumeOrderUseCase(orders, alarms, scheduler, categories, { 0 }, TriggerTimeCalculator(), { zone }, clock, lock),
         duplicateOrder = DuplicateOrderUseCase(orders, drafts),
         shiftOrderAlarms = ShiftOrderAlarmsUseCase(orders, alarms, scheduler, categories, TriggerTimeCalculator(), { zone }, clock, lock),
         updateAlarm = UpdateAlarmUseCase(alarms, orders, scheduler, publisher, categories, TriggerTimeCalculator(), { zone }, clock, lock),

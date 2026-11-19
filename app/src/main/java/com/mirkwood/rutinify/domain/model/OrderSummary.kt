@@ -14,7 +14,12 @@ data class OrderSummary(
     /** R-8.3: an active order with no pending alarms is shown as finished ("Terminada"). */
     val displayStatus: OrderDisplayStatus
         get() = when (order.status) {
-            OrderStatus.ACTIVE -> if (pending == 0) OrderDisplayStatus.FINISHED else OrderDisplayStatus.ACTIVE
+            // R-23.11: a plan that repeats with no end is never "Terminada"
+            OrderStatus.ACTIVE -> if (pending == 0 && !(order.recurrence != null && order.recurrence.until == null)) {
+                OrderDisplayStatus.FINISHED
+            } else {
+                OrderDisplayStatus.ACTIVE
+            }
             OrderStatus.PAUSED -> OrderDisplayStatus.PAUSED
             OrderStatus.CANCELLED -> OrderDisplayStatus.CANCELLED
         }

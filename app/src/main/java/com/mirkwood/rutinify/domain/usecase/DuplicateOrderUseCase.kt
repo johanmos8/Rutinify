@@ -24,6 +24,24 @@ class DuplicateOrderUseCase @Inject constructor(
      */
     suspend operator fun invoke(orderId: Long, date: LocalDate): String? {
         val source = orders.observeOrderWithAlarms(orderId).first() ?: return null
+        // R-23.13: a recurring plan is copied as its day type with its recurrence, starting on the chosen date
+        source.order.recurrence?.let { recurrence ->
+            val activities = orders.getActivities(orderId)
+            if (activities.isEmpty()) return null
+            val draft = RoutineDraft(
+                id = UUID.randomUUID().toString(),
+                name = source.order.name,
+                date = date,
+                notes = source.order.notes,
+                items = activities.mapIndexed { index, a ->
+                    DraftItem(index, a.time, a.dayOffset, a.title, a.description, a.durationMin, a.category, a.assignee)
+                },
+                origin = DraftOrigin.DUPLICATE,
+                recurrence = recurrence.copy(until = recurrence.until?.takeIf { !it.isBefore(date) }),
+            )
+            draftStore.put(DraftEntry(draft, warnings = emptyList()))
+            return draft.id
+        }
         if (source.alarms.isEmpty()) return null
         val items = source.alarms
             .sortedWith(compareBy({ it.dayOffset }, { it.time }, { it.position }))

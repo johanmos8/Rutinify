@@ -358,4 +358,22 @@
     <string name="on_device_converting">Convirtiendo…</string>
     <string name="on_device_failed">La IA del teléfono no pudo convertir la rutina; usa la plantilla con tu IA de siempre</string>
     <string name="on_device_too_long">El texto es demasiado largo para la IA del teléfono; acórtalo o usa tu IA de siempre</string>
+
+    <!-- Recurring plans (T-68, R-23) -->
+    <string name="weekday_monday">lunes</string>
+    <string name="weekday_tuesday">martes</string>
+    <string name="weekday_wednesday">miércoles</string>
+    <string name="weekday_thursday">jueves</string>
+    <string name="weekday_friday">viernes</string>
+    <string name="weekday_saturday">sábado</string>
+    <string name="weekday_sunday">domingo</string>
+    <string name="list_two">%1$s y %2$s</string>
+    <string name="list_many">%1$s, %2$s</string>
+    <string name="recurrence_every_day">todos los días</string>
+    <string name="recurrence_from">Se repite %1$s, desde el %2$s</string>
+    <string name="recurrence_from_until">Se repite %1$s, desde el %2$s hasta el %3$s</string>
+    <plurals name="review_summary_weekly">
+        <item quantity="one">%1$d alarma por semana</item>
+        <item quantity="other">%1$d alarmas por semana</item>
+    </plurals>
 </resources>

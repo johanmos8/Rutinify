@@ -20,6 +20,7 @@ class ResumeOrderUseCase @Inject constructor(
     private val alarms: AlarmRepository,
     private val scheduler: AlarmScheduler,
     private val categories: CategorySettingsRepository,
+    private val materializer: RecurringMaterializer,
     private val calculator: TriggerTimeCalculator,
     private val zoneProvider: ZoneProvider,
     private val clock: Clock,
@@ -47,6 +48,8 @@ class ResumeOrderUseCase @Inject constructor(
         val critical = if (future.isEmpty()) emptySet() else categories.criticalNames()
         future.sortedBy { it.second }
             .forEach { (alarm, triggerAt) -> scheduler.schedule(alarm.id, triggerAt, alarm.criticalIn(critical)) }
-        ResumeResult(scheduled = future.size, skipped = past.size)
+        // R-23.12: a recurring plan fills its window from now on, never the paused days
+        val created = materializer.materialize(orderId)
+        ResumeResult(scheduled = future.size + created, skipped = past.size)
     }
 }

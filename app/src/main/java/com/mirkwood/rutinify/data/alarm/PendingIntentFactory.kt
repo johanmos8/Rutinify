@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.data.alarm
 
+import com.mirkwood.rutinify.data.receiver.RescheduleReceiver
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -57,6 +58,18 @@ class PendingIntentFactory @Inject constructor(
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_NO_CREATE,
         )
 
+    /**
+     * Daily refresh of recurring plans (R-23.7, D-94). Not tied to an alarm, so it uses requestCode 0 with its own
+     * action and data, which no alarm intent shares.
+     */
+    fun dailyRefresh(): PendingIntent =
+        PendingIntent.getBroadcast(
+            context,
+            0,
+            Intent(context, RescheduleReceiver::class.java).setAction(ACTION_MATERIALIZE).setData("$SCHEME://materialize".toUri()),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+
     /** Full-screen alarm screen of a critical alarm (R-15.7). */
     fun alarmScreen(alarmId: Long, orderId: Long): PendingIntent {
         val intent = Intent(context, AlarmActivity::class.java)
@@ -109,6 +122,7 @@ class PendingIntentFactory @Inject constructor(
         const val ACTION_DONE = "com.mirkwood.rutinify.action.DONE"
         const val ACTION_SNOOZE = "com.mirkwood.rutinify.action.SNOOZE"
         const val ACTION_SILENCE = "com.mirkwood.rutinify.action.SILENCE"
+        const val ACTION_MATERIALIZE = "com.mirkwood.rutinify.action.MATERIALIZE"
         private const val SUFFIX_SILENCE = "silence"
         private const val SCHEME = "rutinify"
         private const val HOST_ALARM = "alarm"

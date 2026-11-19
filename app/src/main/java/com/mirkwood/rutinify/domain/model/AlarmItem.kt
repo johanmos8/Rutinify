@@ -28,6 +28,8 @@ data class AlarmItem(
     val statusChangedAt: Instant,
     val firedAt: Instant? = null,
     val doneAt: Instant? = null,
+    /** Day-type activity of a recurring plan this alarm comes from; null otherwise (D-81). */
+    val activityId: Long? = null,
 )
 
 /** Transitions in design §3. Deleting an alarm removes it; it is not a status. */

@@ -40,7 +40,7 @@ class OrderRepositoryImplTest {
     @Before
     fun setUp() {
         db = DbTestData.inMemoryDb()
-        repository = OrderRepositoryImpl(db, db.orderDao(), db.alarmItemDao(), clock)
+        repository = OrderRepositoryImpl(db, db.orderDao(), db.alarmItemDao(), db.routineActivityDao(), clock)
     }
 
     @After
@@ -112,7 +112,7 @@ class OrderRepositoryImplTest {
 
     @Test
     fun `si falla la insercion de alarmas no queda ninguna orden escrita`() = runTest { // R-5.7
-        val failing = OrderRepositoryImpl(db, db.orderDao(), FailingInsertAlarmDao(db.alarmItemDao()), clock)
+        val failing = OrderRepositoryImpl(db, db.orderDao(), FailingInsertAlarmDao(db.alarmItemDao()), db.routineActivityDao(), clock)
 
         val result = failing.createOrder(newOrder(), listOf(newAlarm(0)))
 
@@ -123,7 +123,7 @@ class OrderRepositoryImplTest {
     @Test
     fun `si falla un reemplazo la orden anterior queda intacta`() = runTest { // R-5.7, R-6.2
         val previous = repository.createOrder(newOrder("Anterior"), listOf(newAlarm(0))).getOrThrow()
-        val failing = OrderRepositoryImpl(db, db.orderDao(), FailingInsertAlarmDao(db.alarmItemDao()), clock)
+        val failing = OrderRepositoryImpl(db, db.orderDao(), FailingInsertAlarmDao(db.alarmItemDao()), db.routineActivityDao(), clock)
 
         val result = failing.createOrder(newOrder("Nueva"), listOf(newAlarm(0)), replaceOrderIds = listOf(previous.order.id))
 

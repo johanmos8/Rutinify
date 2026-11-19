@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.domain.usecase
 
+import com.mirkwood.rutinify.domain.model.NewActivity
 import com.mirkwood.rutinify.domain.diagnostics.DiagnosticsRecorder
 import com.mirkwood.rutinify.domain.diagnostics.DiagnosticEvent
 import com.mirkwood.rutinify.domain.model.AlarmStatus
@@ -55,6 +56,7 @@ class ScheduleOrderUseCase @Inject constructor(
     private val clock: Clock,
     private val lock: AlarmMutationLock,
     private val diagnostics: DiagnosticsRecorder,
+    private val materializer: RecurringMaterializer,
 ) {
 
     suspend operator fun invoke(
@@ -64,6 +66,7 @@ class ScheduleOrderUseCase @Inject constructor(
         policy: ConflictPolicy,
     ): ScheduleOrderResult = lock.withLock {
         val zone = zoneProvider.zone()
+        draft.recurrence?.let { return@withLock scheduleRecurring(draft, date, excludedKeys, policy) }
         // Recomputed now, not taken from the screen: time may have passed since the preview (R-4.7)
         val preview = buildPreview(draft, date, excludedKeys, clock.instant(), zone)
         val requested = preview.items.count { it.isIncluded }
@@ -117,6 +120,40 @@ class ScheduleOrderUseCase @Inject constructor(
             scheduledCount = modes.size,
             windowed = ScheduleMode.WINDOWED in modes,
         )
+    }
+
+    /**
+     * R-23.7: a recurring plan stores its day type (minus the excluded activities) and creates only the alarms of the
+     * window; the daily refresh and every reschedule create the rest. Caller holds the lock.
+     */
+    private suspend fun scheduleRecurring(
+        draft: RoutineDraft,
+        date: LocalDate,
+        excludedKeys: Set<Int>,
+        policy: ConflictPolicy,
+    ): ScheduleOrderResult {
+        val activities = draft.items.filter { it.key !in excludedKeys }.map {
+            NewActivity(it.key, it.time, it.dayOffset, it.title, it.description, it.durationMin, it.category, it.assignee)
+        }
+        if (activities.isEmpty()) return ScheduleOrderResult.NothingToSchedule
+        val replaceIds = if (policy == ConflictPolicy.REPLACE) {
+            orders.findOpenOverlapping(draft.spanOn(date).forConflicts()).map { it.order.id }
+        } else {
+            emptyList()
+        }
+        val created = orders.createOrder(
+            NewOrder(name = draft.name, date = date, notes = draft.notes, rawJson = draft.rawJson, schemaVersion = 2, recurrence = draft.recurrence),
+            alarms = emptyList(),
+            replaceOrderIds = replaceIds,
+            activities = activities,
+        ).getOrElse { return ScheduleOrderResult.StorageFailure }
+        created.cancelledAlarmIds.forEach(scheduler::cancel)
+        replaceIds.forEach(publisher::cancelForOrder)
+        publisher.ensureChannels(activities.map { it.category })
+        val count = materializer.materialize(created.order.id)
+        diagnostics.record(DiagnosticEvent.Step.SCHEDULED)
+        diagnostics.record(DiagnosticEvent.PlanCreated)
+        return ScheduleOrderResult.Scheduled(orderId = created.order.id, scheduledCount = count, windowed = !scheduler.canScheduleExact())
     }
 
     private companion object {

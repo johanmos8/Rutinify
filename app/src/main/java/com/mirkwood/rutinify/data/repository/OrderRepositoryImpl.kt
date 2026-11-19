@@ -1,5 +1,8 @@
 package com.mirkwood.rutinify.data.repository
 
+import com.mirkwood.rutinify.data.local.RoutineActivityDao
+import com.mirkwood.rutinify.domain.model.RoutineActivity
+import com.mirkwood.rutinify.domain.model.NewActivity
 import android.util.Log
 import androidx.room.withTransaction
 import com.mirkwood.rutinify.data.LOG_TAG
@@ -28,6 +31,7 @@ class OrderRepositoryImpl @Inject constructor(
     private val db: RutinifyDatabase,
     private val orderDao: OrderDao,
     private val alarmDao: AlarmItemDao,
+    private val activityDao: RoutineActivityDao,
     private val clock: Clock,
 ) : OrderRepository {
 
@@ -48,6 +52,7 @@ class OrderRepositoryImpl @Inject constructor(
         order: NewOrder,
         alarms: List<NewAlarm>,
         replaceOrderIds: List<Long>,
+        activities: List<NewActivity>,
     ): Result<CreatedOrder> {
         val now = clock.instant()
         return try {
@@ -57,6 +62,7 @@ class OrderRepositoryImpl @Inject constructor(
                 val orderId = orderDao.insert(orderEntity)
                 val alarmEntities = alarms.map { it.toEntity(orderId, now) }
                 val alarmIds = alarmDao.insertAll(alarmEntities)
+                if (activities.isNotEmpty()) activityDao.insertAll(activities.map { it.toEntity(orderId) })
                 CreatedOrder(
                     order = orderEntity.copy(id = orderId).toDomain(),
                     alarms = alarmEntities.zip(alarmIds) { entity, id -> entity.copy(id = id).toDomain() }
@@ -73,6 +79,10 @@ class OrderRepositoryImpl @Inject constructor(
             Result.failure(e)
         }
     }
+
+    override suspend fun getActivities(orderId: Long): List<RoutineActivity> = activityDao.getByOrder(orderId).map { it.toDomain() }
+
+    override suspend fun getActiveRecurring(): List<RoutineOrder> = orderDao.getActiveRecurring().map { it.toDomain() }
 
     override suspend fun updateStatus(orderId: Long, status: OrderStatus) =
         orderDao.updateStatus(orderId, status, clock.instant())

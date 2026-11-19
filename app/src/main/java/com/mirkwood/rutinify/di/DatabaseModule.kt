@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.di
 
+import com.mirkwood.rutinify.data.local.RoutineActivityDao
 import com.mirkwood.rutinify.data.local.DiagnosticCounterDao
 import android.content.Context
 import androidx.room.Room
@@ -37,4 +38,7 @@ object DatabaseModule {
 
     @Provides
     fun provideDiagnosticCounterDao(db: RutinifyDatabase): DiagnosticCounterDao = db.diagnosticCounterDao()
+
+    @Provides
+    fun provideRoutineActivityDao(db: RutinifyDatabase): RoutineActivityDao = db.routineActivityDao()
 }

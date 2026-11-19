@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.domain.usecase
 
+import com.mirkwood.rutinify.domain.model.Recurrence
 import com.mirkwood.rutinify.domain.diagnostics.DiagnosticEvent
 import com.mirkwood.rutinify.testutil.FakeDiagnosticsRecorder
 import com.mirkwood.rutinify.domain.scheduler.CriticalAlarm
@@ -54,6 +55,7 @@ class ScheduleOrderUseCaseTest {
         clock = clock,
         lock = AlarmMutationLock(),
         diagnostics = diagnostics,
+        materializer = MaterializeRecurringUseCase(orders, alarms, scheduler, publisher, categories, calculator, { bogota }, clock),
     )
 
     /** 06:45 (already past at 12:00), 13:00 paseo, 18:00, 22:30 and 02:00 (+1 day). Keys 0..4. */
@@ -299,5 +301,19 @@ class ScheduleOrderUseCaseTest {
         schedule(excluded = setOf(0, 1, 2, 3, 4))
 
         assertThat(diagnostics.events).isEmpty()
+    }
+
+    @Test
+    fun `un plan recurrente guarda su dia tipo y crea solo la ventana`() = runTest { // R-23.7, D-81
+        val weekly = draft.copy(recurrence = Recurrence(setOf(java.time.DayOfWeek.THURSDAY), until = null))
+
+        val result = schedule(routine = weekly, excluded = setOf(4)) as ScheduleOrderResult.Scheduled
+
+        val order = orders.orders.getValue(result.orderId)
+        assertThat(order.recurrence).isEqualTo(weekly.recurrence)
+        assertThat(orders.activities.getValue(result.orderId)).hasSize(4)
+        // Thursday 2026-11-05 at 12:00: 13:00, 18:00 and 22:30 today; 06:45 is past; next Thursday is outside the window
+        assertThat(result.scheduledCount).isEqualTo(3)
+        assertThat(newOrderAlarms(result.orderId).map { it.activityId }.all { it != null }).isTrue()
     }
 }

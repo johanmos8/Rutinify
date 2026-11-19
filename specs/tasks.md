@@ -353,9 +353,10 @@
   - Plantillas con un ejemplo v2 opcional; README del contrato.
   - ✅ Fixtures v2 válidos e inválidos.
   - _Hecho:_ `Recurrence`, parser v1/v2 con R-23.3–R-23.6, R-3.4 dice "1 o 2", textos en los dos idiomas y el punto 6 en las diez plantillas (D-81). `valid_v2.json` y casos inválidos en línea. 9 tests nuevos (783 en verde). El README del contrato se actualiza al final de la serie.
-- [ ] **T-68 · Planes recurrentes y ventana de programación** — (R-23.7, R-23.10–R-23.14)
+- [x] **T-68 · Planes recurrentes y ventana de programación** — (R-23.7, R-23.10–R-23.14)
   - Room v5 (D-81, D-83); `MaterializeRecurringUseCase` (TDD: idempotente, ventana de 7 días, pausa y reanudación, `until`); alarma diaria `MATERIALIZE`; textos de recurrencia; *Revisión* con el día tipo y "{n} alarmas por semana" (R-23.14).
   - ✅ Reiniciar o cambiar de zona no duplica alarmas.
+  - _Hecho:_ Room v5 con `routine_activity`, columnas de recurrencia y `activity_id` único por día; `MaterializeRecurringUseCase` y repaso diario a las 03:00 (D-81, D-94); textos de recurrencia en Inicio, detalle y *Revisión* ("{n} alarmas por semana"); duplicar y exportar conservan la recurrencia. 12 tests nuevos (793 en verde), entre ellos migración 4→5 e idempotencia. En el emulador: un plan diario con dos paseos mostró "14 alarmas por semana", al programar quedaron 13 pendientes (la de las 07:30 de hoy ya había pasado) y seguían 13 tras reiniciar la app dos veces.
 - [ ] **T-69 · Conflictos y límite con recurrencia** — (R-23.8, R-23.9)
   - `RoutineSpan` con fin abierto; conflictos por día de la semana; límite de 500 solo con la ventana.
   - ✅ Tests de conflicto recurrente contra plan de un día, de varios días y otro recurrente.

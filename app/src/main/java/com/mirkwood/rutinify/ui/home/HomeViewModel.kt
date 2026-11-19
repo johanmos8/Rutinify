@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.ui.home
 
+import com.mirkwood.rutinify.ui.common.RecurrenceLabels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mirkwood.rutinify.domain.model.OrderDisplayStatus
@@ -109,7 +110,7 @@ class HomeViewModel @Inject constructor(
     private fun toCard(summary: OrderSummary) = OrderCardUi(
         id = summary.order.id,
         name = summary.order.name,
-        dateLabel = SpanLabels.long(summary.span),
+        dateLabel = summary.order.recurrence?.let { RecurrenceLabels.label(it, summary.order.date) } ?: SpanLabels.long(summary.span),
         pending = summary.pending,
         total = summary.total,
         status = summary.displayStatus,

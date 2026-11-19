@@ -22,6 +22,7 @@ class RescheduleAllUseCase @Inject constructor(
     private val scheduler: AlarmScheduler,
     private val categories: CategorySettingsRepository,
     private val handleFired: HandleAlarmFiredUseCase,
+    private val materializer: RecurringMaterializer,
     private val calculator: TriggerTimeCalculator,
     private val zoneProvider: ZoneProvider,
     private val clock: Clock,
@@ -31,6 +32,9 @@ class RescheduleAllUseCase @Inject constructor(
     suspend operator fun invoke(): RescheduleResult = lock.withLock {
         val now = clock.instant()
         val zone = zoneProvider.zone()
+        // R-23.7: recurring plans first fill their window; what they create is scheduled again below, harmlessly
+        materializer.materialize(null)
+        scheduler.scheduleDailyRefresh(nextRefresh(now, zone))
         // Recomputed in the current zone every time: trigger instants are never stored (R-12.2)
         val pending = alarms.getPendingForActiveOrders()
             .map { it.alarm to calculator.effectiveTrigger(it.alarm, it.orderDate, zone) }
@@ -51,7 +55,15 @@ class RescheduleAllUseCase @Inject constructor(
         RescheduleResult(scheduled = future.size, firedNow = fireNow.size, skipped = skip.size)
     }
 
+    /** The next 03:00 local time after [now]: a quiet hour for the daily refresh (D-81). */
+    private fun nextRefresh(now: java.time.Instant, zone: java.time.ZoneId): java.time.Instant {
+        val local = now.atZone(zone)
+        val today = local.toLocalDate().atTime(REFRESH_TIME).atZone(zone)
+        return (if (today.isAfter(local)) today else today.plusDays(1)).toInstant()
+    }
+
     private companion object {
+        val REFRESH_TIME: java.time.LocalTime = java.time.LocalTime.of(3, 0)
         /** R-12.4 / R-12.5: up to 15 minutes late still fires; later is skipped. */
         val LATE_TOLERANCE: Duration = Duration.ofMinutes(15)
     }

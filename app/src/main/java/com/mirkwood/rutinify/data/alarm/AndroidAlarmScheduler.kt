@@ -70,6 +70,11 @@ class AndroidAlarmScheduler @Inject constructor(
         alarmManager.cancel(operation)
     }
 
+    override fun scheduleDailyRefresh(at: Instant) {
+        // Inexact on purpose: a few minutes either way do not matter for a 7-day window (D-81)
+        alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at.toEpochMilli(), pendingIntents.dailyRefresh())
+    }
+
     private companion object {
         /** R-5.4: up to 10 minutes late without the exact alarm permission. */
         const val WINDOW_MILLIS = 10 * 60 * 1000L

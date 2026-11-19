@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.domain.repository
 
+import com.mirkwood.rutinify.domain.model.RoutineActivity
+import com.mirkwood.rutinify.domain.model.NewActivity
 import com.mirkwood.rutinify.domain.model.ConflictingOrder
 import com.mirkwood.rutinify.domain.model.CreatedOrder
 import com.mirkwood.rutinify.domain.model.NewAlarm
@@ -36,7 +38,14 @@ interface OrderRepository {
         order: NewOrder,
         alarms: List<NewAlarm>,
         replaceOrderIds: List<Long> = emptyList(),
+        activities: List<NewActivity> = emptyList(),
     ): Result<CreatedOrder>
+
+    /** Day type of a recurring plan, in timeline order (D-81). */
+    suspend fun getActivities(orderId: Long): List<RoutineActivity>
+
+    /** ACTIVE recurring plans (R-23.7). */
+    suspend fun getActiveRecurring(): List<RoutineOrder>
 
     suspend fun updateStatus(orderId: Long, status: OrderStatus)
 

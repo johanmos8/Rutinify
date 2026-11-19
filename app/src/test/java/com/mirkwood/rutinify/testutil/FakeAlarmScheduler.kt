@@ -34,6 +34,13 @@ class FakeAlarmScheduler(var exact: Boolean = true) : AlarmScheduler {
         cancelled += alarmId
     }
 
+    /** Last daily refresh asked for (R-23.7). */
+    var dailyRefresh: Instant? = null
+
+    override fun scheduleDailyRefresh(at: Instant) {
+        dailyRefresh = at
+    }
+
     override fun scheduleSilence(alarmId: Long, at: Instant) {
         silences[alarmId] = at
     }

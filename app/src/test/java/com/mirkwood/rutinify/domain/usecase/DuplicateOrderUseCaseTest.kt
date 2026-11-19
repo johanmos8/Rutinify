@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.domain.usecase
 
+import com.mirkwood.rutinify.domain.model.RoutineActivity
+import com.mirkwood.rutinify.domain.model.Recurrence
 import com.google.common.truth.Truth.assertThat
 import com.mirkwood.rutinify.data.draft.InMemoryDraftStore
 import com.mirkwood.rutinify.domain.model.AlarmStatus
@@ -117,5 +119,20 @@ class DuplicateOrderUseCaseTest {
 
         assertThat(draft.date).isEqualTo(newDate)
         assertThat(draft.items.map { it.dayOffset }).containsExactly(0, 1, 2, 3, 4, 5, 6).inOrder()
+    }
+
+    @Test
+    fun `duplicar un plan recurrente conserva la recurrencia con la nueva fecha de inicio`() = runTest { // R-23.13
+        val recurrence = Recurrence(setOf(java.time.DayOfWeek.MONDAY), until = null)
+        orders.add(testOrder(id = 7).copy(recurrence = recurrence))
+        orders.detail(7).value = OrderWithAlarms(testOrder(id = 7).copy(recurrence = recurrence), emptyList())
+        orders.activities[7] = listOf(RoutineActivity(1, 7, 0, LocalTime.of(7, 30), 0, "Paseo", null, null, "paseo", null))
+
+        val id = requireNotNull(duplicate(7, LocalDate.of(2026, 12, 1)))
+
+        val draft = requireNotNull(drafts.get(id)).draft
+        assertThat(draft.recurrence).isEqualTo(recurrence)
+        assertThat(draft.date).isEqualTo(LocalDate.of(2026, 12, 1))
+        assertThat(draft.items.single().title).isEqualTo("Paseo")
     }
 }

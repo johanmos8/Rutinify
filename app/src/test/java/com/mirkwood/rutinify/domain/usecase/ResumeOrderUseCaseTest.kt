@@ -32,7 +32,7 @@ class ResumeOrderUseCaseTest {
     private val orders = FakeOrderRepository(alarms)
     private val scheduler = FakeAlarmScheduler()
     private val categories = FakeCategorySettingsRepository()
-    private val resume = ResumeOrderUseCase(orders, alarms, scheduler, categories, TriggerTimeCalculator(), { zone }, clock, AlarmMutationLock())
+    private val resume = ResumeOrderUseCase(orders, alarms, scheduler, categories, { 0 }, TriggerTimeCalculator(), { zone }, clock, AlarmMutationLock())
 
     private val date = LocalDate.of(2026, 11, 5)
 

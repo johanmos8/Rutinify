@@ -73,4 +73,18 @@ class JsonPlanExporterTest {
         assertThat(json).doesNotContain("snoozed")
         assertThat(json).contains("\"schemaVersion\": 1")
     }
+
+    @Test
+    fun `un plan recurrente se exporta como v2 y vuelve igual`() { // R-19.1, R-23.2
+        val recurrence = com.mirkwood.rutinify.domain.model.Recurrence(
+            setOf(java.time.DayOfWeek.MONDAY, java.time.DayOfWeek.FRIDAY),
+            LocalDate.of(2026, 12, 20),
+        )
+        val order = testOrder(id = 1, date = LocalDate.of(2026, 11, 16)).copy(recurrence = recurrence)
+
+        val result = reimport(exporter.export(order, listOf(testAlarm(id = 1, time = LocalTime.of(7, 30), title = "Paseo"))))
+
+        assertThat(result.draft.recurrence).isEqualTo(recurrence)
+        assertThat(result.draft.items.single().title).isEqualTo("Paseo")
+    }
 }

@@ -26,6 +26,8 @@ import java.time.LocalTime
     indices = [
         Index("order_id"),
         Index("status", "order_id"),
+        // One alarm per day-type activity and day: materializing again never duplicates (D-81)
+        Index(value = ["activity_id", "day_offset"], unique = true),
     ],
 )
 data class AlarmItemEntity(
@@ -46,4 +48,5 @@ data class AlarmItemEntity(
     @ColumnInfo(name = "fired_at") val firedAt: Instant?,
     @ColumnInfo(name = "done_at") val doneAt: Instant?,
     @ColumnInfo(name = "status_changed_at") val statusChangedAt: Instant,
+    @ColumnInfo(name = "activity_id") val activityId: Long? = null,
 )

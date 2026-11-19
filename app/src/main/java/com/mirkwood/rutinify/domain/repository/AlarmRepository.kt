@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.domain.repository
 
+import com.mirkwood.rutinify.domain.model.NewAlarm
 import kotlinx.coroutines.flow.Flow
 import com.mirkwood.rutinify.domain.model.UpcomingAlarm
 import com.mirkwood.rutinify.domain.model.AlarmEvent
@@ -36,6 +37,9 @@ interface AlarmRepository {
 
     /** Pending alarms of ACTIVE plans with their plan, following every change (R-21.1, R-21.4). */
     fun observeUpcoming(): Flow<List<UpcomingAlarm>>
+
+    /** Inserts occurrences of a recurring plan, skipping any that already exist; returns the new ones (D-81). */
+    suspend fun insertOccurrences(orderId: Long, alarms: List<NewAlarm>): List<AlarmItem>
 
     /** Every alarm of [orderId], in any status. */
     suspend fun getByOrder(orderId: Long): List<AlarmItem>

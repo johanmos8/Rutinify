@@ -11,6 +11,8 @@ data class RoutineOrder(
     val notes: String?,
     val status: OrderStatus,
     val createdAt: Instant,
+    /** Weekly repetition of a schema v2 plan; its day type lives in [RoutineActivity] rows (R-23, D-81). */
+    val recurrence: Recurrence? = null,
 )
 
 /** Persisted status of an order. */

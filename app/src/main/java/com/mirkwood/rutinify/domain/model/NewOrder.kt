@@ -11,6 +11,8 @@ data class NewOrder(
     /** Original extracted JSON; stored for debugging / v2. */
     val rawJson: String?,
     val schemaVersion: Int = 1,
+    /** Schema v2 weekly repetition (R-23.2). */
+    val recurrence: Recurrence? = null,
 )
 
 /** Data to create an alarm of a [NewOrder]. Past/excluded items already arrive as SKIPPED (R-5.5). */
@@ -24,6 +26,20 @@ data class NewAlarm(
     val category: String,
     val assignee: String?,
     val status: AlarmStatus,
+    /** The day-type activity this alarm is an occurrence of, for recurring plans (D-81). */
+    val activityId: Long? = null,
+)
+
+/** Day-type activity of a new recurring plan (R-23.7, D-81). */
+data class NewActivity(
+    val position: Int,
+    val time: java.time.LocalTime,
+    val dayOffset: Int,
+    val title: String,
+    val description: String?,
+    val durationMin: Int?,
+    val category: String,
+    val assignee: String?,
 )
 
 /** Result of creating an order: what must be scheduled and what must be cancelled in the system. */
