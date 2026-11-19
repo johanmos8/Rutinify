@@ -81,7 +81,7 @@
 **Historia:** Como usuario, quiero revisar y ajustar las actividades antes de programarlas.
 
 - **R-4.1** THE SYSTEM SHALL mostrar las actividades ordenadas por hora de disparo (`dayOffset`, luego `time`), cada una con hora, título, categoría y descripción (si existe).
-- **R-4.2** THE SYSTEM SHALL permitir editar la hora, el título y la categoría de cada actividad, aplicando las mismas reglas de R-3.8, R-3.9, R-3.10 y R-3.14.
+- **R-4.2** THE SYSTEM SHALL permitir editar la hora, el título y la categoría de cada actividad, aplicando las mismas reglas de R-3.8, R-3.9, R-3.10 y R-3.14. La hora SHALL elegirse con un selector de 24 h (reloj o teclado), no escribiéndola. *(D-101)*
 - **R-4.3** THE SYSTEM SHALL permitir quitar una actividad del borrador (con opción de deshacer).
 - **R-4.4** WHERE `routine.date` venía en el JSON, THE SYSTEM SHALL usarla como fecha preseleccionada.
 - **R-4.5** WHERE `routine.date` no venía en el JSON, THE SYSTEM SHALL preseleccionar **hoy** si al menos una actividad tiene hora de disparo futura y, si no, **mañana**, e informar "No venía fecha; elegí {fecha}". WHERE la rutina es de varios días, solo cuentan las actividades del Día 1 (`dayOffset` 0), para no empezar con un Día 1 ya pasado.

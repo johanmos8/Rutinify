@@ -164,6 +164,10 @@
     <string name="action_undo">Deshacer</string>
     <string name="review_edit_title">Editar actividad</string>
     <string name="review_field_time">Hora (24 h)</string>
+    <string name="time_picker_open">Cambiar la hora</string>
+    <string name="time_picker_use_keyboard">Escribir la hora</string>
+    <string name="time_picker_use_dial">Usar el reloj</string>
+    <string name="action_accept">Aceptar</string>
     <string name="review_field_title">Título</string>
     <string name="review_field_category">Categoría</string>
     <string name="action_save">Guardar</string>
