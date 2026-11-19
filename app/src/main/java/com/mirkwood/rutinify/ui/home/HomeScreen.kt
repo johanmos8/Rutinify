@@ -12,7 +12,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ListItem
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -117,13 +124,22 @@ fun HomeScreen(
             if (state.missingPermissions) {
                 PermissionsBanner(onClick = onPermissionsClick, modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp))
             }
-            HomeContent(state, onOrderClick, Modifier.weight(1f))
+            HomeContent(state, onAction, onOrderClick, Modifier.weight(1f))
         }
     }
 }
 
+/**
+ * R-8.1, R-8.7: the next alarm leads, then the plans still running as cards, then earlier plans as plain rows so they
+ * recede (design review, D-99).
+ */
 @Composable
-private fun HomeContent(state: HomeUiState, onOrderClick: (orderId: Long) -> Unit, modifier: Modifier = Modifier) {
+private fun HomeContent(
+    state: HomeUiState,
+    onAction: (HomeAction) -> Unit,
+    onOrderClick: (orderId: Long) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     when {
         state.showEmptyState -> EmptyState(modifier)
         else -> LazyColumn(
@@ -132,11 +148,71 @@ private fun HomeContent(state: HomeUiState, onOrderClick: (orderId: Long) -> Uni
             contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            items(state.orders, key = { it.id }) { card ->
-                OrderCard(card = card, onClick = { onOrderClick(card.id) })
+            state.nextAlarm?.let { next ->
+                item(key = "next") {
+                    NextAlarmCard(
+                        next = next,
+                        onClick = { onOrderClick(next.orderId) },
+                        onDone = { onAction(HomeAction.MarkNextDone(next.alarmId)) },
+                    )
+                }
+            }
+            if (state.ongoingOrders.isNotEmpty()) {
+                item(key = "ongoing_header") { SectionHeader(R.string.home_section_ongoing) }
+                items(state.ongoingOrders, key = { it.id }) { card ->
+                    OrderCard(card = card, onClick = { onOrderClick(card.id) })
+                }
+            }
+            if (state.pastOrders.isNotEmpty()) {
+                item(key = "past_header") { SectionHeader(R.string.home_section_past) }
+                items(state.pastOrders, key = { it.id }) { card ->
+                    PastOrderRow(card = card, onClick = { onOrderClick(card.id) })
+                }
             }
         }
     }
+}
+
+/** R-8.7: what rings next, with "Hecho" at hand; tapping opens its plan. */
+@Composable
+private fun NextAlarmCard(next: NextAlarmUi, onClick: () -> Unit, onDone: () -> Unit, modifier: Modifier = Modifier) {
+    Card(
+        onClick = onClick,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        shape = MaterialTheme.shapes.extraLarge,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(stringResource(R.string.home_next_title), style = MaterialTheme.typography.labelLarge)
+            Text(next.time.asString(), style = MaterialTheme.typography.displaySmall)
+            Text(next.title, style = MaterialTheme.typography.titleLarge)
+            Text(next.orderName, style = MaterialTheme.typography.bodyMedium)
+            Button(onClick = onDone, modifier = Modifier.align(Alignment.End).padding(top = 8.dp)) {
+                Text(stringResource(R.string.notification_action_done))
+            }
+        }
+    }
+}
+
+@Composable
+private fun SectionHeader(textRes: Int, modifier: Modifier = Modifier) {
+    Text(
+        text = stringResource(textRes),
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = modifier.padding(top = 8.dp).semantics { heading() },
+    )
+}
+
+/** A finished or cancelled plan: no container and no pending count, so it does not compete with running plans. */
+@Composable
+private fun PastOrderRow(card: OrderCardUi, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    ListItem(
+        headlineContent = { Text(card.name, maxLines = 2, overflow = TextOverflow.Ellipsis) },
+        supportingContent = { Text(card.dateLabel.asString()) },
+        trailingContent = { OrderStatusLabel(card.status) },
+        modifier = modifier.clip(MaterialTheme.shapes.medium).clickable(onClick = onClick),
+    )
 }
 
 /** R-11.3: stays while any permission is missing; opens the Permissions screen. */

@@ -209,6 +209,9 @@
     <string name="home_empty_step_2">2. Pégala en tu IA junto con tu rutina, escrita como quieras.</string>
     <string name="home_empty_step_3">3. Copia el JSON que te devuelva y pégalo en Rutinify.</string>
     <string name="home_order_pending">Pendientes: %1$d de %2$d</string>
+    <string name="home_next_title">Próxima alarma</string>
+    <string name="home_section_ongoing">En curso</string>
+    <string name="home_section_past">Anteriores</string>
     <string name="order_status_active">Activa</string>
     <string name="order_status_paused">Pausada</string>
     <string name="order_status_cancelled">Cancelada</string>

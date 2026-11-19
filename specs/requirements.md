@@ -141,12 +141,13 @@
 
 **Historia:** Como usuario, quiero ver mis rutinas importadas y su estado de un vistazo.
 
-- **R-8.1** THE SYSTEM SHALL listar las órdenes ordenadas por fecha descendente y, a igual fecha, por fecha de creación descendente.
-- **R-8.2** THE SYSTEM SHALL mostrar por orden: nombre, fecha, número de alarmas pendientes / total, y estado (Activa, Pausada, Cancelada o Terminada). WHERE la orden es de varios días, la fecha SHALL mostrarse como rango ("del sábado 14 al viernes 20 de noviembre de 2026").
+- **R-8.1** THE SYSTEM SHALL listar las órdenes ordenadas por fecha descendente y, a igual fecha, por fecha de creación descendente, en dos grupos: "En curso" (Activas y Pausadas) y "Anteriores" (Terminadas y Canceladas), cada uno con ese orden. *(D-99)*
+- **R-8.2** THE SYSTEM SHALL mostrar por orden: nombre, fecha, número de alarmas pendientes / total (solo en "En curso"), y estado (Activa, Pausada, Cancelada o Terminada). WHERE la orden es de varios días, la fecha SHALL mostrarse como rango ("del sábado 14 al viernes 20 de noviembre de 2026").
 - **R-8.3** THE SYSTEM SHALL considerar *Terminada* una orden Activa sin alarmas *Pendientes*.
 - **R-8.4** THE SYSTEM SHALL mostrar un botón flotante "Nueva rutina".
 - **R-8.5** WHILE no hay órdenes, THE SYSTEM SHALL mostrar un estado vacío que explique el flujo en 3 pasos (copiar plantilla → pedir JSON a la IA → pegarlo).
 - **R-8.6** THE SYSTEM SHALL actualizar la lista automáticamente cuando cambie el estado de cualquier alarma u orden.
+- **R-8.7** WHILE hay alguna alarma pendiente en un plan Activo, THE SYSTEM SHALL mostrar arriba de Inicio la "Próxima alarma" (hora como en el widget, título y plan) con el botón "Hecho" (R-7.4); al tocarla SHALL abrir su plan. *(D-99)*
 
 ## R-9 Detalle de orden
 

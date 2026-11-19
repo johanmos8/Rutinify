@@ -208,6 +208,9 @@
     <string name="home_empty_step_2">2. Paste it into your AI with your routine, written however you like.</string>
     <string name="home_empty_step_3">3. Copy the JSON it returns and paste it into Rutinify.</string>
     <string name="home_order_pending">Pending: %1$d of %2$d</string>
+    <string name="home_next_title">Next alarm</string>
+    <string name="home_section_ongoing">Ongoing</string>
+    <string name="home_section_past">Earlier</string>
     <string name="order_status_active">Active</string>
     <string name="order_status_paused">Paused</string>
     <string name="order_status_cancelled">Cancelled</string>

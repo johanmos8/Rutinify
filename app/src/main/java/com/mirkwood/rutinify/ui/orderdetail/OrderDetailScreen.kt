@@ -161,7 +161,7 @@ fun OrderDetailScreen(
             if (state.name.isEmpty()) {
                 BackTopAppBar(titleRes = R.string.order_detail_title, onBack = onBack)
             } else {
-                BackTopAppBar(title = state.name, onBack = onBack, actions = { OverflowMenu(state.canDuplicate, state.total > 0, onAction) })
+                BackTopAppBar(title = state.name, onBack = onBack, actions = { OverflowMenu(state.canDuplicate, state.total > 0, state.canCancelAll, onAction) })
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -197,7 +197,7 @@ fun OrderDetailScreen(
 
 /** "Duplicar para otra fecha" and "Eliminar plan" live in the menu; both stay in every status (R-10.8). */
 @Composable
-private fun OverflowMenu(canDuplicate: Boolean, canShare: Boolean, onAction: (OrderDetailAction) -> Unit) {
+private fun OverflowMenu(canDuplicate: Boolean, canShare: Boolean, canCancelAll: Boolean, onAction: (OrderDetailAction) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { expanded = true }) {
@@ -226,6 +226,15 @@ private fun OverflowMenu(canDuplicate: Boolean, canShare: Boolean, onAction: (Or
                     onClick = {
                         expanded = false
                         onAction(OrderDetailAction.ExportClicked)
+                    },
+                )
+            }
+            if (canCancelAll) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.action_cancel_all)) },
+                    onClick = {
+                        expanded = false
+                        onAction(OrderDetailAction.CancelAllClicked)
                     },
                 )
             }
@@ -487,7 +496,8 @@ private fun Header(state: OrderDetailUiState, onAction: (OrderDetailAction) -> U
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        if (state.pauseAction != null || state.canCancelAll || state.canShift) {
+        // "Eliminar todas las alarmas" lives in the ⋮ menu: a destructive action must not lead the header (D-99)
+        if (state.pauseAction != null || state.canShift) {
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.padding(top = 8.dp),
@@ -504,11 +514,6 @@ private fun Header(state: OrderDetailUiState, onAction: (OrderDetailAction) -> U
                 if (state.canShift) {
                     OutlinedButton(onClick = { onAction(OrderDetailAction.ShiftClicked) }) {
                         Text(stringResource(R.string.action_shift))
-                    }
-                }
-                if (state.canCancelAll) {
-                    OutlinedButton(onClick = { onAction(OrderDetailAction.CancelAllClicked) }) {
-                        Text(stringResource(R.string.action_cancel_all), color = MaterialTheme.colorScheme.error)
                     }
                 }
             }

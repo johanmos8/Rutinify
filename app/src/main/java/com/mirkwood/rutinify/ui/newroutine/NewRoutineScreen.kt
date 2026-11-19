@@ -189,12 +189,11 @@ private fun TemplateSection(
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.new_routine_template_hint), style = MaterialTheme.typography.bodyMedium)
             ScenarioSelector(selected = scenario, onSelected = onScenarioSelected)
+            // D-99: "Abrir en IA" leads, since it sends the template to the AI app in one step; "Copiar plantilla"
+            // stays next to it (R-14.6)
             ActionButtonRow {
-                Button(onClick = onCopy) { Text(stringResource(R.string.action_copy_template)) }
-                // R-14.6: next to "Copiar plantilla"
-                OutlinedButton(onClick = onOpenInAi, modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.action_open_in_ai))
-                }
+                Button(onClick = onOpenInAi) { Text(stringResource(R.string.action_open_in_ai)) }
+                OutlinedButton(onClick = onCopy) { Text(stringResource(R.string.action_copy_template)) }
             }
             TextButton(onClick = onToggle, enabled = template != null) {
                 Text(stringResource(if (expanded) R.string.action_hide_template else R.string.action_show_template))

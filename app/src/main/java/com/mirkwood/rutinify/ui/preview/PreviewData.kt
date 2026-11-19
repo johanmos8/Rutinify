@@ -9,6 +9,7 @@ import com.mirkwood.rutinify.domain.importer.ValidationIssue
 import com.mirkwood.rutinify.ui.common.ErrorMessages
 import com.mirkwood.rutinify.ui.common.UiText
 import com.mirkwood.rutinify.ui.home.HomeUiState
+import com.mirkwood.rutinify.ui.home.NextAlarmUi
 import com.mirkwood.rutinify.ui.home.OrderCardUi
 import com.mirkwood.rutinify.ui.alarm.AlarmUiState
 import com.mirkwood.rutinify.ui.orderdetail.OrderDetailUiState
@@ -117,6 +118,7 @@ internal object PreviewData {
             OrderCardUi(1, "Mudanza", UiText.Plain("miércoles 11 de noviembre de 2026"), 0, 3, OrderDisplayStatus.FINISHED),
             OrderCardUi(4, "Viaje", UiText.Plain("martes 10 de noviembre de 2026"), 0, 2, OrderDisplayStatus.CANCELLED),
         ),
+        nextAlarm = NextAlarmUi(alarmId = 40, orderId = 5, title = "Antibiótico", orderName = "Antibiótico de Luna", time = UiText.Plain("14:00")),
     )
 
     val orderDetailState = OrderDetailUiState(

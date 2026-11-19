@@ -1,5 +1,18 @@
 package com.mirkwood.rutinify.ui.home
 
+import java.time.ZoneId
+import java.time.LocalTime
+import java.time.Instant
+import java.time.Clock
+import com.mirkwood.rutinify.testutil.testAlarm
+import com.mirkwood.rutinify.testutil.FakeNotificationPublisher
+import com.mirkwood.rutinify.testutil.FakeAlarmScheduler
+import com.mirkwood.rutinify.testutil.FakeAlarmRepository
+import com.mirkwood.rutinify.domain.usecase.ObserveNextAlarmUseCase
+import com.mirkwood.rutinify.domain.usecase.MarkAlarmDoneUseCase
+import com.mirkwood.rutinify.domain.time.TriggerTimeCalculator
+import com.mirkwood.rutinify.domain.usecase.AlarmMutationLock
+import com.mirkwood.rutinify.domain.model.AlarmStatus
 import com.mirkwood.rutinify.testutil.es
 import app.cash.turbine.test
 import com.mirkwood.rutinify.testutil.FakePermissionPromptStore
@@ -41,11 +54,23 @@ class HomeViewModelTest {
     private val categories = FakeCategorySettingsRepository()
     private val prompts = FakePermissionPromptStore()
 
+    private val bogota = ZoneId.of("America/Bogota")
+    private val clock = Clock.fixed(Instant.parse("2026-11-05T17:00:00Z"), bogota) // Thursday 12:00 in Bogotá
+    private val planDate = LocalDate.of(2026, 11, 5)
+
+    /** Plan 1 is active; any other plan has no upcoming alarms. */
+    private val alarms = FakeAlarmRepository(clock) { id -> if (id == 1L) planDate else null }
+    private val scheduler = FakeAlarmScheduler()
+
     private fun viewModel() = HomeViewModel(
         ObserveOrderSummariesUseCase(orders),
         ObserveCategorySettingsUseCase(categories),
         GetPermissionStatusUseCase(checker),
         ExactAlarmsCardUseCase(checker, prompts),
+        ObserveNextAlarmUseCase(alarms, TriggerTimeCalculator()) { bogota },
+        MarkAlarmDoneUseCase(alarms, scheduler, FakeNotificationPublisher(), AlarmMutationLock()),
+        clock,
+        { bogota },
     )
 
     /** Keeps `uiState` subscribed (WhileSubscribed) for the whole test. */
@@ -281,5 +306,62 @@ class HomeViewModelTest {
 
         assertThat(vm.uiState.value.showExactAlarmsCard).isFalse()
         assertThat(vm.uiState.value.missingPermissions).isFalse()
+    }
+
+    // ---- Design review: next alarm and groups (R-8.1, R-8.7, D-99) ----
+
+    @Test
+    fun `muestra arriba la proxima alarma con su hora titulo y plan`() = runTest { // R-8.7
+        alarms.upcomingPlans = { id -> if (id == 1L) planDate to "Cachorro" else null }
+        alarms.add(
+            testAlarm(id = 10, orderId = 1, time = LocalTime.of(18, 0), title = "Cena"),
+            testAlarm(id = 11, orderId = 1, time = LocalTime.of(14, 0), title = "Paseo"),
+            testAlarm(id = 12, orderId = 1, time = LocalTime.of(2, 0), dayOffset = 1, title = "Pis"),
+        )
+        val vm = subscribed(viewModel())
+
+        val next = requireNotNull(vm.uiState.value.nextAlarm)
+        assertThat(next.alarmId).isEqualTo(11L)
+        assertThat(next.orderId).isEqualTo(1L)
+        assertThat(next.title).isEqualTo("Paseo")
+        assertThat(next.orderName).isEqualTo("Cachorro")
+        assertThat(next.time.es()).isEqualTo("14:00")
+    }
+
+    @Test
+    fun `sin alarmas pendientes no hay tarjeta de proxima alarma`() = runTest { // R-8.7
+        alarms.add(testAlarm(id = 10, orderId = 1, status = AlarmStatus.DONE))
+
+        assertThat(subscribed(viewModel()).uiState.value.nextAlarm).isNull()
+    }
+
+    @Test
+    fun `Hecho en la tarjeta marca la alarma y pasa a la siguiente`() = runTest { // R-8.7, R-7.4
+        alarms.add(
+            testAlarm(id = 10, orderId = 1, time = LocalTime.of(14, 0)),
+            testAlarm(id = 11, orderId = 1, time = LocalTime.of(18, 0)),
+        )
+        val vm = subscribed(viewModel())
+
+        vm.onAction(HomeAction.MarkNextDone(10L))
+
+        assertThat(alarms.alarms.getValue(10L).status).isEqualTo(AlarmStatus.DONE)
+        assertThat(scheduler.cancelled).contains(10L)
+        assertThat(vm.uiState.value.nextAlarm?.alarmId).isEqualTo(11L)
+    }
+
+    @Test
+    fun `separa los planes en curso de los anteriores sin cambiar el orden`() = runTest { // R-8.1
+        orders.summaries.value = listOf(
+            summary(1),
+            summary(2, pending = 0, total = 3), // finished
+            summary(3, status = OrderStatus.PAUSED),
+            summary(4, status = OrderStatus.CANCELLED),
+            summary(5),
+        )
+        val state = subscribed(viewModel()).uiState.value
+
+        assertThat(state.ongoingOrders.map { it.id }).containsExactly(1L, 3L, 5L).inOrder()
+        assertThat(state.pastOrders.map { it.id }).containsExactly(2L, 4L).inOrder()
     }
 }

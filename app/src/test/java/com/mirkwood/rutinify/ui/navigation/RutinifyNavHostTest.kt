@@ -100,7 +100,7 @@ class RutinifyNavHostTest {
 
     @Test
     fun `tocar una orden abre su detalle y atras vuelve a Inicio`() { // R-8.2, design §10
-        composeRule.runOnUiThread { homeState.value = PreviewData.homeState }
+        composeRule.runOnUiThread { homeState.value = PreviewData.homeState.copy(nextAlarm = null) }
         composeRule.onNodeWithText("Cachorro").performClick()
 
         composeRule.onNodeWithText(str(R.string.order_detail_title)).assertExists()

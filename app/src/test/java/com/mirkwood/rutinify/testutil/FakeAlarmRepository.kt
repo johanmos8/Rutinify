@@ -55,6 +55,7 @@ class FakeAlarmRepository(
                 )
             }
         }
+        notifyChanged() // Room re-emits every observing query after a write
     }
 
     override suspend fun snooze(alarmId: Long, until: Instant) {
@@ -62,6 +63,7 @@ class FakeAlarmRepository(
         alarms[alarmId]?.let {
             alarms[alarmId] = it.copy(status = AlarmStatus.PENDING, snoozedUntil = until, statusChangedAt = clock.instant())
         }
+        notifyChanged()
     }
 
     override suspend fun updateSchedules(updates: List<AlarmScheduleUpdate>) {
@@ -70,6 +72,7 @@ class FakeAlarmRepository(
                 alarms[update.alarmId] = it.copy(time = update.time, dayOffset = update.dayOffset, snoozedUntil = update.snoozedUntil)
             }
         }
+        notifyChanged()
     }
 
     /** Plan name and date for [observeUpcoming]; null when the plan is not ACTIVE. */

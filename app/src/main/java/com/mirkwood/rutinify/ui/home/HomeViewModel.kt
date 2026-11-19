@@ -4,7 +4,15 @@ import com.mirkwood.rutinify.ui.common.RecurrenceLabels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mirkwood.rutinify.domain.model.OrderDisplayStatus
+import com.mirkwood.rutinify.domain.model.NextAlarm
 import com.mirkwood.rutinify.domain.model.OrderSummary
+import com.mirkwood.rutinify.domain.time.ZoneProvider
+import com.mirkwood.rutinify.domain.usecase.MarkAlarmDoneUseCase
+import com.mirkwood.rutinify.domain.usecase.ObserveNextAlarmUseCase
+import com.mirkwood.rutinify.ui.widget.NextAlarmText
+import kotlinx.coroutines.launch
+import java.time.Clock
+import java.time.LocalDate
 import com.mirkwood.rutinify.domain.usecase.ExactAlarmsCardUseCase
 import com.mirkwood.rutinify.domain.usecase.GetPermissionStatusUseCase
 import com.mirkwood.rutinify.domain.usecase.ObserveCategorySettingsUseCase
@@ -33,10 +41,21 @@ data class OrderCardUi(
     val status: OrderDisplayStatus,
 )
 
+/** R-8.7: the next pending alarm of all active plans, at the top of Home. */
+data class NextAlarmUi(
+    val alarmId: Long,
+    val orderId: Long,
+    val title: String,
+    val orderName: String,
+    /** "14:00", "02:00 · mañana" or "06:00 · lunes 16 de noviembre" (same text as the widget). */
+    val time: UiText,
+)
+
 data class HomeUiState(
     /** True until the first list arrives, so the empty state does not flash on launch. */
     val isLoading: Boolean = true,
     val orders: List<OrderCardUi> = emptyList(),
+    val nextAlarm: NextAlarmUi? = null,
     /** Persistent banner to the Permissions screen while any permission is missing (R-11.3). */
     val missingPermissions: Boolean = false,
     /** R-11.2, D-89: asks for exact alarms after the first plan; takes the banner's place while it is the only gap. */
@@ -44,7 +63,16 @@ data class HomeUiState(
 ) {
     /** R-8.5: the 3-step explanation, only once we know there are no orders. */
     val showEmptyState: Boolean get() = !isLoading && orders.isEmpty()
+
+    /** R-8.1: "En curso" (active and paused), in the repository's order. */
+    val ongoingOrders: List<OrderCardUi> get() = orders.filter { it.status.isOngoing }
+
+    /** R-8.1: "Anteriores" (finished and cancelled), in the repository's order. */
+    val pastOrders: List<OrderCardUi> get() = orders.filterNot { it.status.isOngoing }
 }
+
+private val OrderDisplayStatus.isOngoing: Boolean
+    get() = this == OrderDisplayStatus.ACTIVE || this == OrderDisplayStatus.PAUSED
 
 sealed interface HomeAction {
     /** Back in the foreground: permissions may have changed in system settings (R-11.5). */
@@ -55,6 +83,9 @@ sealed interface HomeAction {
 
     /** "Ahora no" on the exact-alarm card: it does not come back; the banner stays (D-89). */
     data object ExactAlarmsCardDismiss : HomeAction
+
+    /** "Hecho" on the next-alarm card (R-8.7, R-7.4). */
+    data class MarkNextDone(val alarmId: Long) : HomeAction
 }
 
 sealed interface HomeEffect {
@@ -67,6 +98,10 @@ class HomeViewModel @Inject constructor(
     observeCategorySettings: ObserveCategorySettingsUseCase,
     private val getPermissionStatus: GetPermissionStatusUseCase,
     private val exactAlarmsCard: ExactAlarmsCardUseCase,
+    observeNextAlarm: ObserveNextAlarmUseCase,
+    private val markAlarmDone: MarkAlarmDoneUseCase,
+    private val clock: Clock,
+    private val zoneProvider: ZoneProvider,
 ) : ViewModel() {
 
     private val permissions = MutableStateFlow(getPermissionStatus())
@@ -79,7 +114,13 @@ class HomeViewModel @Inject constructor(
 
     /** Follows Room, so any order or alarm change refreshes the list (R-8.6). */
     val uiState: StateFlow<HomeUiState> =
-        combine(observeOrderSummaries(), observeCategorySettings(), permissions, cardRefresh) { summaries, categories, status, _ ->
+        combine(
+            observeOrderSummaries(),
+            observeCategorySettings(),
+            permissions,
+            cardRefresh,
+            observeNextAlarm(),
+        ) { summaries, categories, status, _, next ->
             // D-88: full screen only matters once some category is critical (R-15.11)
             val missingFullScreen = !status.fullScreenIntent && categories.any { it.critical }
             val card = exactAlarmsCard.shouldShow(hasPlans = summaries.isNotEmpty())
@@ -88,6 +129,7 @@ class HomeViewModel @Inject constructor(
             HomeUiState(
                 isLoading = false,
                 orders = summaries.map(::toCard),
+                nextAlarm = next?.let(::toNextAlarm),
                 missingPermissions = (!status.allGranted || missingFullScreen) && !(card && onlyExactMissing),
                 showExactAlarmsCard = card,
             )
@@ -104,7 +146,20 @@ class HomeViewModel @Inject constructor(
                 exactAlarmsCard.dismiss()
                 cardRefresh.value++
             }
+            // Room changes and the card follows ObserveNextAlarmUseCase to the alarm after it
+            is HomeAction.MarkNextDone -> viewModelScope.launch { markAlarmDone(action.alarmId) }
         }
+    }
+
+    private fun toNextAlarm(next: NextAlarm): NextAlarmUi {
+        val zone = zoneProvider.zone()
+        return NextAlarmUi(
+            alarmId = next.alarmId,
+            orderId = next.orderId,
+            title = next.title,
+            orderName = next.orderName,
+            time = NextAlarmText.time(next, LocalDate.now(clock.withZone(zone)), zone),
+        )
     }
 
     private fun toCard(summary: OrderSummary) = OrderCardUi(
