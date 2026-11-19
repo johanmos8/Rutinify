@@ -41,6 +41,7 @@ Tareas ya definidas que no se pueden cerrar desde el repositorio ni desde el emu
 | Pantalla de alarma como momento estrella: hora muy grande, "Hecho" XL, animación que respete reducir movimiento | Revisión de diseño | Material 3 Expressive | Media |
 | Detalle del plan: "Pausar" y "Voy tarde" como grupo de botones conectados | Revisión de diseño | Material 3 Expressive | Baja |
 | Detalle y *Revisión*: dejar "Hecho" como única acción visible por fila; editar y borrar al tocar la fila, en un menú o deslizando | Revisión de diseño | Decidir el gesto (afecta a R-9 y R-4) | Media |
+| Editar la hora con un selector (`TimePicker` / `TimeInput` de Material 3, formato 24 h) en lugar de escribirla: hoy es un campo de texto que se valida al guardar ("25:00" o "6.45" muestran un error), así que no rompe nada, pero obliga a teclear con el formato exacto. Aplica al diálogo de editar actividad de *Revisión* (R-4) y del detalle (R-9) | Petición de Johan, 2026-11-19 | — (ya incluido en `material3` 1.4) | Alta |
 | Detalle: la cabecera repite el recuento ("Pendientes: 13 de 13" y "0 de 13 hechas"); dejar uno | Revisión de diseño | — | Baja |
 | *Nueva rutina*: pasos numerados (1 plantilla → 2 IA → 3 JSON) y agrupar "Ver plantilla" y "Escanear QR", hoy botones de texto sueltos | Revisión de diseño | — | Media |
 | *Ajustes*: "Exportar diagnóstico" tonal y "Borrar diagnóstico" de texto, en lugar de dos botones de texto sueltos | Revisión de diseño | — | Baja |
