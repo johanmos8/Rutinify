@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.data.notification
 
+import com.mirkwood.rutinify.R
+import androidx.core.app.NotificationCompat
 import com.mirkwood.rutinify.testutil.FakePermissionChecker
 import com.mirkwood.rutinify.ui.alarm.AlarmActivity
 import android.Manifest
@@ -386,5 +388,34 @@ class AndroidNotificationPublisherTest {
         permissions.fullScreenIntent = true
         publisher.publish(siesta.copy(alarmId = 43L, critical = true))
         assertThat(requireNotNull(shown(43L)).fullScreenIntent).isNotNull()
+    }
+
+    // --- Wear OS (T-70) -------------------------------------------------------------------------
+
+    @Test
+    fun `las alarmas se puentean al reloj con Hecho y mas 5 min con icono`() { // R-24.1, D-82
+        publisher.publish(siesta)
+
+        val notification = requireNotNull(shown(42L))
+        assertThat(notification.flags and Notification.FLAG_LOCAL_ONLY).isEqualTo(0)
+        // No watch-only actions: the watch shows the phone's ones
+        assertThat(NotificationCompat.WearableExtender(notification).actions).isEmpty()
+        assertThat(notification.actions.map { it.getIcon()?.resId }).containsExactly(R.drawable.ic_action_done, R.drawable.ic_action_snooze).inOrder()
+    }
+
+    @Test
+    fun `una critica tambien se puentea y Silenciar llega al telefono por broadcast`() { // R-24.2, R-24.3, D-82
+        publisher.publish(siesta.copy(critical = true))
+
+        val notification = requireNotNull(shown(42L))
+        assertThat(notification.flags and Notification.FLAG_LOCAL_ONLY).isEqualTo(0)
+        val silence = notification.actions.last()
+        assertThat(silence.getIcon()?.resId).isEqualTo(R.drawable.ic_action_silence)
+        val intent = shadowOf(silence.actionIntent)
+        assertThat(intent.isBroadcast).isTrue()
+        assertThat(intent.savedIntent.component).isEqualTo(ComponentName(app, NotificationActionReceiver::class.java))
+        assertThat(intent.savedIntent.action).isEqualTo(PendingIntentFactory.ACTION_SILENCE)
+        // Every action runs on the phone, wherever it is tapped (R-24.2)
+        assertThat(notification.actions.all { shadowOf(it.actionIntent).isBroadcast }).isTrue()
     }
 }

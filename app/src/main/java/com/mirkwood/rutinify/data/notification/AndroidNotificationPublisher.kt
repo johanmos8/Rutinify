@@ -140,6 +140,11 @@ class AndroidNotificationPublisher @Inject constructor(
         RingtoneManager.getActualDefaultRingtoneUri(context, RingtoneManager.TYPE_ALARM)
             ?: Settings.System.DEFAULT_ALARM_ALERT_URI
 
+    /**
+     * R-24, D-82: never `setLocalOnly`, so a paired Wear OS watch shows the alarm with the same actions. They are
+     * broadcasts to `NotificationActionReceiver`, which the watch runs on the phone; their icons are the watch's
+     * buttons (the phone shows only the text). The full screen and the insistent sound stay on the phone.
+     */
     private fun build(n: AlarmNotification): Notification {
         val done = context.getString(R.string.notification_action_done)
         val snooze = context.getString(R.string.notification_action_snooze)
@@ -160,14 +165,14 @@ class AndroidNotificationPublisher @Inject constructor(
             .setShowWhen(true)
             .setAutoCancel(true)
             .setContentIntent(pendingIntents.openOrder(n.orderId, n.alarmId))
-            .addAction(NotificationCompat.Action.Builder(null, done, pendingIntents.done(n.alarmId)).build())
-            .addAction(NotificationCompat.Action.Builder(null, snooze, pendingIntents.snooze(n.alarmId)).build())
+            .addAction(NotificationCompat.Action.Builder(R.drawable.ic_action_done, done, pendingIntents.done(n.alarmId)).build())
+            .addAction(NotificationCompat.Action.Builder(R.drawable.ic_action_snooze, snooze, pendingIntents.snooze(n.alarmId)).build())
             .addExtras(Bundle().apply { putLong(EXTRA_ORDER_ID, n.orderId) })
             .setGroup(ALARM_GROUP)
             .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_CHILDREN)
         if (ringing) {
             val silence = context.getString(R.string.notification_action_silence)
-            builder.addAction(NotificationCompat.Action.Builder(null, silence, pendingIntents.silence(n.alarmId)).build())
+            builder.addAction(NotificationCompat.Action.Builder(R.drawable.ic_action_silence, silence, pendingIntents.silence(n.alarmId)).build())
             // R-15.7 over the lock screen; checked on every alarm, because the user can revoke it at any time. Without
             // it the same notification shows as heads-up, with the same sound and buttons (R-15.11, D-68)
             if (permissions.fullScreenIntentGranted()) {

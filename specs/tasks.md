@@ -364,6 +364,7 @@
 - [ ] **T-70 · Wear OS con notificaciones puenteadas** — (R-24.1–R-24.3)
   - Revisar `setLocalOnly` y acciones (D-82); prueba en emulador de Wear emparejado.
   - ✅ "Hecho", "+5 min" y "Silenciar" funcionan desde el reloj.
+  - _Avance:_ notificaciones sin `setLocalOnly`, acciones con icono para el reloj y las tres por broadcast al teléfono (D-96); 2 tests nuevos (812 en verde) y comprobado en el emulador que el teléfono no cambia. Falta la prueba con un reloj emparejado (pasos 32–34 de `manual-test.md`): no hay imagen de Wear OS en el equipo y el emparejamiento necesita la app complementaria con sesión de Google.
 - [ ] **T-71 · Verificación v2.0** — (R-13.5, R-13.6)
   - `koverVerify` ≥ 80 %; manifiesto revisado contra R-13.6 y D-80; casos manuales nuevos de recurrencia.
   - ✅ Resultados anotados.
