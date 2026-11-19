@@ -185,6 +185,8 @@
 - **R-11.6** WHEN se concede el permiso de alarmas exactas, THE SYSTEM SHALL reprogramar como exactas todas las alarmas pendientes de órdenes activas.
 - **R-11.7** IF se revoca el permiso de alarmas exactas (el sistema cancela las alarmas exactas), THEN THE SYSTEM SHALL, en cuanto la app se abra o reciba un evento de reprogramación, reprogramar las pendientes en modo ventana.
 - **R-11.8** IF el usuario denegó permanentemente las notificaciones, THEN THE SYSTEM SHALL ofrecer abrir los ajustes de notificaciones de la app.
+- **R-11.9** WHILE el teléfono es Xiaomi (también Redmi o POCO), hay al menos un plan y «Inicio automático» no consta como activado, THE SYSTEM SHALL mostrar en Inicio una tarjeta que explique que sin él las alarmas no aparecen con la app cerrada y que ofrezca abrir los ajustes de la app; SHALL decir que está desactivado si se pudo comprobar o pedir que se compruebe si no, y SHALL dejar de mostrarla al pulsar "Ahora no" o "Ya lo hice", o al detectarse activado. *(D-102)*
+- **R-11.10** WHERE el teléfono es Xiaomi, THE SYSTEM SHALL mostrar en *Permisos* la fila "Inicio automático (Xiaomi)" con su estado ("Activado", "Desactivado" o "Sin comprobar") y un botón "Abrir ajustes" mientras no conste como activado. *(D-102)*
 
 ## R-12 Robustez: reinicio, hora y zona horaria
 

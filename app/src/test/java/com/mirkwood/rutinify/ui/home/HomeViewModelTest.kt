@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.ui.home
 
+import com.mirkwood.rutinify.domain.scheduler.AutoStartStatus
+import com.mirkwood.rutinify.domain.usecase.AutoStartCardUseCase
 import java.time.ZoneId
 import java.time.LocalTime
 import java.time.Instant
@@ -67,6 +69,7 @@ class HomeViewModelTest {
         ObserveCategorySettingsUseCase(categories),
         GetPermissionStatusUseCase(checker),
         ExactAlarmsCardUseCase(checker, prompts),
+        AutoStartCardUseCase(checker, prompts),
         ObserveNextAlarmUseCase(alarms, TriggerTimeCalculator()) { bogota },
         MarkAlarmDoneUseCase(alarms, scheduler, FakeNotificationPublisher(), AlarmMutationLock()),
         clock,
@@ -363,5 +366,46 @@ class HomeViewModelTest {
 
         assertThat(state.ongoingOrders.map { it.id }).containsExactly(1L, 3L, 5L).inOrder()
         assertThat(state.pastOrders.map { it.id }).containsExactly(2L, 4L).inOrder()
+    }
+
+    // ---- Xiaomi "Inicio automático" (R-11.9, D-102) ----
+
+    @Test
+    fun `en un Xiaomi sin inicio automatico muestra la tarjeta tras el primer plan`() = runTest { // R-11.9
+        checker.autoStart = AutoStartStatus.DENIED
+        val vm = subscribed(viewModel())
+        assertThat(vm.uiState.value.autoStartCard).isNull()
+
+        orders.summaries.value = listOf(summary(1))
+
+        assertThat(vm.uiState.value.autoStartCard).isEqualTo(AutoStartStatus.DENIED)
+    }
+
+    @Test
+    fun `Abrir ajustes lleva a los ajustes de la app y Ya lo hice quita la tarjeta`() = runTest { // R-11.9
+        checker.autoStart = AutoStartStatus.UNKNOWN
+        orders.summaries.value = listOf(summary(1))
+        val vm = subscribed(viewModel())
+
+        vm.effects.test {
+            vm.onAction(HomeAction.AutoStartCardOpen)
+            assertThat(awaitItem()).isEqualTo(HomeEffect.OpenAutoStartSettings)
+        }
+        vm.onAction(HomeAction.AutoStartCardDismiss)
+
+        assertThat(prompts.autoStartDismissed).isTrue()
+        assertThat(vm.uiState.value.autoStartCard).isNull()
+    }
+
+    @Test
+    fun `al volver con el inicio automatico activado la tarjeta desaparece`() = runTest { // R-11.5, R-11.9
+        checker.autoStart = AutoStartStatus.DENIED
+        orders.summaries.value = listOf(summary(1))
+        val vm = subscribed(viewModel())
+
+        checker.autoStart = AutoStartStatus.ALLOWED
+        vm.onAction(HomeAction.Resumed)
+
+        assertThat(vm.uiState.value.autoStartCard).isNull()
     }
 }

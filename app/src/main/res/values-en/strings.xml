@@ -24,6 +24,13 @@
     <string name="permissions_disabled">Off</string>
     <string name="permissions_missing">Missing</string>
     <string name="permissions_battery_note">Some manufacturers close background apps to save battery. If an alarm does not ring, look up your model on dontkillmyapp.com and follow its steps.</string>
+    <string name="home_auto_start_title">Turn on “Autostart”</string>
+    <string name="home_auto_start_body_denied">Your Xiaomi phone does not let Rutinify start on its own, so alarms do not show while the app is closed. Turn on “Autostart” and set “Battery saver” to “No restrictions”.</string>
+    <string name="home_auto_start_body_unknown">On Xiaomi phones, alarms do not show while the app is closed unless Rutinify has “Autostart”. Check that it is on and that “Battery saver” is set to “No restrictions”.</string>
+    <string name="action_already_done">Done already</string>
+    <string name="permissions_auto_start_title">Autostart (Xiaomi)</string>
+    <string name="permissions_auto_start_description">So alarms show even while the app is closed. Turn it on in Rutinify’s settings and set “Battery saver” to “No restrictions”. Critical alarms ring anyway.</string>
+    <string name="permissions_unchecked">Not checked</string>
     <string name="action_fix">Fix</string>
     <string name="home_exact_card_title">Turn on exact alarms</string>
     <string name="home_exact_card_body">Android has exact alarms turned off for Rutinify, so each reminder may arrive a few minutes late. Turn them on so they ring on time.</string>

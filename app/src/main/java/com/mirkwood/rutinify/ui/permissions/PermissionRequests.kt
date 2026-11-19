@@ -65,6 +65,14 @@ fun openFullScreenIntentSettings(context: Context) {
     start(context, Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, "package:${context.packageName}".toUri()))
 }
 
+/**
+ * Xiaomi's "Inicio automático" (R-11.10, D-102): the app's system page, where MIUI and HyperOS show that switch next to
+ * "Ahorro de batería". Their dedicated auto-start screen is a private activity that changes between versions.
+ */
+fun openAutoStartSettings(context: Context) {
+    start(context, Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:${context.packageName}".toUri()))
+}
+
 /** App notification settings (R-11.8). */
 fun openNotificationSettings(context: Context) {
     start(context, Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName))

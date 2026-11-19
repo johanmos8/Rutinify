@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.ui.permissions
 
+import com.mirkwood.rutinify.domain.scheduler.AutoStartStatus
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mirkwood.rutinify.domain.scheduler.PermissionStatus
@@ -13,8 +14,14 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /** R-11.4: one row per permission, each with its "Corregir" button while missing; [fullScreenIntent] is R-15.11. */
-data class PermissionsUiState(val notifications: Boolean, val exactAlarms: Boolean, val fullScreenIntent: Boolean = true) {
-    val allGranted: Boolean get() = notifications && exactAlarms && fullScreenIntent
+data class PermissionsUiState(
+    val notifications: Boolean,
+    val exactAlarms: Boolean,
+    val fullScreenIntent: Boolean = true,
+    /** R-11.10: a row only on Xiaomi phones. */
+    val autoStart: AutoStartStatus = AutoStartStatus.NOT_APPLICABLE,
+) {
+    val allGranted: Boolean get() = notifications && exactAlarms && fullScreenIntent && autoStart != AutoStartStatus.DENIED
 }
 
 sealed interface PermissionsAction {
@@ -49,5 +56,5 @@ class PermissionsViewModel @Inject constructor(
     }
 
     private fun PermissionStatus.toUi() =
-        PermissionsUiState(notifications = notifications, exactAlarms = exactAlarms, fullScreenIntent = fullScreenIntent)
+        PermissionsUiState(notifications = notifications, exactAlarms = exactAlarms, fullScreenIntent = fullScreenIntent, autoStart = autoStart)
 }

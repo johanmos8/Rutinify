@@ -12,5 +12,6 @@ class GetPermissionStatusUseCase @Inject constructor(private val checker: Permis
             notifications = checker.notificationsGranted(),
             exactAlarms = checker.exactAlarmsGranted(),
             fullScreenIntent = checker.fullScreenIntentGranted(),
+            autoStart = checker.autoStartStatus(),
         )
 }

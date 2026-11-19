@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.ui.home
 
+import com.mirkwood.rutinify.ui.permissions.openAutoStartSettings
+import com.mirkwood.rutinify.domain.scheduler.AutoStartStatus
 import com.mirkwood.rutinify.ui.common.contentSideMargin
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -73,6 +75,7 @@ fun HomeRoute(
         viewModel.effects.collect { effect ->
             when (effect) {
                 HomeEffect.OpenExactAlarmSettings -> openExactAlarmSettings(context)
+                HomeEffect.OpenAutoStartSettings -> openAutoStartSettings(context)
             }
         }
     }
@@ -123,6 +126,9 @@ fun HomeScreen(
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             if (state.showExactAlarmsCard) {
                 ExactAlarmsCard(onAction = onAction, modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp))
+            }
+            state.autoStartCard?.let { status ->
+                AutoStartCard(status = status, onAction = onAction, modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp))
             }
             if (state.missingPermissions) {
                 PermissionsBanner(onClick = onPermissionsClick, modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp))
@@ -262,6 +268,33 @@ private fun ExactAlarmsCard(onAction: (HomeAction) -> Unit, modifier: Modifier =
                 }
                 TextButton(onClick = { onAction(HomeAction.ExactAlarmsCardEnable) }) {
                     Text(stringResource(R.string.action_enable))
+                }
+            }
+        }
+    }
+}
+
+/**
+ * R-11.9, D-102: Xiaomi blocks a closed app from starting, so normal alarms never show. Says it is off when that could
+ * be read, or asks to check it; "Ahora no" / "Ya lo hice" hide it for good (the Permissions screen keeps the row).
+ */
+@Composable
+private fun AutoStartCard(status: AutoStartStatus, onAction: (HomeAction) -> Unit, modifier: Modifier = Modifier) {
+    val denied = status == AutoStartStatus.DENIED
+    Card(modifier = modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 8.dp, bottom = 4.dp)) {
+            Text(stringResource(R.string.home_auto_start_title), style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = stringResource(if (denied) R.string.home_auto_start_body_denied else R.string.home_auto_start_body_unknown),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 4.dp, end = 8.dp),
+            )
+            Row(modifier = Modifier.align(Alignment.End)) {
+                TextButton(onClick = { onAction(HomeAction.AutoStartCardDismiss) }) {
+                    Text(stringResource(if (denied) R.string.action_not_now else R.string.action_already_done))
+                }
+                TextButton(onClick = { onAction(HomeAction.AutoStartCardOpen) }) {
+                    Text(stringResource(R.string.action_open_settings))
                 }
             }
         }

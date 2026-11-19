@@ -25,9 +25,16 @@ class SharedPrefsPermissionPromptStore @Inject constructor(
         prefs.edit { putBoolean(KEY_EXACT_CARD_DISMISSED, true) }
     }
 
+    override fun autoStartCardDismissed(): Boolean = prefs.getBoolean(KEY_AUTO_START_CARD_DISMISSED, false)
+
+    override fun markAutoStartCardDismissed() {
+        prefs.edit { putBoolean(KEY_AUTO_START_CARD_DISMISSED, true) }
+    }
+
     private companion object {
         const val FILE = "permission_prompts"
         const val KEY_NOTIFICATIONS_EXPLAINED = "notifications_explained"
         const val KEY_EXACT_CARD_DISMISSED = "exact_alarms_card_dismissed"
+        const val KEY_AUTO_START_CARD_DISMISSED = "auto_start_card_dismissed"
     }
 }

@@ -1,5 +1,7 @@
 package com.mirkwood.rutinify.ui.home
 
+import com.mirkwood.rutinify.domain.usecase.AutoStartCardUseCase
+import com.mirkwood.rutinify.domain.scheduler.AutoStartStatus
 import com.mirkwood.rutinify.ui.common.RecurrenceLabels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -60,6 +62,8 @@ data class HomeUiState(
     val missingPermissions: Boolean = false,
     /** R-11.2, D-89: asks for exact alarms after the first plan; takes the banner's place while it is the only gap. */
     val showExactAlarmsCard: Boolean = false,
+    /** R-11.9, D-102: Xiaomi's "Inicio automático", detected off ([AutoStartStatus.DENIED]) or not readable. */
+    val autoStartCard: AutoStartStatus? = null,
 ) {
     /** R-8.5: the 3-step explanation, only once we know there are no orders. */
     val showEmptyState: Boolean get() = !isLoading && orders.isEmpty()
@@ -84,12 +88,20 @@ sealed interface HomeAction {
     /** "Ahora no" on the exact-alarm card: it does not come back; the banner stays (D-89). */
     data object ExactAlarmsCardDismiss : HomeAction
 
+    /** "Abrir ajustes" on the auto-start card (R-11.9). */
+    data object AutoStartCardOpen : HomeAction
+
+    /** "Ahora no" or "Ya lo hice" on the auto-start card: it does not come back (R-11.9). */
+    data object AutoStartCardDismiss : HomeAction
+
     /** "Hecho" on the next-alarm card (R-8.7, R-7.4). */
     data class MarkNextDone(val alarmId: Long) : HomeAction
 }
 
 sealed interface HomeEffect {
     data object OpenExactAlarmSettings : HomeEffect
+
+    data object OpenAutoStartSettings : HomeEffect
 }
 
 @HiltViewModel
@@ -98,6 +110,7 @@ class HomeViewModel @Inject constructor(
     observeCategorySettings: ObserveCategorySettingsUseCase,
     private val getPermissionStatus: GetPermissionStatusUseCase,
     private val exactAlarmsCard: ExactAlarmsCardUseCase,
+    private val autoStartCard: AutoStartCardUseCase,
     observeNextAlarm: ObserveNextAlarmUseCase,
     private val markAlarmDone: MarkAlarmDoneUseCase,
     private val clock: Clock,
@@ -132,6 +145,7 @@ class HomeViewModel @Inject constructor(
                 nextAlarm = next?.let(::toNextAlarm),
                 missingPermissions = (!status.allGranted || missingFullScreen) && !(card && onlyExactMissing),
                 showExactAlarmsCard = card,
+                autoStartCard = autoStartCard.current(hasPlans = summaries.isNotEmpty()),
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 
@@ -144,6 +158,11 @@ class HomeViewModel @Inject constructor(
             HomeAction.ExactAlarmsCardEnable -> effectChannel.trySend(HomeEffect.OpenExactAlarmSettings)
             HomeAction.ExactAlarmsCardDismiss -> {
                 exactAlarmsCard.dismiss()
+                cardRefresh.value++
+            }
+            HomeAction.AutoStartCardOpen -> effectChannel.trySend(HomeEffect.OpenAutoStartSettings)
+            HomeAction.AutoStartCardDismiss -> {
+                autoStartCard.dismiss()
                 cardRefresh.value++
             }
             // Room changes and the card follows ObserveNextAlarmUseCase to the alarm after it

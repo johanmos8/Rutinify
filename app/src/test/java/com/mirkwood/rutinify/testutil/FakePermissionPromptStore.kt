@@ -3,7 +3,11 @@ package com.mirkwood.rutinify.testutil
 import com.mirkwood.rutinify.domain.scheduler.PermissionPromptStore
 
 /** In-memory [PermissionPromptStore]. */
-class FakePermissionPromptStore(var explained: Boolean = false, var cardDismissed: Boolean = false) : PermissionPromptStore {
+class FakePermissionPromptStore(
+    var explained: Boolean = false,
+    var cardDismissed: Boolean = false,
+    var autoStartDismissed: Boolean = false,
+) : PermissionPromptStore {
 
     override fun notificationsExplained(): Boolean = explained
 
@@ -15,5 +19,11 @@ class FakePermissionPromptStore(var explained: Boolean = false, var cardDismisse
 
     override fun markExactAlarmsCardDismissed() {
         cardDismissed = true
+    }
+
+    override fun autoStartCardDismissed(): Boolean = autoStartDismissed
+
+    override fun markAutoStartCardDismissed() {
+        autoStartDismissed = true
     }
 }

@@ -72,6 +72,7 @@ Tareas ya definidas que no se pueden cerrar desde el repositorio ni desde el emu
 
 | Pendiente | Origen | Necesita | Prioridad |
 |---|---|---|---|
+| Avisos como el de Xiaomi (D-102) para otros fabricantes que cierran apps en segundo plano: Huawei, Honor, Oppo, Vivo, Samsung (apps en suspensión) | D-102 | Probar en esos teléfonos | Media |
 | Repaso diario en un receiver no exportado, para que otra app no pueda forzar un reprogramado | D-97 | — | Baja |
 | Ofrecer descargar Gemini Nano cuando el estado es `DOWNLOADABLE` | D-80 | Probar con un teléfono compatible | Baja |
 | Reglas de repetición más ricas (cada dos días, mensual) | Límites del README, R-23 | Cambio de contrato (schema 3) | Baja |

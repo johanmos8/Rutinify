@@ -11,4 +11,9 @@ interface PermissionPromptStore {
     fun exactAlarmsCardDismissed(): Boolean
 
     fun markExactAlarmsCardDismissed()
+
+    /** "Ahora no" or "Ya lo hice" on the auto-start card of Home (D-102). */
+    fun autoStartCardDismissed(): Boolean
+
+    fun markAutoStartCardDismissed()
 }

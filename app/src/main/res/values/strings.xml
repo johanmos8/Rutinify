@@ -23,6 +23,13 @@
     <string name="permissions_disabled">Desactivado</string>
     <string name="permissions_missing">Falta</string>
     <string name="permissions_battery_note">Algunos fabricantes cierran las apps en segundo plano para ahorrar batería. Si una alarma no suena, busca tu modelo en dontkillmyapp.com y sigue sus pasos.</string>
+    <string name="home_auto_start_title">Activa «Inicio automático»</string>
+    <string name="home_auto_start_body_denied">Tu Xiaomi no deja que Rutinify se abra sola, así que las alarmas no aparecen con la app cerrada. Activa «Inicio automático» y pon «Ahorro de batería» en «Sin restricciones».</string>
+    <string name="home_auto_start_body_unknown">En los Xiaomi, las alarmas no aparecen con la app cerrada si Rutinify no tiene «Inicio automático». Comprueba que esté activado y que «Ahorro de batería» esté en «Sin restricciones».</string>
+    <string name="action_already_done">Ya lo hice</string>
+    <string name="permissions_auto_start_title">Inicio automático (Xiaomi)</string>
+    <string name="permissions_auto_start_description">Para que las alarmas aparezcan aunque la app esté cerrada. Actívalo en los ajustes de Rutinify y pon «Ahorro de batería» en «Sin restricciones». Las alarmas críticas suenan igualmente.</string>
+    <string name="permissions_unchecked">Sin comprobar</string>
     <string name="action_fix">Corregir</string>
     <string name="home_exact_card_title">Activa las alarmas exactas</string>
     <string name="home_exact_card_body">Android tiene desactivadas las alarmas exactas para Rutinify, así que cada aviso puede llegar unos minutos tarde. Actívalas para que suenen a su hora.</string>

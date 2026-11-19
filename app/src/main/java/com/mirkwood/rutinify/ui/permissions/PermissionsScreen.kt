@@ -1,5 +1,6 @@
 package com.mirkwood.rutinify.ui.permissions
 
+import com.mirkwood.rutinify.domain.scheduler.AutoStartStatus
 import com.mirkwood.rutinify.ui.common.contentSideMargin
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
@@ -50,6 +51,7 @@ fun PermissionsRoute(
         onFixNotifications = fixNotifications,
         onFixExactAlarms = { openExactAlarmSettings(context) },
         onFixFullScreen = { openFullScreenIntentSettings(context) },
+        onFixAutoStart = { openAutoStartSettings(context) },
         modifier = modifier,
     )
 }
@@ -63,6 +65,7 @@ fun PermissionsScreen(
     onFixExactAlarms: () -> Unit,
     onFixFullScreen: () -> Unit,
     modifier: Modifier = Modifier,
+    onFixAutoStart: () -> Unit = {},
 ) {
     Scaffold(
         modifier = modifier,
@@ -102,6 +105,18 @@ fun PermissionsScreen(
                 grantedLabelRes = R.string.permissions_enabled,
                 missingLabelRes = R.string.permissions_disabled,
             )
+            // R-11.10, D-102: Xiaomi only; "Sin comprobar" when MIUI does not let the app read it
+            if (state.autoStart != AutoStartStatus.NOT_APPLICABLE) {
+                PermissionCard(
+                    titleRes = R.string.permissions_auto_start_title,
+                    descriptionRes = R.string.permissions_auto_start_description,
+                    granted = state.autoStart == AutoStartStatus.ALLOWED,
+                    onFix = onFixAutoStart,
+                    grantedLabelRes = R.string.permissions_enabled,
+                    missingLabelRes = if (state.autoStart == AutoStartStatus.DENIED) R.string.permissions_disabled else R.string.permissions_unchecked,
+                    fixLabelRes = R.string.action_open_settings,
+                )
+            }
             // Design K-2: informative only, no link (the app has no INTERNET permission, R-13.6)
             Text(
                 text = stringResource(R.string.permissions_battery_note),
@@ -121,6 +136,7 @@ private fun PermissionCard(
     modifier: Modifier = Modifier,
     @StringRes grantedLabelRes: Int = R.string.permissions_granted,
     @StringRes missingLabelRes: Int = R.string.permissions_missing,
+    @StringRes fixLabelRes: Int = R.string.action_fix,
 ) {
     Card(modifier = modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -134,7 +150,7 @@ private fun PermissionCard(
             }
             Text(stringResource(descriptionRes), style = MaterialTheme.typography.bodyMedium)
             if (!granted) {
-                Button(onClick = onFix) { Text(stringResource(R.string.action_fix)) }
+                Button(onClick = onFix) { Text(stringResource(fixLabelRes)) }
             }
         }
     }
@@ -145,7 +161,7 @@ private fun PermissionCard(
 private fun PermissionsScreenMissingPreview() {
     RutinifyTheme {
         PermissionsScreen(
-            state = PermissionsUiState(notifications = true, exactAlarms = false, fullScreenIntent = false),
+            state = PermissionsUiState(notifications = true, exactAlarms = false, fullScreenIntent = false, autoStart = AutoStartStatus.UNKNOWN),
             onBack = {},
             onFixNotifications = {},
             onFixExactAlarms = {},

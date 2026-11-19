@@ -8,6 +8,7 @@ import android.os.Build
 import androidx.core.content.ContextCompat
 import com.mirkwood.rutinify.data.notification.notificationsAllowed
 import com.mirkwood.rutinify.domain.scheduler.AlarmScheduler
+import com.mirkwood.rutinify.domain.scheduler.AutoStartStatus
 import com.mirkwood.rutinify.domain.scheduler.PermissionChecker
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -25,6 +26,8 @@ class AndroidPermissionChecker @Inject constructor(
 
     override fun fullScreenIntentGranted(): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE || notificationManager.canUseFullScreenIntent()
+
+    override fun autoStartStatus(): AutoStartStatus = XiaomiAutoStart.status(context)
 
     override fun notificationsRequestable(): Boolean =
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
